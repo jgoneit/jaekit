@@ -112,7 +112,7 @@ func (rep *Report) unmetLine(r Reason, goal string, words UnmetWords) string {
 		line += fmt.Sprintf(": seq %d, %s `ha log %s %d`", j.Seq, words.Output, goal, j.Seq)
 	case ok:
 		line += fmt.Sprintf(": seq %d, no stored output", j.Seq)
-	case r.Code != "manual_unconfirmed":
+	case r.Code != "manual_unconfirmed" && r.Code != "review_pending" && r.Code != "review_tier_missing":
 		line += ": " + words.NoFreshRecord
 	}
 	return line

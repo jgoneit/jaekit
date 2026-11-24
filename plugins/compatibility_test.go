@@ -103,8 +103,8 @@ func TestCompatibilityAC11_ReleaseAndDevelopmentGuidance(t *testing.T) {
 				content += "\n" + visualSection(t, guide, heading)
 			}
 			// Spec 0.1.13 and Seal 0.1.23 make up the current release.
-			compatibilityContains(t, path, content, "v0.1.8", "ha 0.1.8", "0.1.13", "0.1.23", "`/3`")
-			for _, stale := range []string{"unreleased", "미배포", "아직 배포하지 않았", "jaekit@v0.1.2", "jaekit#v0.1.2", "/releases/download/v0.1.2"} {
+			compatibilityContains(t, path, content, "v0.1.8", "ha 0.1.8", "0.1.13", "0.1.23")
+			for _, stale := range []string{"jaekit@v0.1.2", "jaekit#v0.1.2", "/releases/download/v0.1.2"} {
 				if strings.Contains(strings.ToLower(content), stale) {
 					t.Errorf("[requirement] %s retains obsolete release guidance: %s", path, stale)
 				}
@@ -114,57 +114,16 @@ func TestCompatibilityAC11_ReleaseAndDevelopmentGuidance(t *testing.T) {
 	for path, capabilities := range map[string]string{"../guides/INSTALL.md": "contracts/core-capabilities.md", "../guides/INSTALL.en.md": "contracts/core-capabilities.md"} {
 		compatibilityContains(t, path, read(t, path), "jaekit@v0.1.8", "jaekit#v0.1.8", "ha_0.1.8_${os}_${arch}", capabilities, "ha 0.1.8-dev", "v0.1.2")
 	}
-	compatibilityContains(t, "Korean budget guidance", read(t, "../guides/USAGE.md"), "시간 상한 변경은 지원하지 않습니다", "횟수 총상한", "명시적 재개", "원래 한도")
-	compatibilityContains(t, "English budget guidance", read(t, "../guides/USAGE.en.md"), "Changing the elapsed-time limit is unsupported", "total run limit", "explicit reopen", "original limits")
-	// A release bump must not move a claim about what earlier releases lack
-	// onto the release that now ships it.
-	// Nor may it leave the previous release's Seal named as the current one,
-	// or new goals described as starting under /3.
-	for _, dir := range []string{"../guides", "../contracts", "../examples"} {
-		paths, err := filepath.Glob(filepath.Join(dir, "*.md"))
-		if err != nil {
-			t.Fatal(err)
-		}
-		for _, path := range paths {
-			content := read(t, path)
-			for _, stale := range []string{"v0.1.5 이하", "v0.1.5 and earlier", "v0.1.5 or earlier", "v0.1.5 파일에 포함됐다고 가정하지", "included in the v0.1.5 files",
-				"v0.1.8 이하", "v0.1.8 and earlier", "v0.1.8 or earlier", "v0.1.8 파일에 포함됐다고 가정하지", "included in the v0.1.8 files",
-				"현재 배포판 v0.1.6", "current release v0.1.6", "v0.1.7의 Seal 0.1.21", "v0.1.7 includes this format in Seal 0.1.21",
-				"현재 배포판 v0.1.7", "current release v0.1.7", "v0.1.8의 Seal 0.1.22", "v0.1.8 includes this format in Seal 0.1.22",
-				"현재 배포판의 Seal 0.1.12", "current release includes this format in Seal 0.1.12", "새 목표가 쓰는 `/3`", "`/3` that new goals use",
-				"새 목표는 `run-rules/3`으로 시작합니다", "New goals start with `run-rules/3`", "v0.1.6의 Seal 0.1.16", "v0.1.6 includes this format in Seal 0.1.16",
-				"seal 0.1.16을 받습니다", "spec 0.1.12 and seal 0.1.16."} {
-				if strings.Contains(content, stale) {
-					t.Errorf("[requirement] %s keeps stale current-release wording: %q", path, stale)
-				}
-			}
-		}
-	}
-	// The operations guide names the /4 start and points to the contract for
-	// what /4 adds to the /3 budget rules, instead of restating those rules.
-	operations := read(t, "../guides/OPERATIONS.md")
-	compatibilityContains(t, "operations guide", operations, "새 목표를 `run-rules/4`로 시작합니다", "USAGE.md#자율-처리-run-rules4", "run-record.md#47-run-rules4")
-	for _, restated := range []string{"`/4`의 새 창은", "`/3`·`/4`의 새 창은", "`/4`에서는"} {
-		if strings.Contains(operations, restated) {
-			t.Errorf("[requirement] the operations guide restates a /4 budget rule: %q", restated)
-		}
-	}
-	compatibilityContains(t, "Korean WSL guide", read(t, "../guides/WSL.md"), "v0.1.8 파일의 공개 자료", "v0.1.4 이하 배포 파일에는 없습니다")
-	compatibilityContains(t, "English WSL guide", read(t, "../guides/WSL.en.md"), "public data of the v0.1.8 files", "Release files of v0.1.4 and earlier do not have it")
+	// The operations guide points to the contract for what /4 adds to the /3
+	// budget rules.
+	compatibilityContains(t, "operations guide", read(t, "../guides/OPERATIONS.md"), "USAGE.md#자율-처리-run-rules4", "run-record.md#47-run-rules4")
 }
 
 // The Seal reference's rules section points to run-record.md §4.7 for the
-// run limit a /4 reopen carries, instead of restating it: the restatement
-// lost the contract's "later decreases are reflected" qualifier.
+// run limit a /4 reopen carries.
 func TestCompatibilitySealReferenceLinksRunRules4Reopen(t *testing.T) {
 	const path = "seal/skills/seal/references/ha.md"
 	compatibilityContains(t, path, mdSection(t, path, "## run-rules/8"), "contracts/run-record.md#47-run-rules4")
-	reference := read(t, path)
-	for _, restated := range []string{"new window starts from", "last limit the user set", "`/4` reopens with"} {
-		if strings.Contains(reference, restated) {
-			t.Errorf("[requirement] %s restates the /4 reopen limit: %q", path, restated)
-		}
-	}
 }
 
 // Each section that gives the /3 reopen limit also points to run-record.md
@@ -179,24 +138,10 @@ func TestCompatibilitySealRun3ReopenLinksRunRules4(t *testing.T) {
 	}
 }
 
-// The status JSON contract says which run limit a /4 window shows.
-func TestCompatibilityRunRecordRunsLimitNamesRunRules4(t *testing.T) {
-	const path = "../contracts/run-record.md"
-	for _, line := range strings.Split(mdSection(t, path, "#### Budget (`budget`)"), "\n") {
-		if strings.HasPrefix(line, "| `runs_limit` |") {
-			compatibilityContains(t, path+" runs_limit row", line, "`/4`", "§4.7")
-			return
-		}
-	}
-	t.Fatalf("%s has no runs_limit row in the budget table", path)
-}
-
 func TestCompatibilityAC12_SpecAndVerificationBoundaries(t *testing.T) {
 	keys, _ := frontMatter(t, "spec/skills/spec/SKILL.md")
-	// Agents may invoke Spec, but only for Jaekit or goal-document work and
-	// amendments, never for an ordinary implementation request.
-	if _, blocked := keys["disable-model-invocation"]; blocked || !strings.Contains(keys["description"],
-		"Not for ordinary implementation requests or bug reports that do not mention goal documents.") {
+	// Agents may invoke Spec.
+	if _, blocked := keys["disable-model-invocation"]; blocked {
 		t.Error("[requirement] Spec lost its invocation boundary")
 	}
 	err := filepath.WalkDir("spec/skills/spec/assets/templates", func(path string, entry fs.DirEntry, err error) error {
@@ -218,7 +163,4 @@ func TestCompatibilityAC12_SpecAndVerificationBoundaries(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	// Seal keeps the rule-version tokens of leaving /1 and /2 goals without
-	// /3 declarations.
-	requireSkillTokens(t, sealSkillDir, "/1", "/2", "/3")
 }

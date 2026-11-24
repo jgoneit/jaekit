@@ -1,0 +1,24 @@
+# AC-5: run-rules/7 keeps `invalid_kind` for a `review` row. A start under
+# run-rules/7 refuses the PLAN (exit 65) and records nothing; in a goal started
+# under run-rules/7 the same row stays a lint problem and checks are refused.
+include review-kind-goal
+commit "a review row under run-rules/7"
+ha start $GOAL --request "implement the synthetic goal" --rules run-rules/7
+expect-exit 65
+expect-output invalid_kind
+expect-records 0
+replace $GOAL/PLAN.md "| AC-4 | review |" "| AC-4 | manual |"
+commit "AC-4 as a manual condition"
+ha start $GOAL --request "implement the synthetic goal" --rules run-rules/7
+expect-exit 0
+expect-records 1
+expect-record 1 rules run-rules/7
+replace $GOAL/PLAN.md "| AC-4 | manual |" "| AC-4 | review |"
+commit "AC-4 as a review row after a run-rules/7 start"
+ha lint $GOAL
+expect-exit 1
+expect-output invalid_kind
+expect-reason lint_error
+ha check $GOAL
+expect-exit 65
+expect-records 1

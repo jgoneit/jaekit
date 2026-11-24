@@ -22,9 +22,9 @@ Other files in the goal directory, such as check scripts or fixtures, are code: 
 | --- | --- | --- | --- | --- |
 
 - `ID`: every `AC-n` from the goal documents exactly once. Do not restate the criterion text. Extra checks of your own are `EX-n` and are always optional.
-- `종류`: `change` (new behavior), `maintain` (existing behavior kept), `manual` (cannot be checked by machine here).
-- `검증 명령`: one code span, run from the repository root as argv without a shell. No pipes, redirects, `&`, `;`, `$`, or backquotes. Quote words with spaces. Point to a script in the repository when more is needed. For `manual`, write `—` and the reason.
-- `검사 경로`: the check files that decide the condition, comma separated, no globs. Required for `change`: up to `run-rules/7` the baseline copies exactly these files from HEAD onto the base commit; under `run-rules/8` it copies the check paths of every marked change condition instead.
+- `종류`: `change` (new behavior), `maintain` (existing behavior kept), `manual` (cannot be checked by machine here), `review` (under `run-rules/8`: document content that no product behavior reads, met by the review gate of a `standard` or `strict` goal and never in a `light` goal or one without an `Assurance:` line; see [Check inputs](#check-inputs)).
+- `검증 명령`: one code span, run from the repository root as argv without a shell. No pipes, redirects, `&`, `;`, `$`, or backquotes. Quote words with spaces. Point to a script in the repository when more is needed. For `manual`, write `—` and the reason. For `review`, write `—`, optionally followed by a reason (`— <reason>`).
+- `검사 경로`: the check files that decide the condition, comma separated, no globs. Required for `change`: up to `run-rules/7` the baseline copies exactly these files from HEAD onto the base commit; under `run-rules/8` it copies the check paths of every marked change condition instead. Empty for `review`.
 - `Task`: the task IDs that implement the condition.
 
 For `run-rules/7` and `run-rules/8`, an optional final `baseline` column marks the change conditions that require a baseline:
@@ -34,7 +34,7 @@ For `run-rules/7` and `run-rules/8`, an optional final `baseline` column marks t
 
 Write `요구` for a required baseline, exactly on the marked conditions whose reasons `REVIEW.md` gives ([REVIEW.md](#reviewmd)); an empty cell or `—` means no baseline requirement. Without the column, no change condition is marked. `요구` on a non-change row or any other value is a `baseline_marker` lint problem. The five-column table remains valid, and goals under earlier rules keep their baseline requirements regardless of these marks. Check paths remain required for every change condition, including unmarked ones, for structured results, review and, under `run-rules/7`, the check freeze; `run-rules/8` has no check freeze.
 
-Lint rules: every goal criterion appears once; every condition has a task; every task is grounded in a condition or is a prerequisite of another task; no dependency cycles; `change` has a command and check paths; `maintain` has a command; `manual` has a reason.
+Lint rules: every goal criterion appears once; every condition has a task; every task is grounded in a condition or is a prerequisite of another task; no dependency cycles; `change` has a command and check paths; `maintain` has a command; `manual` has a reason; `review` has `—` as its command (`review_command_present` otherwise) and no check paths (`review_check_paths_present` otherwise), and a goal started under rules other than `run-rules/8` reports it as `invalid_kind`.
 
 Behavior that must be preserved belongs in the goal documents as a required criterion. If it is missing there but must not break, raise it with the user in `REVIEW.md` under open decisions; an `EX-n` row cannot protect it.
 
@@ -109,6 +109,8 @@ spar run --stage candidate --base <goal base commit> --head <head> \
 ## Check inputs
 
 These rules cover every check in the condition table (`change`, `maintain`, `EX-n` and task commands) and every producer, configuration or helper file it runs or reads. They apply to every check written or changed under this skill, whichever Seal started the goal. They never require rewriting or converting an existing goal's checks, records, `PROGRESS.md` or `REVIEW.md` for this reason alone. They add no user confirmation, approval or question: the executor applies them and decides whether an existing check needs rewriting, and for one that falls short of them it decides whether an existing check is worth rewriting, without asking the user. When Core lists `runner-adapters/v1`, a runner adapter linking a change condition to an existing test keeps most of them by construction.
+
+**Document content.** A criterion whose required result is the content of documents (prose in docs, skills, guides, contracts or templates) and that no product behavior reads is a `review` condition: the review gate a `standard` or `strict` goal needs for completion meets it, with no check record, and in a `light` goal or one without an `Assurance:` line it is never met. Do not write new tests that pin document prose, that is, that a sentence, phrase, heading or word appears or does not appear. Criteria about the behavior of `ha`, `spar` or scripts, and about format tokens code parses, stay `change` or `maintain` with product tests.
 
 **What a check may read.** Each such check, with every file it runs or reads, judges only the tree being checked and the external inputs its condition names: no start or base commit, fixed commit, start record or Core output, or other commits, refs or objects. The tree being checked is HEAD with its tracked files, or the base tree the baseline overlays. The general property: a full clone and a history-less clone of the same tree give the same verdict. Typical history dependence to avoid:
 

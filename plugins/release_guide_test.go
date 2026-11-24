@@ -132,13 +132,12 @@ func TestReleaseGuideOperationsSetup(t *testing.T) {
 }
 
 // README-linked guides keep host invocations, the Seal start
-// command and resume phrase, the two-step flow, and the link to plugin
-// conflict guidance.
+// command, the two-step flow, and the link to plugin conflict guidance.
 func TestReleaseGuideKeepsExisting(t *testing.T) {
 	TestSpecInvocationGuide(t)
 	TestSealStartCommandGuide(t)
 	TestGuidesDescribeDirectSave(t)
-	requireAll(t, "../guides/USAGE.md", "`docs/specs/<goal> 이어서 해줘`", "`@Spec`")
+	requireAll(t, "../guides/USAGE.md", "`@Spec`")
 	requireAll(t, "../guides/INSTALL.md", "(USAGE.md#문제-해결)")
 }
 

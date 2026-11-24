@@ -117,9 +117,6 @@ func TestEnglishContractsAC1_OneEnglishFile(t *testing.T) {
 	for _, name := range docs {
 		rel := "contracts/" + name
 		text := ecRead(t, rel)
-		if strings.Contains(text, "This is a translation of") || strings.Contains(text, "original decides") {
-			t.Errorf("jaekit:violation=two-language-contract: %s keeps the translation header", rel)
-		}
 		prose, _, _ := ecParts(text)
 		var korean []string
 		for _, line := range prose {

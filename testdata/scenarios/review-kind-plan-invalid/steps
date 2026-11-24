@@ -1,0 +1,52 @@
+# AC-1: a `review` row with a verification command is `review_command_present`
+# and one with check paths is `review_check_paths_present`, before start and
+# after a run-rules/8 start. The start and checks are refused and nothing is
+# recorded.
+include review-kind-goal
+replace $GOAL/PLAN.md "| AC-4 | review | — 문서 내용 기준 | |" "| AC-4 | review | `sh tests/keep.sh` | |"
+commit "a review row with a command"
+ha lint $GOAL
+expect-exit 1
+expect-output review_command_present
+expect-no-output review_check_paths_present
+expect-no-output invalid_kind
+ha start $GOAL --request "implement the synthetic goal" --rules run-rules/8
+expect-exit 65
+expect-output review_command_present
+expect-records 0
+replace $GOAL/PLAN.md "| AC-4 | review | `sh tests/keep.sh` | |" "| AC-4 | review | — 문서 내용 기준 | checks/greeting.sh |"
+commit "a review row with a check path"
+ha lint $GOAL
+expect-exit 1
+expect-output review_check_paths_present
+expect-no-output review_command_present
+expect-no-output invalid_kind
+ha start $GOAL --request "implement the synthetic goal" --rules run-rules/8
+expect-exit 65
+expect-output review_check_paths_present
+expect-records 0
+# After a run-rules/8 start the same rows are still lint problems.
+replace $GOAL/PLAN.md "| AC-4 | review | — 문서 내용 기준 | checks/greeting.sh |" "| AC-4 | review | — 문서 내용 기준 | |"
+commit "a valid review row"
+ha start $GOAL --request "implement the synthetic goal" --rules run-rules/8
+expect-exit 0
+expect-records 1
+replace $GOAL/PLAN.md "| AC-4 | review | — 문서 내용 기준 | |" "| AC-4 | review | — 문서 내용 기준 | checks/greeting.sh |"
+commit "a check path on the review row after start"
+ha lint $GOAL
+expect-exit 1
+expect-output review_check_paths_present
+expect-no-output invalid_kind
+expect-reason lint_error
+ha check $GOAL
+expect-exit 65
+expect-records 1
+replace $GOAL/PLAN.md "| AC-4 | review | — 문서 내용 기준 | checks/greeting.sh |" "| AC-4 | review | `sh tests/keep.sh` | |"
+commit "a command on the review row after start"
+ha lint $GOAL
+expect-exit 1
+expect-output review_command_present
+expect-no-output invalid_kind
+ha check $GOAL AC-1
+expect-exit 65
+expect-records 1

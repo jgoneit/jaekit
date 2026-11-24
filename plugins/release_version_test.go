@@ -199,28 +199,28 @@ func TestReleaseVersionSkillLinks(t *testing.T) {
 		t.Errorf("%s does not name %s", sealSkillDir, install)
 	}
 	requireAll(t, "../contracts/core-capabilities.md",
-		"[check_core.py](https://github.com/jgoneit/jaekit/blob/"+rvTag+"/plugins/seal/skills/seal/scripts/check_core.py), included in Seal")
+		"[check_core.py](https://github.com/jgoneit/jaekit/blob/"+rvTag+"/plugins/seal/skills/seal/scripts/check_core.py)")
 }
 
-// The install guides' combination table has the current release's row and
-// the source build's row, and the usage and operations guides state the
-// current combination.
+// The install guides' combination table has the current release's versions
+// and the source build's versions in table rows, and the usage and
+// operations guides state the current combination.
 func TestReleaseVersionCombination(t *testing.T) {
 	for _, c := range []struct {
 		path string
 		rows []string
 	}{
 		{"../guides/INSTALL.md", []string{
-			"| 현재 배포판 `v0.1.8` | `ha 0.1.8`, `spar 0.1.8` | 0.1.13 | 0.1.23 | 0.1.4 |",
-			"| 소스 빌드 | `ha 0.1.8-dev`, `spar 0.1.8-dev` |"}},
+			" `v0.1.8` | `ha 0.1.8`, `spar 0.1.8` | 0.1.13 | 0.1.23 | 0.1.4 |",
+			" | `ha 0.1.8-dev`, `spar 0.1.8-dev` |"}},
 		{"../guides/INSTALL.en.md", []string{
-			"| Current release `v0.1.8` | `ha 0.1.8`, `spar 0.1.8` | 0.1.13 | 0.1.23 | 0.1.4 |",
-			"| Source build | `ha 0.1.8-dev`, `spar 0.1.8-dev` |"}},
+			" `v0.1.8` | `ha 0.1.8`, `spar 0.1.8` | 0.1.13 | 0.1.23 | 0.1.4 |",
+			" | `ha 0.1.8-dev`, `spar 0.1.8-dev` |"}},
 	} {
 		lines := strings.Split(read(t, c.path), "\n")
-		for _, prefix := range c.rows {
-			if !slices.ContainsFunc(lines, func(line string) bool { return strings.HasPrefix(line, prefix) }) {
-				t.Errorf("%s has no table row starting %q", c.path, prefix)
+		for _, cells := range c.rows {
+			if !slices.ContainsFunc(lines, func(line string) bool { return strings.HasPrefix(line, "| ") && strings.Contains(line, cells) }) {
+				t.Errorf("%s has no table row with %q", c.path, cells)
 			}
 		}
 	}

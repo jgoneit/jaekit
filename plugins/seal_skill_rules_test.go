@@ -18,7 +18,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
-	"slices"
 	"strings"
 	"testing"
 )
@@ -112,16 +111,6 @@ func skTemplateLine(t *testing.T, path, heading string, phrases ...string) {
 		}
 	}
 	t.Errorf("%s %s has no line holding all of %q", path, heading, phrases)
-}
-
-// skUnquote strips the backquotes of tokens written as Markdown code spans,
-// such as "`관측`", to give the code span contents a skill token check reads.
-func skUnquote(tokens []string) []string {
-	out := make([]string, len(tokens))
-	for i, tok := range tokens {
-		out[i] = strings.Trim(tok, "`")
-	}
-	return out
 }
 
 // skStartSpan finds the ha start command the skill tells the agent to run:
@@ -370,51 +359,38 @@ func TestSealSkillWordCapStated(t *testing.T) {
 	}
 }
 
-// The skill names the install route and the PATH check for a missing ha,
-// and never sends users to the jaekit repository to install it.
+// The skill names the install route and the PATH check for a missing ha.
 func TestSealSkillMissingHa(t *testing.T) {
-	forbidSkillText(t, sealSkillDir, "from the jaekit repository")
 	requireSkillTokens(t, sealSkillDir, "brew install jgoneit/tap/jaekit", "which -a ha")
 }
 
 // The check input rules keep their tokens: the condition kinds they cover,
 // the runner adapter feature, the path that must not change and the reason
 // Core reports for it, the documents they never convert and the link to the
-// details; the skill keeps the confirm note and the legacy rule forms those
-// rules sit beside.
+// details; the skill keeps the confirm note.
 func TestSealSkillCheckInputs(t *testing.T) {
-	requireSkillTokens(t, sealSkillDir, "## Check inputs", "## Assurance policy",
+	requireSkillTokens(t, sealSkillDir,
 		"change", "maintain", "EX-n", "runner-adapters/v1", "바꿀 수 있는 경로", "out_of_scope", "PROGRESS.md", "REVIEW.md",
 		"link:references/bundle.md#check-inputs",
-		"ha note <goal> confirm <AC-n | scope:<path> | tests:<path> | spec>", "needs_user", "/1", "/2")
+		"ha note <goal> confirm <AC-n | scope:<path> | tests:<path> | spec>", "needs_user")
 }
 
-// The skill keeps its sections.
-func TestSealSkillKeptAreas(t *testing.T) {
-	requireSkillTokens(t, sealSkillDir, "## Authority", "## The execution bundle", "## Seal Core", "## Check inputs",
-		"## Assurance policy", "## Independent review", "## Completion", "## Post-completion discoveries", "## Resuming",
-		"## Forbidden", "## Language")
-}
-
-// The skill has its `## References` heading and links every file in
-// references/.
+// The skill links every file in references/.
 func TestSealSkillReferences(t *testing.T) {
 	refs, err := filepath.Glob(filepath.Join(sealSkillDir, "references", "*.md"))
 	if err != nil || len(refs) == 0 {
 		t.Fatalf("%s/references holds no .md file: %v", sealSkillDir, err)
 	}
-	tokens := []string{"## References"}
+	var tokens []string
 	for _, ref := range refs {
 		tokens = append(tokens, "link:references/"+filepath.Base(ref))
 	}
 	requireSkillTokens(t, sealSkillDir, tokens...)
 }
 
-// Goals started with an earlier Seal have a reference the skill links, which
-// states the rules for them.
+// Goals started with an earlier Seal have a reference the skill links.
 func TestSealSkillEarlierGoalForms(t *testing.T) {
-	requireSkillTokens(t, sealSkillDir, "link:references/earlier-goals.md", "# Goals started with an earlier Seal")
-	skRequire(t, scrEarlier, read(t, scrEarlier), scrEarlierRules...)
+	requireSkillTokens(t, sealSkillDir, "link:references/earlier-goals.md")
 }
 
 // The review stages, the order of ha done and rework, the finding classes
@@ -438,46 +414,30 @@ func TestSealSkillStartChecks(t *testing.T) {
 	requireSkillTokens(t, sealSkillDir, "- 검증 실행: 자동", "## 실행 환경", "ha doctor <goal>")
 }
 
-// `## 현재` and the completion report come from ha report in the user's
-// language and never from ha status or ha done: the skill's documents keep
-// those tokens and the link to the report format, and the PROGRESS template
-// says the same.
+// The completion report comes from ha report in the user's language: the
+// skill's documents keep those tokens and the link to the report format.
 func TestSealSkillProgressReport(t *testing.T) {
-	requireSkillTokens(t, sealSkillDir, "## 현재", "ha report", "ha report <goal>", "--lang ko", "--lang en", "ha status",
-		"ha done", "## Completion report", "manual", "link:references/bundle.md#completion-report")
-	skTemplate(t, skProgressTmpl, "## 현재",
-		"opens with the stamp `ha report <goal>` prints for `## 현재`, pasted unchanged", "never type a check time yourself")
-	skTemplate(t, skProgressTmpl, "## 완료 보고",
-		"the output of `ha report <goal> --lang ko`", "never paste `ha status` or `ha done` output")
+	requireSkillTokens(t, sealSkillDir, "ha report", "ha report <goal>", "--lang ko", "--lang en", "ha status",
+		"ha done", "manual", "link:references/bundle.md#completion-report")
 }
 
 // The bundle and ha references keep the automatic budget, the `## 실행 환경`
-// section, the start check and the report and doctor commands; the PLAN and
-// REVIEW templates carry the automatic budget, `## 실행 환경` and the review
-// plan.
+// section, the start check and the report and doctor commands; the PLAN
+// template carries the automatic budget and `## 실행 환경`.
 func TestSealSkillReferencesAndTemplates(t *testing.T) {
 	requireSkillTokens(t, sealSkillDir, "검증 실행: 자동", "ha start", "### `## 실행 환경`", "--check-skill",
 		"ha report <goal> [--lang ko\\|en]", "ha doctor <goal>")
 	skTemplate(t, skPlanTmpl, "", "- 검증 실행: 자동", "## 실행 환경")
-	skTemplate(t, skReviewTmpl, "",
-		"## 독립 검토", "the planned review stages", "product invariants and decision rules", "supported input forms")
 }
 
-// The rules for questions to the user keep their sections and tokens: the
-// questions reference and the skill's link to it, the scope section that
-// lists new check files from the start, the ha doctor report, the confirm
-// note an early answer becomes and the wait note.
+// The rules for questions to the user keep their tokens: the skill's link to
+// the questions reference, the scope section that lists new check files from
+// the start, the ha doctor report, the confirm note an early answer becomes
+// and the wait note.
 func TestSealSkillQuestionsUpFront(t *testing.T) {
-	requireSkillTokens(t, sealSkillDir, "## Starting", "## Authority", "## Seal Core", "## Questions for the user",
+	requireSkillTokens(t, sealSkillDir,
 		"### `## 범위`", "## run-rules/8", "link:references/bundle.md#questions-for-the-user", "바꿀 수 있는 경로",
 		"ha doctor", "ha note <goal> confirm", `ha note <goal> wait --reason "<the decision asked>"`)
-}
-
-// The skill names the goal directory, and no document of the skill turns
-// local retention infrastructure into a product requirement.
-func TestSealSkillProjectRecords(t *testing.T) {
-	requireSkillTokens(t, sealSkillDir, "docs/specs/<goal>")
-	forbidSkillText(t, sealSkillDir, "private backup repository", "primary checkout", "launchd")
 }
 
 // Review rounds take the goal's check files as `--check-path`.
@@ -538,13 +498,7 @@ var skDuties = []skDuty{
 	{"quote-request", []string{"ha start --request"}},
 	// The execution bundle
 	{"bundle-handover", []string{"ha status"}},
-	{"templates", []string{"assets/templates/"}},
-	{"jaekit-docs-policy", []string{"docs/"}},
-	{"bundle-files", []string{"PLAN.md condition table, result declarations, scope, tasks, budget, tools"}},
 	{"plan-changes", []string{"PROGRESS.md"}},
-	{"plan-change-impact", []string{"시각 \\| 변경 \\| 이유 \\| 영향 \\| 다시 검토한 것"}},
-	{"current-stamp", []string{"## 현재", "ha report"}},
-	{"timeline-append", []string{"## 타임라인"}},
 	{"extra-checks-optional", []string{"EX-n"}},
 	{"needs-user-review", []string{"REVIEW.md", "needs_user"}},
 	// Seal Core
@@ -553,7 +507,6 @@ var skDuties = []skDuty{
 	{"start-rules", []string{"--rules run-rules/8"}},
 	{"host-flags", []string{"--host-name", "--host-version", "--model"}},
 	{"baseline", []string{"ha check <goal> --baseline AC-n", "change"}},
-	{"legacy-semantics", []string{"/1", "/2"}},
 	{"clean-committed", []string{"ha check", "fail"}},
 	{"unknown-shares-limit", []string{"unknown"}},
 	// Check inputs
@@ -586,18 +539,13 @@ var skDuties = []skDuty{
 	// Resuming
 	{"resume-status", []string{"ha status <goal>"}},
 	{"resume-trust", []string{"PROGRESS.md"}},
-	{"resume-entry", []string{"재개"}},
-	{"resume-no-convert", []string{"/3", "/1", "/2"}},
 	// Budget
 	{"budget-default", []string{"- 검증 실행: 자동"}},
 	{"budget-interpretation", []string{"--interpretation"}},
-	{"budget-rules4-window", []string{"/4"}},
-	{"budget-legacy", []string{"/1", "/2"}},
 	// Forbidden
 	{"forbid-records", []string{"runs.jsonl"}},
 	{"forbid-output", []string{"ha log"}},
 	{"forbid-output-pointer", []string{"ha log <goal> <seq>"}},
-	{"forbid-self-change", []string{"## 개선 메모"}},
 }
 
 // No duty of the Seal skill silently loses the format tokens that state it.
@@ -608,29 +556,28 @@ func TestSealSkillDutiesAccounted(t *testing.T) {
 }
 
 // The baseline guidance keeps its tokens: the rule and the PLAN column mark,
-// the sections that state it, the unobserved scope it adds and the skill's
-// links to those sections.
+// and the skill's links to the sections that state it.
 func TestSealSkillBaselineGuidance(t *testing.T) {
-	requireSkillTokens(t, sealSkillDir, "## REVIEW.md", "## Check inputs", "## Structured change results", "## Review summary",
-		"run-rules/7", "baseline", "요구", "### 보지 않은 것",
+	requireSkillTokens(t, sealSkillDir,
+		"run-rules/7", "baseline", "요구",
 		"link:references/bundle.md", "link:references/bundle.md#check-inputs", "link:references/bundle.md#review-summary",
 		"link:references/ha.md#structured-change-results")
 }
 
 // Under run-rules/7 "before any baseline" means before the goal's first ha
-// check record: the questions section that says so, ha doctor and the
-// skill's link to that section keep their tokens.
+// check record: ha doctor and the skill's link to the questions section keep
+// their tokens.
 func TestSealSkillFirstCheckPoint(t *testing.T) {
-	requireSkillTokens(t, sealSkillDir, "## Questions for the user", "run-rules/7", "ha check", "ha doctor", "ha doctor <goal>",
+	requireSkillTokens(t, sealSkillDir, "run-rules/7", "ha check", "ha doctor", "ha doctor <goal>",
 		"link:references/bundle.md#questions-for-the-user")
 }
 
-// The input failure guidance keeps its tokens: the check inputs and
-// assurance sections, the condition kinds that require no baseline, the
-// declared missing case, REVIEW.md where the producer's outcomes go, and the
-// links to those sections.
+// The input failure guidance keeps its tokens: the condition kinds that
+// require no baseline, the declared missing case, REVIEW.md where the
+// producer's outcomes go, and the links to the check inputs and assurance
+// sections.
 func TestSealSkillInputFailureGuidance(t *testing.T) {
-	requireSkillTokens(t, sealSkillDir, "## Check inputs", "## Assurance policy and counterexamples", "maintain", "EX-n",
+	requireSkillTokens(t, sealSkillDir, "maintain", "EX-n",
 		"REVIEW.md", "missing: violation", "link:references/bundle.md#check-inputs",
 		"link:references/bundle.md#assurance-policy-and-counterexamples")
 }
@@ -639,21 +586,20 @@ func TestSealSkillInputFailureGuidance(t *testing.T) {
 // freeze head, the notes that record the gate and a changed check file, the
 // freeze display and the link to the check inputs.
 func TestSealSkillCheckFreeze(t *testing.T) {
-	requireSkillTokens(t, sealSkillDir, "## Check inputs", "plan", "strict", "candidate", "standard",
+	requireSkillTokens(t, sealSkillDir, "plan", "strict", "candidate", "standard",
 		"ha note <goal> check-change checks:<path> --reason", "ha note <goal> review --gate", "check_freeze",
 		"link:references/bundle.md#check-inputs")
 }
 
 // The skill starts under run-rules/8, and its documents keep that rule's
-// section, the minimum formula, the baseline mark, the check-change note,
-// the freeze stages and the condition table section; the PLAN and REVIEW
-// templates name the rule and the mark.
+// section, the baseline mark, the check-change note, the freeze stages and
+// the condition table section; the PLAN and REVIEW templates name the rule
+// and the mark.
 func TestSealSkillRunRules7(t *testing.T) {
 	requireSkillTokens(t, sealSkillDir, "--rules run-rules/8", "## run-rules/8", "run-rules/6",
-		"표시한 필수 change × 2 + 표시하지 않은 필수 change + 필수 maintain",
 		"ha note <goal> check-change", "baseline", "요구", "plan", "candidate", "### `## 조건표`")
-	skTemplateLine(t, skPlanTmpl, "## 조건표", "`run-rules/8`", "`baseline` column", "`요구`")
-	skTemplateLine(t, skReviewTmpl, "## 검증 방법과 환경", "`run-rules/8`", "requires a baseline", "`요구`")
+	skTemplateLine(t, skPlanTmpl, "## 조건표", "`run-rules/8`", "`요구`")
+	skTemplateLine(t, skReviewTmpl, "## 검증 방법과 환경", "`run-rules/8`", "`요구`")
 }
 
 // The ha reference keeps the run-rules/8 section, and the skill's documents
@@ -663,34 +609,9 @@ func TestSealSkillRunRules6(t *testing.T) {
 }
 
 // The review summary, the REVIEW and PROGRESS forms, and the decisions passed
-// to Spar rounds: the PROGRESS and REVIEW templates keep their wording and
-// structure, and the skill's documents keep the format tokens.
+// to Spar rounds: the skill's documents keep the format tokens.
 
 const sbSummary = "## 검수 요약"
-
-// sbNorm collapses every run of white space to one space, so line wrapping
-// does not change what a check sees.
-func sbNorm(s string) string { return strings.Join(strings.Fields(s), " ") }
-
-// sbMissing lists the tokens the text lacks, ignoring line wrapping.
-func sbMissing(where, text string, tokens ...string) []string {
-	var out []string
-	norm := sbNorm(text)
-	for _, tok := range tokens {
-		if !strings.Contains(norm, sbNorm(tok)) {
-			out = append(out, fmt.Sprintf("%s lacks %q", where, tok))
-		}
-	}
-	return out
-}
-
-// sbNeed reports every token the text lacks, ignoring line wrapping.
-func sbNeed(t *testing.T, where, text string, tokens ...string) {
-	t.Helper()
-	for _, m := range sbMissing(where, text, tokens...) {
-		t.Error(m)
-	}
-}
 
 // sbLevel is the heading level of a Markdown line, or 0 when it is not a
 // heading. Lines inside fenced code are left to the caller.
@@ -720,25 +641,6 @@ func sbPrefixFence(open, line string) (string, bool) {
 				return m, true
 			}
 			if open == m {
-				return "", true
-			}
-		}
-	}
-	return open, open != ""
-}
-
-// sbRunFence opens a fence at a run of three or more backticks or tildes and
-// closes it at a run of the same character at least as long with nothing
-// after it.
-func sbRunFence(open, line string) (string, bool) {
-	trim := strings.TrimSpace(line)
-	if len(trim) >= 3 && (trim[0] == '`' || trim[0] == '~') {
-		n := len(trim) - len(strings.TrimLeft(trim, trim[:1]))
-		if n >= 3 {
-			if open == "" {
-				return trim[:n], true
-			}
-			if trim[0] == open[0] && n >= len(open) && strings.TrimSpace(trim[n:]) == "" {
 				return "", true
 			}
 		}
@@ -805,17 +707,6 @@ func sbPrefixSection(text, start string) string {
 	return ""
 }
 
-// sbNeedSection returns a section of a file, reporting a missing section. A
-// file that cannot be read fails the test.
-func sbNeedSection(t *testing.T, path, heading string) (string, bool) {
-	t.Helper()
-	sec, ok := sbSection(read(t, path), heading)
-	if !ok {
-		t.Errorf("%s has no section %q", path, heading)
-	}
-	return sec, ok
-}
-
 // sbHeadings lists the headings of one level outside fenced code, in order.
 func sbHeadings(text string, level int, fence sbFencer) []string {
 	var out []string
@@ -832,34 +723,8 @@ func sbHeadings(text string, level int, fence sbFencer) []string {
 	return out
 }
 
-// The four headings of the review summary: all of them, in this order.
-var sbSummaryHeadings = []string{
-	"### 바뀐 것",
-	"### 근거",
-	"### 직접 볼 것",
-	"### 보지 않은 것",
-}
-
-// The opening lines of the review summary, before its first heading.
-var sbSummaryOpening = []string{
-	"the completion record's seq and commit, the assurance tier, how many required conditions are satisfied, and the review gate result",
-	"one line on what the change does",
-	"where to start looking",
-}
-
-// The endings a review finding can have, all of them.
-var sbEndings = []string{"`고침`", "`반박`", "`중복`", "`사용자의 답`", "`이슈로 보류`", "`자동 보류`", "`처리 없음`"}
-
 // sbNoPlace marks a review summary item that has no place under its heading.
 const sbNoPlace = "summary-item-without-place"
-
-// sbMark reports, with the marker of id first, every token the text lacks.
-func sbMark(t *testing.T, id, where, text string, tokens ...string) {
-	t.Helper()
-	for _, m := range sbMissing(where, text, tokens...) {
-		t.Errorf("jaekit:violation=%s: %s", id, m)
-	}
-}
 
 // sbMarkSkillTokens reports, with the marker of id first, each token that no
 // document of the Seal skill holds as a format token.
@@ -873,258 +738,43 @@ func sbMarkSkillTokens(t *testing.T, id string, tokens ...string) {
 	}
 }
 
-// sbTmplSummary is the PROGRESS template's `## 검수 요약`; a template without
-// it, or without a `## ` line after it, fails the test as a broken setup.
-func sbTmplSummary(t *testing.T) string {
-	t.Helper()
-	text := read(t, skProgressTmpl)
-	sec, ok := sbSection(text, sbSummary)
-	if !ok || !strings.Contains(text, sec+"\n## ") {
-		t.Fatalf("%s has no section %q followed by a `## ` line", skProgressTmpl, sbSummary)
-	}
-	return sec
-}
-
-// sbNeedSub asks, with the marker of id, the tokens of the subsection under
-// heading of the PROGRESS template's `## 검수 요약`; a missing subsection is
-// reported with the marker.
-func sbNeedSub(t *testing.T, id, heading string, tokens ...string) {
-	t.Helper()
-	sub, ok := sbSection(sbTmplSummary(t), heading)
-	if !ok {
-		t.Errorf("jaekit:violation=%s: %s: %s has no %q", id, skProgressTmpl, sbSummary, heading)
-		return
-	}
-	sbMark(t, id, skProgressTmpl+" "+heading, sub, tokens...)
-}
-
-// sbNeedSummary asks the tokens of the PROGRESS template's `## 검수 요약`.
-func sbNeedSummary(t *testing.T, tokens ...string) {
-	t.Helper()
-	if sec, ok := sbNeedSection(t, skProgressTmpl, sbSummary); ok {
-		sbNeed(t, skProgressTmpl+" "+sbSummary, sec, tokens...)
-	}
-}
-
-// `## 검수 요약` is the section right after `## 현재` in the PROGRESS
-// template, which says when it is written; the skill's documents keep the
-// tokens of both sections, of ha done and of the stops it is not written at.
+// The skill's documents keep the tokens of ha done and of the stops the
+// review summary is not written at.
 func TestSealBundleReviewSummaryPlacement(t *testing.T) {
-	heads := sbHeadings(read(t, skProgressTmpl), 2, sbPrefixFence)
-	found := false
-	for i, h := range heads {
-		if h == "## 현재" {
-			found = true
-			if i+1 >= len(heads) || heads[i+1] != sbSummary {
-				t.Errorf("%s: the section after `## 현재` is not %q", skProgressTmpl, sbSummary)
-			}
-		}
-	}
-	if !found {
-		t.Errorf("%s has no `## 현재`", skProgressTmpl)
-	}
-	sbNeedSummary(t,
-		"Written once `ha done` records completion, as of that completion record",
-		"rewritten as of each new completion record after a reopen",
-		"not written before completion or when work stops at `needs_user`, `blocked` or `budget_exhausted`")
-	requireSkillTokens(t, sealSkillDir, "## 현재", sbSummary, "ha done", "needs_user", "blocked", "budget_exhausted")
+	requireSkillTokens(t, sealSkillDir, "ha done", "needs_user", "blocked", "budget_exhausted")
 }
 
-// The template's review summary has opening lines and exactly the four
-// headings, in order, with `없음` under one that has nothing to list; the
-// skill's documents name every heading and `없음`.
-func TestSealBundleReviewSummaryStructure(t *testing.T) {
-	const id = "seven-heading-template"
-	sec := sbTmplSummary(t)
-	if got := sbHeadings(sec, 3, sbPrefixFence); !slices.Equal(got, sbSummaryHeadings) {
-		t.Errorf("jaekit:violation=%s: %s: the headings of %s are %q, not %q", id, skProgressTmpl, sbSummary, got, sbSummaryHeadings)
-	}
-	opening := sec
-	if i := strings.Index(sec, "\n"+sbSummaryHeadings[0]); i >= 0 {
-		opening = sec[:i]
-	}
-	sbMark(t, id, skProgressTmpl+" "+sbSummary+" before "+sbSummaryHeadings[0], opening, sbSummaryOpening...)
-	sbMark(t, id, skProgressTmpl+" "+sbSummary+" before "+sbSummaryHeadings[0], opening, "The four headings below follow")
-	sbMark(t, id, skProgressTmpl+" "+sbSummary, sec, "write `없음` under a heading with nothing to list")
-	sbNeedSub(t, id, sbSummaryHeadings[1], "the documents and sections that hold the detail")
-	sbMarkSkillTokens(t, id, append([]string{"없음"}, sbSummaryHeadings...)...)
-}
-
-// What changed: a table lists every changed file but the goal documents,
-// check files included; the skill's documents keep its heading and columns.
-func TestSealBundleReviewSummaryChangedFiles(t *testing.T) {
-	sbNeedSub(t, sbNoPlace, sbSummaryHeadings[0], "| 바뀐 동작 | 조건 | 파일 |",
-		"Every file changed from the goal's base to the completion commit, goal documents excepted, appears in a row",
-		"this goal's check files have rows too")
-	sbMarkSkillTokens(t, sbNoPlace, sbSummaryHeadings[0], "바뀐 동작 | 조건 | 파일")
-}
-
-// Under what changed, changes outside the scope, to existing tests and to an
-// earlier goal's checks are listed with the user's words or the reason.
-func TestSealBundleReviewSummaryScopeChanges(t *testing.T) {
-	sbNeedSub(t, sbNoPlace, sbSummaryHeadings[0],
-		"changes outside the scope or to existing things",
-		"files outside the SPEC scope",
-		"changes to existing tests",
-		"changes to checks an earlier goal left",
-		"where the user's words allowing it are, or the reason")
-	sbMarkSkillTokens(t, sbNoPlace, sbSummaryHeadings[0])
-}
-
-// The evidence names what each condition's check observed and where it
-// passed, and a round table gives every finding one ending; the skill's
-// documents keep the heading, the columns and every ending.
-func TestSealBundleReviewSummaryEvidence(t *testing.T) {
-	sbNeedSub(t, sbNoPlace, sbSummaryHeadings[1], append([]string{
-		"| 라운드 | 지적 | 끝 |",
-		"for every condition, what the check that satisfied it observed and the commit where it passed, never by seq alone",
-		"one row for every review round, a round with no findings included",
-		"Every finding of the round ends in exactly one of",
-	}, sbEndings...)...)
-	sbMarkSkillTokens(t, sbNoPlace, append([]string{sbSummaryHeadings[1], "라운드 | 지적 | 끝"}, skUnquote(sbEndings)...)...)
-}
-
-// What to inspect by hand, highest risk first, holds every deferred and
-// undisposed finding whatever ha report shows.
+// What to inspect by hand: the skill's documents keep the ha report and
+// manual tokens.
 func TestSealBundleReviewSummaryToInspect(t *testing.T) {
-	sbNeedSub(t, sbNoPlace, sbSummaryHeadings[2],
-		"ordered by risk, the highest at the top, one or two lines each",
-		"every item the `직접 볼 것` line of `ha report` lists",
-		"whatever that line shows",
-		"every deferred finding with its issue",
-		"every finding left with no disposition",
-		"executor assumptions that read a SPEC sentence",
-		"conditions met by checks that observe fixed text only",
-		"`manual` conditions",
-		"changes outside the scope or to existing things")
-	sbMarkSkillTokens(t, sbNoPlace, sbSummaryHeadings[2], "직접 볼 것", "ha report", "manual", sbSummaryHeadings[0])
+	sbMarkSkillTokens(t, sbNoPlace, "ha report", "manual")
 }
 
-// Decisions in three groups, interpretations marked, under the evidence; and
-// what was not observed.
+// What was not observed: the skill's documents keep the local assurance
+// token.
 func TestSealBundleReviewSummaryDecidersAndUnobserved(t *testing.T) {
-	sbNeedSub(t, sbNoPlace, sbSummaryHeadings[1],
-		"decided by the user, with where their words are",
-		"proposed by the agent and accepted by the user",
-		"executor assumptions nobody was asked about",
-		"Mark an assumption that reads a SPEC sentence")
-	sbNeedSub(t, sbNoPlace, sbSummaryHeadings[3],
-		"unobserved scope and substitutes",
-		"assurance `local`",
-		"the executor wrote the checks",
-		"not evidence of deployment, installation or a real model call")
-	sbMarkSkillTokens(t, sbNoPlace, sbSummaryHeadings[1], sbSummaryHeadings[3], "local")
+	sbMarkSkillTokens(t, sbNoPlace, "local")
 }
 
-// sbNoExemption reports, after prefix, a template section that exempts a
-// document started without it: the templates serve goals started now, and
-// earlier goals keep their documents as they are.
-func sbNoExemption(t *testing.T, prefix, where, text string) {
-	t.Helper()
-	if strings.Contains(sbNorm(text), "started without") {
-		t.Errorf("%s%s exempts a document started without it", prefix, where)
-	}
-}
-
-// At completion the PROGRESS template's completion report holds the ha
-// report output and one line pointing to the review summary, a stop keeps
-// the earlier report, and every judgment item that moves out of the
-// completion report has a place in the review summary; the skill's
-// documents keep the tokens of both sections and of each place.
+// At completion the judgment items that move out of the completion report:
+// the skill's documents keep the manual and ha status tokens.
 func TestSealBundleCompletionReportPointsToSummary(t *testing.T) {
-	// `## 완료 보고` is the template's last section: no line follows it.
-	report, ok := sbSection(read(t, skProgressTmpl), "## 완료 보고")
-	if !ok {
-		t.Fatalf("%s has no section %q", skProgressTmpl, "## 완료 보고")
-	}
-	sbMark(t, sbNoPlace, skProgressTmpl+" ## 완료 보고", report,
-		"add only one line pointing to `## 검수 요약`, which holds the judgment",
-		"When work stops, below it, only judgment")
-	sbNoExemption(t, "jaekit:violation="+sbNoPlace+": ", skProgressTmpl+" ## 완료 보고", report)
-	sbMark(t, sbNoPlace, skProgressTmpl+" "+sbSummary, sbTmplSummary(t),
-		"the condition each contributed to under `### 바뀐 것`",
-		"assumed open decisions under `### 근거` and `### 직접 볼 것`",
-		"`manual` conditions under `### 직접 볼 것`",
-		"the expected-result grounds, the actual observation boundary, the test method and the review stages actually taken",
-		"the review each required and the one followed) under `### 근거`",
-		"the unobserved scope and substitute environments under `### 보지 않은 것`",
-		"where the independent review results are under `### 근거`",
-		"whether the head to be sent or merged is the completion record's commit, with the fact that the completion does not cover a difference unless `ha status` at that head still names that completion record, in the opening lines")
-	sbMarkSkillTokens(t, sbNoPlace, append([]string{"## Completion report", "## 완료 보고", sbSummary, "manual", "ha status"},
-		sbSummaryHeadings...)...)
+	sbMarkSkillTokens(t, sbNoPlace, "manual", "ha status")
 }
 
-// The PROGRESS template's reading rules keep the summary short.
-func TestSealBundleReviewSummaryReadingRules(t *testing.T) {
-	sbNeedSummary(t,
-		"write in the user's language",
-		"say what a record is, with its seq only as an aid",
-		"keep each item short",
-		"never copy check output or finding text; a finding is its ID, one line and its ending")
-}
-
-// The review summary belongs to every goal started now: the PROGRESS
-// template opens it with what it is, under no condition on the goal and with
-// no exemption, and the skill's documents keep the section and PROGRESS.md
-// tokens.
+// The skill's documents keep the PROGRESS.md token.
 func TestSealBundleReviewSummaryEarlierGoals(t *testing.T) {
-	sbNeedSummary(t, "<This is where the user starts reviewing a finished goal.")
-	sbNoExemption(t, "", skProgressTmpl+" "+sbSummary, sbTmplSummary(t))
-	requireSkillTokens(t, sealSkillDir, sbSummary, "PROGRESS.md")
+	requireSkillTokens(t, sealSkillDir, "PROGRESS.md")
 }
 
-// The PROGRESS template says the user starts reviewing a finished goal at
-// the review summary; the skill links the review summary format.
+// The skill links the review summary format.
 func TestSealBundleReviewSummaryStartsReview(t *testing.T) {
-	sbNeedSummary(t, "where the user starts reviewing a finished goal")
 	requireSkillTokens(t, sealSkillDir, "link:references/bundle.md#review-summary")
 }
 
-// The PROGRESS template keeps the review summary of a reopened goal as it
-// was, marked by one line; the skill's documents keep the reopen token. A
-// summary written with the seven earlier headings stays unconverted, and
-// under the reopen rule, by the bundle contract, not by an exemption in the
-// template.
+// The skill's documents keep the reopen token.
 func TestSealBundleReviewSummaryReopen(t *testing.T) {
-	const contract = "../contracts/bundle.md"
-	const seven = "already written with the seven earlier headings is not converted to the four headings, and the reopen rule still applies to it"
-	if sec, ok := sbNeedSection(t, contract, "### 5.4 Review summary"); ok {
-		sbNeed(t, contract+" ### 5.4 Review summary", sec, seven)
-	}
-	if strings.Contains(sbNorm(sbTmplSummary(t)), "seven earlier headings") {
-		t.Errorf("%s %s exempts a review summary written with the seven earlier headings", skProgressTmpl, sbSummary)
-	}
-	sbNeedSummary(t,
-		"When a goal with a completion record is reopened with `reopen`",
-		"the earlier content of this section stays unchanged until the next completion record",
-		"one line at its top",
-		"which completion record (seq and commit) it is as of",
-		"that completion record is no longer valid",
-		"rewritten after the next completion record",
-		"A stop in between",
-		"leaves the earlier content and that line as they are",
-		"that line does not remain",
-		"A review summary rewritten after a reopen uses the four headings.")
 	requireSkillTokens(t, sealSkillDir, "reopen")
-}
-
-// The judgment items moved from item 2 of the completion report keep its
-// qualifications in the PROGRESS template.
-func TestSealBundleReviewSummaryMovedJudgment(t *testing.T) {
-	sbNeedSummary(t,
-		"The judgment items moved from item 2 of the completion report keep its qualifications",
-		"the executor's statements are marked as claims",
-		"facts confirmed by records are kept apart from the executor's interpretation",
-		"the evidence's version and the scope that evidence covers")
-}
-
-// The condition evidence, the round table and the opening lines are minimum lists in the
-// PROGRESS template; the skill's documents keep the `### 근거` token.
-func TestSealBundleReviewSummaryMinimumLists(t *testing.T) {
-	sbNeedSummary(t,
-		"The condition evidence and the round table under `### 근거` and the items of the opening lines are minimum lists",
-		"the items the judgment-item paragraph assigns join them in the same place")
-	requireSkillTokens(t, sealSkillDir, sbSummaryHeadings[1])
 }
 
 // sbRun runs a command in dir with env and returns its combined output. A
@@ -1262,375 +912,40 @@ func TestSealBundleHelpersSkipFences(t *testing.T) {
 	}
 }
 
-// The REVIEW template's decision section and its two subheadings. Fences
-// are tracked by sbRunFence.
-const (
-	sbDecisionsHeading = "## 중요한 미결정"
-	sbUserHeading      = "### 사용자의 답"
-	sbAssumeHeading    = "### 실행자 가정"
-)
-
-var (
-	sbUserItems      = []string{"the decision, the user's quoted answer, and where that answer is recorded"}
-	sbAssumeItems    = []string{"the assumption and its reason", "mark an assumption that reads a SPEC sentence"}
-	sbEmptyDecisions = []string{"With no decision at all, write only one line `없음`", "Otherwise keep both subheadings and write `없음` under an empty one"}
-	sbReviewHeadings = []string{"## 요구사항 대응", "## 불필요한 task", "## 문서 충돌", "## 중요한 미결정", "## 검증 방법과 환경", "## 독립 검토", "## 결론"}
-)
-
-// sbRunSection is the section under heading with fences tracked by
-// sbRunFence.
-func sbRunSection(text, heading string) (string, bool) {
-	return sbSectionBy(text, heading, sbRunFence, " \t\r")
-}
-
-// sbNeedRunSection returns a section found by sbRunSection, reporting a
-// missing section; a file that cannot be read fails the test.
-func sbNeedRunSection(t *testing.T, path, heading string) string {
-	t.Helper()
-	sec, ok := sbRunSection(read(t, path), heading)
-	if !ok {
-		t.Errorf("%s lacks section %q", path, heading)
-	}
-	return sec
-}
-
-// sbHeadingOrder is true when each heading occurs exactly once as an
-// unfenced whole line, the first before the second.
-func sbHeadingOrder(text, first, second string) bool {
-	firstLine, secondLine, open := -1, -1, ""
-	for i, line := range strings.Split(text, "\n") {
-		var fenced bool
-		if open, fenced = sbRunFence(open, line); fenced {
-			continue
-		}
-		switch strings.TrimRight(line, " \t\r") {
-		case first:
-			if firstLine >= 0 {
-				return false
-			}
-			firstLine = i
-		case second:
-			if secondLine >= 0 {
-				return false
-			}
-			secondLine = i
-		}
-	}
-	return firstLine >= 0 && secondLine > firstLine
-}
-
-// The REVIEW template splits `## 중요한 미결정` into the user's answers and
-// the executor's assumptions, in that order; the skill's documents name both
-// subheadings and `없음`.
-func TestSealBundleReviewDecisionsSplit(t *testing.T) {
-	sec := sbNeedRunSection(t, skReviewTmpl, sbDecisionsHeading)
-	user, _ := sbRunSection(sec, sbUserHeading)
-	assume, _ := sbRunSection(sec, sbAssumeHeading)
-	if !sbHeadingOrder(sec, sbUserHeading, sbAssumeHeading) {
-		t.Errorf("%s must have each subheading once, with %q before %q inside %s", skReviewTmpl, sbUserHeading, sbAssumeHeading, sbDecisionsHeading)
-	}
-	sbNeed(t, skReviewTmpl+" "+sbUserHeading, user, sbUserItems...)
-	sbNeed(t, skReviewTmpl+" "+sbAssumeHeading, assume, sbAssumeItems...)
-	sbNeed(t, skReviewTmpl+" "+sbDecisionsHeading, sec, sbEmptyDecisions...)
-	requireSkillTokens(t, sealSkillDir, sbUserHeading, sbAssumeHeading, "없음")
-}
-
-// The REVIEW template keeps its level-two headings and reads a kept scope or
-// trust boundary as an assumption.
-func TestSealBundleReviewHeadingsKept(t *testing.T) {
-	text := read(t, skReviewTmpl)
-	if got := sbHeadings(text, 2, sbRunFence); !slices.Equal(got, sbReviewHeadings) {
-		t.Errorf("%s headings = %q, want %q", skReviewTmpl, got, sbReviewHeadings)
-	}
-	sec, ok := sbRunSection(text, sbDecisionsHeading)
-	if !ok {
-		t.Errorf("%s lacks %s", skReviewTmpl, sbDecisionsHeading)
-	}
-	sbNeed(t, skReviewTmpl+" "+sbDecisionsHeading, sec,
-		"a reading that keeps a component's declared scope or trust boundary is such an assumption, not a question")
-}
-
-// A completed goal's PR description is built from the review summary, its
-// items to inspect and its unobserved scope: the skill's documents keep
-// their tokens.
-func TestSealBundlePRDescription(t *testing.T) {
-	requireSkillTokens(t, sealSkillDir, sbSummary, sbSummaryHeadings[2], sbSummaryHeadings[3])
-}
-
-func TestSealBundleHelpersHeadingOrder(t *testing.T) {
-	ordered := sbUserHeading + "\n\n" + sbAssumeHeading
-	reversed := sbAssumeHeading + "\n\n" + sbUserHeading
-	mention := "Use `" + sbUserHeading + "`, then `" + sbAssumeHeading + "`."
-	for _, c := range []struct {
-		name, body string
-		want       bool
-	}{
-		{"ordered headings", ordered, true},
-		{"prose mentions only", mention, false},
-		{"prose before reversed headings", mention + "\n" + reversed, false},
-		{"duplicate user heading", ordered + "\n" + sbUserHeading, false},
-		{"duplicate assumption heading", ordered + "\n" + sbAssumeHeading, false},
-		{"missing user heading", sbAssumeHeading, false},
-		{"missing assumption heading", sbUserHeading, false},
-		{"indented mentions", " " + sbUserHeading + "\n " + sbAssumeHeading, false},
-		{"fenced headings only", "```md\n" + ordered + "\n```", false},
-		{"fenced reverse before headings", "~~~md\n" + reversed + "\n~~~\n" + ordered, true},
-	} {
-		t.Run(c.name, func(t *testing.T) {
-			text := sbDecisionsHeading + "\n\n" + c.body
-			if got := sbHeadingOrder(text, sbUserHeading, sbAssumeHeading); got != c.want {
-				t.Errorf("heading order = %t, want %t", got, c.want)
-			}
-		})
-	}
-}
-
-// The PROGRESS parts a rule can name: `## 현재`, `## 타임라인`, `## 계획 변경`
-// and `## 막힘`. Rules are read in the template's section of the part,
-// compared in lower case.
-const (
-	sbCurrent  = "## 현재"
-	sbTimeline = "## 타임라인"
-	sbPlanEdit = "## 계획 변경"
-	sbBlocked  = "## 막힘"
-)
-
-var (
-	sbKinds = []string{"`관측`", "`원인`", "`결정`", "`조치`", "`검증`", "`막힘`", "`재개`"}
-	sbMarks = []string{"`가설`", "`확정`", "`기각`", "`예정`", "`반영`", "`대기`", "`통과`", "`실패`"}
-)
-
-// An sbRule is one token a PROGRESS part must hold.
-type sbRule struct{ part, token string }
-
-// sbPartTokens is a rule for each token of one part.
-func sbPartTokens(part string, tokens ...string) []sbRule {
-	var rules []sbRule
-	for _, s := range tokens {
-		rules = append(rules, sbRule{part, s})
-	}
-	return rules
-}
-
-// sbCheckParts reports each rule whose token the template's section of its
-// part does not hold, compared in lower case; a missing section is reported
-// once.
-func sbCheckParts(t *testing.T, rules []sbRule) {
-	t.Helper()
-	sections := map[string]string{}
-	for _, r := range rules {
-		sec, seen := sections[r.part]
-		if !seen {
-			sec, _ = sbNeedSection(t, skProgressTmpl, r.part)
-			sections[r.part] = sec
-		}
-		if want := strings.ToLower(r.token); !strings.Contains(strings.ToLower(sec), want) {
-			t.Errorf("%s `%s` lacks %q", skProgressTmpl, r.part, want)
-		}
-	}
-}
-
-// `## 현재` is a short summary that opens with the `ha report` stamp, then
-// the work in progress, the open problems, the next work and how to resume;
-// nobody types a check time. The PROGRESS template says so, and the skill's
-// documents keep the stamp's tokens and link the earlier forms.
+// The skill's documents keep the tokens of the ha report stamp and link the
+// earlier forms.
 func TestSealBundleProgressCurrentStamped(t *testing.T) {
-	sbCheckParts(t, sbPartTokens(sbCurrent,
-		"short, current summary",
-		"`ha report <goal>`",
-		"never type a check time yourself",
-		"time zone",
-		"record head",
-		"seq and hash",
-		"`none` before `ha start`",
-		"completion record seq",
-		"work in progress",
-		"open problems",
-		"next work",
-		"how to resume",
-		"restamp with a fresh `ha report` stamp whenever the record head changes",
-		"compares the record head with `ha status`",
-		"the same seq with another hash is another record",
-		"the stamp's time is for reference only",
-		"past events stay out; point to `## 타임라인`"))
-	requireSkillTokens(t, sealSkillDir, sbCurrent, "ha report <goal>", "none", "ha start", "ha status", sbTimeline, "skill:",
+	requireSkillTokens(t, sealSkillDir, "ha report <goal>", "ha start", "ha status",
 		"link:references/earlier-goals.md")
 }
 
-// The optional `## 타임라인` holds append-only entries with a time (with time
-// zone), the record head, a kind and a summary; bodies mark causes, actions
-// and verification, and point to evidence instead of copying check output.
-// The PROGRESS template says so, and the skill's documents keep the
-// timeline's section, heading form, kinds and marks.
-func TestSealBundleProgressTimelineDefined(t *testing.T) {
-	rules := sbPartTokens(sbTimeline,
-		"optional",
-		"entries are claims",
-		" · seq <record head> — <kind> · <one-line summary>",
-		"time zone",
-		"never invent a time you do not know",
-		"`seq none`",
-		"an entry about a check run uses that run's seq",
-		"point to evidence by AC, commit, and seq",
-		"never copy check output",
-		"append only",
-		"never edit an earlier entry",
-		"what was rejected and on what grounds",
-		"may be one entry")
-	rules = append(rules, sbPartTokens(sbTimeline, sbKinds...)...)
-	rules = append(rules, sbPartTokens(sbTimeline, sbMarks...)...)
-	sbCheckParts(t, rules)
-	tokens := []string{"### `## 타임라인`", "### <time> · seq <record head> — <kind> · <one-line summary>", "seq none"}
-	tokens = append(tokens, skUnquote(sbKinds)...)
-	requireSkillTokens(t, sealSkillDir, append(tokens, skUnquote(sbMarks)...)...)
-}
-
-// Only events that changed a judgment or the next action are recorded; the
-// length figures are editing guidance, not limits. The PROGRESS template
-// says so; the skill's documents keep the tokens those rules name.
+// The skill's documents keep the needs_user token.
 func TestSealBundleProgressTimelineWhatToRecord(t *testing.T) {
-	rules := sbPartTokens(sbTimeline,
-		"change a judgment or the next action",
-		"a new problem",
-		"a cause confirmed or changed",
-		"a change of approach",
-		"an important verification result",
-		"blocks and resumes",
-		"every resume counts",
-		"a new session taking the goal up",
-		"a cleared block",
-		"an answer to a `needs_user` question",
-		"where `## 현재` differed from the actual state",
-		"routine edits and reads",
-		"repeated runs of the same failure",
-		"progress reports with no change",
-		"an entry runs about 3 to 6 lines",
-		"`## 현재` about 5 to 8 lines",
-		"editing guidance, not a limit",
-		"a complex cause analysis may run longer")
-	rules = append(rules, sbRule{sbCurrent, "5 to 8 lines"})
-	sbCheckParts(t, rules)
-	requireSkillTokens(t, sealSkillDir, "needs_user", sbCurrent)
+	requireSkillTokens(t, sealSkillDir, "needs_user")
 }
 
-// The plan-change and block tables keep their names and columns; times carry
-// a time zone, one row is one event, and the detail of an event that also has
-// a timeline entry lives only in that entry. The PROGRESS template says so,
-// and the skill's documents keep both sections, their columns and `시각`.
-func TestSealBundleProgressTablesPointToTimeline(t *testing.T) {
-	var rules []sbRule
-	for _, p := range []string{sbPlanEdit, sbBlocked} {
-		rules = append(rules, sbPartTokens(p,
-			"`시각` carries a time zone",
-			"one row is one event",
-			"when the event also has a timeline entry",
-			"the detail lives only in that entry",
-			"one-line summary",
-			"points to it by the entry's time")...)
-	}
-	sbCheckParts(t, rules)
-	requireSkillTokens(t, sealSkillDir, sbPlanEdit, sbBlocked, "시각",
-		"시각 \\| 변경 \\| 이유 \\| 영향 \\| 다시 검토한 것", "시각 \\| 원인 종류 \\| 내용 \\| 해소 조건")
-	text := read(t, skProgressTmpl)
-	for _, table := range []string{"## 계획 변경\n| 시각 | 변경 | 이유 | 영향 | 다시 검토한 것 |", "## 막힘\n| 시각 | 원인 종류 | 내용 | 해소 조건 |"} {
-		if !strings.Contains(text, table) {
-			t.Errorf("%s lacks %q", skProgressTmpl, table)
-		}
-	}
-	// A line right after a table is a row of it; the template's table rules
-	// stand apart from the tables.
-	for _, p := range []string{sbPlanEdit, sbBlocked} {
-		if sec, _ := sbNeedSection(t, skProgressTmpl, p); !strings.Contains(sec, "| --- |\n\n<rows: ") {
-			t.Errorf("%s `%s` has no table rules apart from the table", skProgressTmpl, p)
-		}
-	}
-}
-
-// At completion, `## 현재` says it is as of that completion record and where
-// the later events are found; it never writes them as work in progress.
-func TestSealBundleProgressCurrentAtCompletion(t *testing.T) {
-	sbCheckParts(t, sbPartTokens(sbCurrent,
-		"as of that completion record",
-		"past the bundle's last commit",
-		"merge",
-		"review replies",
-		"checks after the merge",
-		"where to find",
-		"never as work in progress"))
-	requireSkillTokens(t, sealSkillDir, sbCurrent)
-}
-
-// The skill's documents keep the tokens of `## 현재` and its ha report
-// stamp, of `## 타임라인` with every kind and mark, and of the `재개` entry,
-// and the skill links the reference for earlier goals.
+// The skill's documents keep the ha report token, and the skill links the
+// reference for earlier goals.
 func TestSealBundleSkillKeepsTimeline(t *testing.T) {
-	tokens := []string{sbCurrent, "ha report", sbTimeline, "재개", "link:references/earlier-goals.md"}
-	tokens = append(tokens, skUnquote(sbKinds)...)
-	requireSkillTokens(t, sealSkillDir, append(tokens, skUnquote(sbMarks)...)...)
-}
-
-// The invariant places the REVIEW template's `## 독립 검토` lists, read by
-// sbPrefixSection and checked for exact text.
-var sbInvariantPlaces = []string{
-	"from the plan round to the cumulative round",
-	"the places that read or keep it: each place's repository path, and the name used there when it differs from the change's name",
-	"places that keep the same invariant under another name, not only those found by name",
-	"`없음` when the change alters no invariant",
-	"one `--question` per place, asking whether that place still keeps its invariant at head",
-	"the list adds places for reviewers to look at and never narrows what they read",
-}
-
-type sbPlace struct {
-	label, text string
-	want        []string
-}
-
-// sbCheckPlaces reports an empty place and every phrase a place lacks.
-func sbCheckPlaces(t *testing.T, places []sbPlace) {
-	t.Helper()
-	for _, p := range places {
-		if strings.TrimSpace(p.text) == "" {
-			t.Errorf("%s is missing", p.label)
-			continue
-		}
-		for _, w := range p.want {
-			if !strings.Contains(p.text, w) {
-				t.Errorf("%s does not say %q", p.label, w)
-			}
-		}
-	}
-}
-
-// sbReviewPlaces is the REVIEW template's `## 독립 검토`.
-func sbReviewPlaces(t *testing.T) string {
-	t.Helper()
-	return sbPrefixSection(read(t, skReviewTmpl), "## 독립 검토")
+	requireSkillTokens(t, sealSkillDir, "ha report", "link:references/earlier-goals.md")
 }
 
 // The decisions passed to review rounds keep their tokens: the decision and
-// quote flags, the notes and REVIEW.md items they come from, what is never
-// passed, and the skill's link to them.
+// quote flags, the notes they come from, what is never passed, and the
+// skill's link to them.
 func TestSealBundleDecisionsToPass(t *testing.T) {
 	requireSkillTokens(t, sealSkillDir, "link:references/bundle.md#questions-for-the-user", "--decision", "--decision-quote",
-		sbDecisionsHeading, "confirm", "input", "requirement-question", "reopen")
+		"confirm", "input", "requirement-question", "reopen")
 }
 
-// The REVIEW template's `## 독립 검토` lists, for each changed invariant, the
-// places that read or keep it and passes one question per place to every
-// round; the skill's documents keep the question flag and `없음`.
+// The skill's documents keep the question flag that passes one question per
+// invariant place to every round.
 func TestSealBundleInvariantPlaces(t *testing.T) {
-	sbCheckPlaces(t, []sbPlace{{skReviewTmpl + " ## 독립 검토", sbReviewPlaces(t), sbInvariantPlaces}})
-	requireSkillTokens(t, sealSkillDir, "--question", "없음")
+	requireSkillTokens(t, sealSkillDir, "--question")
 }
 
-// The REVIEW template lists the places of each changed invariant for every
-// goal started now, under no condition on the goal and with no exemption;
-// the skill's documents keep the REVIEW.md token.
+// The skill's documents keep the REVIEW.md token.
 func TestSealBundleReviewRoundsScope(t *testing.T) {
-	places := sbReviewPlaces(t)
-	sbCheckPlaces(t, []sbPlace{{skReviewTmpl + " ## 독립 검토", places,
-		[]string{"for the plan round, and for each of them the places that read or keep it"}}})
-	sbNoExemption(t, "", skReviewTmpl+" ## 독립 검토", places)
 	requireSkillTokens(t, sealSkillDir, "REVIEW.md")
 }
 

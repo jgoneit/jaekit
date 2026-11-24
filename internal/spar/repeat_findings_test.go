@@ -701,7 +701,7 @@ func TestRepeatFindingsAC4_InputTableRow(t *testing.T) {
 	if cells := strings.Split(row, "|"); len(cells) != 7 {
 		t.Errorf("jaekit:violation=%s %s's `--boundary` row does not have the table's five columns", id, path)
 	}
-	for _, token := range []string{"packet", "`round.json`", "refused (65)"} {
+	for _, token := range []string{"`round.json`", "(65)"} {
 		if !strings.Contains(row, token) {
 			t.Errorf("jaekit:violation=%s %s's `--boundary` row does not name %s", id, path, token)
 		}

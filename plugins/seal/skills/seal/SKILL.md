@@ -45,6 +45,8 @@ The bundle in `docs/specs/<goal>/` (templates in `assets/templates/`) lets anoth
 
 Read [Check inputs](references/bundle.md#check-inputs) before writing or changing a check, its producer, or a file it reads. They apply to every check written or changed under this skill, whichever Seal started the goal. They never require rewriting or converting an existing goal's checks, records, `PROGRESS.md` or `REVIEW.md` for this reason alone.
 
+A criterion whose required result is the content of documents (prose in docs, skills, guides, contracts or templates) and that no product behavior reads is a `review` condition, met only by the review gate of a `standard` or `strict` goal; never write a new test that pins document prose. Criteria about the behavior of `ha`, `spar` or scripts, and about format tokens code parses, stay `change` or `maintain` with product tests.
+
 ## Assurance policy
 
 Apply the selected assurance policy, linking required conditions and source, the effect of a false success, the boundary and evidence gaps. Risk alone does not mandate a fixed review procedure; the executor may not downgrade a selected required guarantee.

@@ -457,6 +457,16 @@ func (s *scenario) do(st step) {
 		if strings.Contains(s.lastOut, a[1]) {
 			s.fatalf(st, "output contains %q:\n%s", a[1], s.lastOut)
 		}
+	case "expect-output-line":
+		// Some line of the last output starts with the prefix and, after it,
+		// holds every word with no ASCII letter, digit, `_` or `-` beside it.
+		need(3)
+		for _, line := range strings.Split(s.lastOut, "\n") {
+			if rest, ok := strings.CutPrefix(line, a[1]); ok && hasWords(rest, a[2:]) {
+				return
+			}
+		}
+		s.fatalf(st, "no line starts with %q and holds %q:\n%s", a[1], a[2:], s.lastOut)
 	case "expect-status":
 		need(2)
 		rep := s.report(st)
@@ -628,6 +638,35 @@ func (s *scenario) do(st step) {
 	default:
 		s.fatalf(st, "unknown step")
 	}
+}
+
+// hasWords reports whether text holds each word at a place where neither
+// neighbour is an ASCII letter, digit, `_` or `-`, so `6` does not match
+// inside `16` or `AC-6`.
+func hasWords(text string, words []string) bool {
+	inWord := func(i int) bool {
+		if i < 0 || i >= len(text) {
+			return false
+		}
+		c := text[i]
+		return c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c >= '0' && c <= '9' || c == '_' || c == '-'
+	}
+	for _, w := range words {
+		found := false
+		for i := 0; !found; {
+			j := strings.Index(text[i:], w)
+			if j < 0 {
+				break
+			}
+			j += i
+			found = !inWord(j-1) && !inWord(j+len(w))
+			i = j + 1
+		}
+		if !found {
+			return false
+		}
+	}
+	return true
 }
 
 // Every scenario directory is listed in testdata/scenarios/README.md and

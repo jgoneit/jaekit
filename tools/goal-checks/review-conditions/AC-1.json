@@ -1,0 +1,22 @@
+{
+  "schema": "check-adapter/v1",
+  "adapter": "go-test-json",
+  "targets": [
+    {
+      "id": "Accepted",
+      "violation": "review-not-accepted",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/cmd/ha",
+        "name": "TestScenarios/review-kind-plan"
+      }
+    },
+    {
+      "id": "CommandOrPathRefused",
+      "violation": "review-row-not-refused",
+      "test": {
+        "package": "github.com/jgoneit/jaekit/cmd/ha",
+        "name": "TestScenarios/review-kind-plan-invalid"
+      }
+    }
+  ]
+}

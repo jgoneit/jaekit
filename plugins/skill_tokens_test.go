@@ -291,20 +291,6 @@ func requireBodyTokens(t *testing.T, dir, heading string, tokens ...string) {
 	}
 }
 
-// forbidSkillText reports each phrase some document of the skill holds. An
-// absence check may name prose: rewording never adds it.
-func forbidSkillText(t *testing.T, dir string, phrases ...string) {
-	t.Helper()
-	for _, doc := range skillDocs(t, dir) {
-		flat := skillFlat(doc.text)
-		for _, p := range phrases {
-			if strings.Contains(flat, skillFlat(p)) {
-				t.Errorf("%s holds %q", doc.path, p)
-			}
-		}
-	}
-}
-
 // skillWords counts a SKILL.md as the caps count it: whitespace-separated
 // words of the whole file, front matter included.
 func skillWords(t *testing.T, dir string) int {
@@ -446,13 +432,11 @@ func TestSkillAuthorityRulesInBody(t *testing.T) {
 		section string
 		tokens  []string
 	}{
-		{specSkillDir, "## Agent invocations", []string{"## Open Decisions", "Status: Ready", "amendments/<name>.md"}},
-		{specSkillDir, "## Writing and reporting", []string{"implement-now"}},
-		{specSkillDir, "## Boundaries", []string{"docs/specs/<goal>/"}},
+		{specSkillDir, "## Agent invocations", []string{"Status: Ready", "amendments/<name>.md"}},
 		{sealSkillDir, "## Authority", []string{"ha start --request", "Status: Ready", "SPEC.md"}},
 		{sealSkillDir, "## Independent review", []string{"hardening", "spar extend"}},
 		{sealSkillDir, "## Budget", []string{"ha budget"}},
-		{sealSkillDir, "## Forbidden", []string{"SPEC.md", "runs.jsonl", "block", "ha log", "## 개선 메모", "T001"}},
+		{sealSkillDir, "## Forbidden", []string{"SPEC.md", "runs.jsonl", "block", "ha log", "T001"}},
 		{sparSkillDir, "## When to run each stage", []string{"spar extend"}},
 		{sparSkillDir, "## Reviewers", []string{"spar waive"}},
 		{sparSkillDir, "## Classes and dispositions", []string{"answer"}},

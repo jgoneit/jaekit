@@ -56,9 +56,9 @@ The diagnostics distinguish repository-relative paths, tracked/untracked, and wh
 
 This refusal applies to checks to be run from now on in supported `/1`, `/2` and `/3` goals. It does not delete or reinterpret the results and usage of past `tree_clean: false` records. The dirty warning at the start and the existing Git ignore and per-rules exclusion of run documents also stay.
 
-**Run count.** Up to `run-rules/6`, the required minimum of `ha estimate` is `필수 change × 2 + 필수 maintain`: manual counts as 0 runs, and 34 required change conditions make 68 runs. Under `run-rules/7` and `run-rules/8`, the minimum is `표시한 필수 change × 2 + 표시하지 않은 필수 change + 필수 maintain` (§4.10). It is a lower bound for new runs without failures, so it does not guarantee retries, environment preparation, manual confirmation time, the actual total time, or completion. It runs no check or environment probe, and does not change the record, the budget window or working files.
+**Run count.** Up to `run-rules/6`, the required minimum of `ha estimate` is `필수 change × 2 + 필수 maintain`: manual counts as 0 runs, and 34 required change conditions make 68 runs. Under `run-rules/7` and `run-rules/8`, the minimum is `표시한 필수 change × 2 + 표시하지 않은 필수 change + 필수 maintain` (§4.10); a `review` condition, like a manual one, counts as 0 runs in the minimum and in the automatic limit (§1.5). It is a lower bound for new runs without failures, so it does not guarantee retries, environment preparation, manual confirmation time, the actual total time, or completion. It runs no check or environment probe, and does not change the record, the budget window or working files.
 
-The default `check` selects the required change/maintain conditions. Up to `run-rules/6`, default `--baseline` selects every change condition in the condition table (including optional ACs and EXs); under `run-rules/7` and `run-rules/8`, it selects only marked change conditions (§4.10). `estimate` shows this default run count together with the additional runs above the required lower bound. Explicit targets are selected in the same order as an actual `check`. Optional ACs and EXs are additional runs, each task command is one run, and duplicate targets are counted repeatedly, as in an actual run. Explicit targets of `--baseline` may only be change conditions. A default selection with only manual conditions estimates 0, and the no-target error of an actual `check` does not change.
+The default `check` selects the required change/maintain conditions. Up to `run-rules/6`, default `--baseline` selects every change condition in the condition table (including optional ACs and EXs); under `run-rules/7` and `run-rules/8`, it selects only marked change conditions (§4.10). `estimate` shows this default run count together with the additional runs above the required lower bound. Explicit targets are selected in the same order as an actual `check`. Optional ACs and EXs are additional runs, each task command is one run, and duplicate targets are counted repeatedly, as in an actual run. Explicit targets of `--baseline` may only be change conditions. A default selection with only manual conditions estimates 0, and the no-target error of an actual `check` does not change. A `manual` or `review` condition is never a target: `ha check` and `ha check --baseline` of one exit 64 before running, with no record, and the default selection leaves it out.
 
 The limit is **the whole limit of the current PLAN** (the computed value of §1.5 when PLAN's run limit is automatic). It is not the remaining budget of a goal in progress. When the limit is smaller than the required lower bound, a new `start` prints the minimum, the limit and the shortfall, and refuses with exit 65 before creating the record. An equal value can start. It does not raise the limit automatically for optional checks or retry headroom. The limits and resume windows of existing goals stay as in §5.2, and no new budget restriction is applied to checks in progress.
 
@@ -107,8 +107,8 @@ The human-readable format shows the same values in one table, and adds the sum o
 | Label | Content |
 | --- | --- |
 | `Changed` / `바뀐 것` | The number of files changed outside the execution bundle documents from the start record's base commit to HEAD (the length of the same list as `out_of_scope` in `ha status`), and the number of non-merge commits that changed those paths. Before the start, the fact that there is no base; when Git cannot compare, that fact (below) |
-| `Checked` / `확인한 것` | The number of required conditions and how many of them are satisfied (the number of `change` and `maintain` conditions satisfied by check records, and the number of `manual` conditions satisfied by user confirmation), and, up to `run-rules/6`, the number of all `change` conditions in the condition table and how many of them have a fresh `fail_as_expected` baseline. `/7` separately shows the marked count and fresh baseline count among marked conditions (§4.10). That baseline must be one that status computation accepts as evidence (the result and exit code match, and for a `change` condition with structured results, the stored evidence summary passes verification) |
-| `To review` / `직접 볼 것` | The complete set, in this order: remaining reasons classified `user` and their targets, `manual` conditions satisfied by a quoted confirmation and the seq of that confirmation, test changes exempted on the executor's grounds (§4.7), test changes marked `--weakened`, verification commands changed after the start (`changes.command_changed`), the number of unresolved post-completion findings, and the review findings of the last recorded `review` note (below). `/7` also shows removed baseline marks and check changes after the freeze (§4.10). `none` / `없음` when there are none |
+| `Checked` / `확인한 것` | The number of required conditions and how many of them are satisfied (the number of `change` and `maintain` conditions satisfied by check records, and the number of `manual` conditions satisfied by user confirmation; only in a goal with a `review` condition (§4.11), also the number of `review` conditions met by the review gate: `, <n> by the review gate` / `, 리뷰 gate <n>개`), and, up to `run-rules/6`, the number of all `change` conditions in the condition table and how many of them have a fresh `fail_as_expected` baseline. `/7` separately shows the marked count and fresh baseline count among marked conditions (§4.10). That baseline must be one that status computation accepts as evidence (the result and exit code match, and for a `change` condition with structured results, the stored evidence summary passes verification) |
+| `To review` / `직접 볼 것` | The complete set, in this order: remaining reasons classified `user` and their targets, `manual` conditions satisfied by a quoted confirmation and the seq of that confirmation, `review` conditions met by the review gate and the seq of the `review` note that is their record (`conditions met by the review gate: AC-4 (seq 6)` / `리뷰 gate로 충족한 조건: AC-4 (seq 6)`), test changes exempted on the executor's grounds (§4.7), test changes marked `--weakened`, verification commands changed after the start (`changes.command_changed`), the number of unresolved post-completion findings, and the review findings of the last recorded `review` note (below). `/7` also shows removed baseline marks and check changes after the freeze (§4.10). `none` / `없음` when there are none |
 | `Remaining limits` / `남은 한계` | Always the assurance level `local` and the check author, the executor. When they apply, it adds unsatisfied optional conditions, an exceeded budget (usage and limit of runs and elapsed time), and the fact that no completion record covers the current HEAD |
 | `Next step` / `다음 행동` | One per status: before the start, `ha start <goal>` (`ha lint <goal>` first when there is a lint problem); any other `incomplete`, the first reason classified `executor` and its target; `needs_user`, all reasons classified `user` and their targets; `complete` without a completion record, `ha done <goal>`; with a valid completion record, its seq and the fact that nothing is left to do; `blocked`, the seq and cause of the last `block`; `budget_exhausted`, the user's budget decision with usage and limit |
 
@@ -134,7 +134,7 @@ Remaining limits: assurance local; check author: executor; the other limits were
 Next step: fetch the history that contains base 3c1f0a9e7b25 (for example `git fetch --unshallow` in a shallow clone), then run `ha report docs/specs/example` again
 ```
 
-**Evidence source.** With a valid completion record, it uses the conditions stored in that `done` line (§2.5); otherwise, the conditions computed now. The satisfied counts, `manual` conditions confirmed by quote, unsatisfied optional conditions and the evidence-per-condition table all read this one source. Whether a condition is required is read from the goal documents.
+**Evidence source.** With a valid completion record, it uses the conditions stored in that `done` line (§2.5); otherwise, the conditions computed now. The satisfied counts, `manual` conditions confirmed by quote, `review` conditions met by the review gate, unsatisfied optional conditions and the evidence-per-condition table all read this one source. Whether a condition is required is read from the goal documents.
 
 **Details.** After the summary come four parts separated by blank lines, in this order.
 - `` ### Stamp for `## 현재` `` / `` ### `## 현재` 도장 ``: the record head's seq and the first 12 characters of its hash, the time (`at`) string stored in that line, the status, and the valid completion record's seq (if any). These are the values to copy into `## 현재` of `PROGRESS.md` as the check time and the record head. Without records, the record head is `none`; when the stored time cannot be read as RFC 3339, it shows that it cannot be read.
@@ -393,7 +393,7 @@ Irregular entries such as Windows junctions are not treated as safe regular file
 | `reasons` | The list of remaining reasons |
 | `commit`, `tree_clean`, `spec_digest` | The code state and SPEC at the time of computation |
 | `record_head` | The record head up to just before this line |
-| `criteria` | `{ "id", "kind", "satisfied", "records": [seq…] }` per condition. The records that served as evidence |
+| `criteria` | `{ "id", "kind", "satisfied", "records": [seq…] }` per condition. The records that served as evidence; for a met `review` condition, the seq of the last `review` note (§4.11) |
 | `command_digests` | The current command digest per condition |
 
 ### 2.6 `budget_change`
@@ -457,6 +457,7 @@ Up to `run-rules/6`, the tables below apply to every change condition; `/7` chan
 | `maintain` | C has at least one `pass`, no `fail`, at most E `error`s, and the most recent line of C is `pass`. |
 | `change` | C meets the `maintain` condition. In addition, B has at least one `fail_as_expected`, no `unexpected_pass`, at most E `error`s, and the most recent line of B is `fail_as_expected`. |
 | `manual` | The condition has a valid `confirm` (§2.4). No `check` record is required. |
+| `review` | `run-rules/8` (§4.11): the current tier is `standard` or `strict`, and the goal has no review reason (§4.2). No `check` record is required. |
 
 A condition that is not satisfied gets one reason: the first that matches, in the following order.
 
@@ -473,6 +474,8 @@ A condition that is not satisfied gets one reason: the first that matches, in th
 | `baseline_error` | change | B has at most E `error`s, and the most recent line is `error` | executor fixes (run again) |
 | `error_limit` | change, maintain | The `error`s in C or B exceed E. The check environment keeps failing to reach a judgment on the same code | user confirmation |
 | `manual_unconfirmed` | manual | There is no valid `confirm` (there is none, or the content changed after it was confirmed) | user confirmation |
+| `review_tier_missing` | review | The current tier is `light`, or the goal documents have no `Assurance:` line, so no tier asks for review. The detail names `standard` and `strict` | user confirmation |
+| `review_pending` | review | The goal has review reasons; the detail names them. Before a start, or when the last `review` note is invalid (`record_invalid`), it has none to name | executor fixes |
 
 A `/3` change applies the [structured result contract](check-result.md) together with the positive-evidence conditions above. `unknown` uses the same retry limit as `error`. In a baseline, an assertion failure other than the intended one, or an internal attempt mismatch, stays a `fail` and gives `baseline_failed`. Even when mixed with environment errors or inconclusive results, unfavorable observations per target are preserved, and a later pass on the same input does not clear them. If the compact evidence for the current input is itself inconsistent, the reason is `evidence_invalid`. A record whose input went stale because the declaration changed is excluded by freshness. Unknown result values and inconsistent stored data show up as `record_invalid` (user confirmation) under every supported rules version, and never become completion evidence.
 
@@ -553,7 +556,7 @@ When the status is not `complete`, the human-readable output puts an **unmet sum
   - The `ha done` hint and the `ha log` hint at the local output location use the same goal notation.
   - If the goal notation contains characters other than ASCII letters, digits and `-_./@%+=:,`, it is wrapped in single quotes, so that a copied command passes it as one argument.
 - A record without raw output shows `no stored output`, and no command is generated. A record lacks raw output when saving the output failed or when the record has no output path.
-- A condition without a fresh record shows `no fresh record`, and no seq is generated. An attempt rejected before running leaves no record, so it falls in this case. A `manual` condition waits for a confirmation instead of a record, so it does not get this mark.
+- A condition without a fresh record shows `no fresh record`, and no seq is generated. An attempt rejected before running leaves no record, so it falls in this case. A `manual` condition waits for a confirmation instead of a record, so it does not get this mark, and neither does a `review` condition, which waits for the review gate.
 - Goal-level reasons show their code and class.
 - The table and the `### Reasons` list stay as they are.
 - The human-readable output of `ha done` does not include this summary, and its completion record line does not get the `done` information below either. The output of `ha done` keeps its earlier format.
@@ -625,11 +628,11 @@ A structured format that external tools can read. The field order is fixed to th
 | Field | Meaning |
 | --- | --- |
 | `id` | `AC-n` or `EX-n` |
-| `kind` | `change` \| `maintain` \| `manual`. An empty string if it is not in the condition table |
+| `kind` | `change` \| `maintain` \| `manual` \| `review`. An empty string if it is not in the condition table |
 | `required` | whether the condition is required |
 | `satisfied` | whether it is satisfied, per §4.1 |
 | `reason` | the §4.1 reason if not satisfied, an empty string if satisfied |
-| `records` | the seqs of the fresh records that were evidence for satisfaction |
+| `records` | the seqs of the fresh records that were evidence for satisfaction; for a met `review` condition, the seq of the last `review` note |
 | `attempts` | attempt history (below) |
 
 #### Attempts (`attempts`)
@@ -717,6 +720,7 @@ For a rules version that `ha` does not support, it neither computes nor records.
 | Baseline required | Every change condition | Same as `/1` | Same as `/1` | Same as `/1` | Same as `/1` | Same as `/1` | Only marked change conditions (§4.10) | Same as `/7` |
 | Baseline overlay | The recorded condition's check paths | Same as `/1` | Same as `/1` | Same as `/1` | Same as `/1` | Same as `/1` | Same as `/1` | Check paths of every marked change condition (§4.11) |
 | Check freeze display | None | None | None | None | None | None | Changed check files and reasons since the review freeze (§4.10) | None (§4.11) |
+| Condition kind `review` | `invalid_kind` | Same as `/1` | Same as `/1` | Same as `/1` | Same as `/1` | Same as `/1` | Same as `/1` | Met by the review gate (§4.11) |
 
 **Other goals' execution bundle files.** These are `PLAN.md`, `REVIEW.md`, `PROGRESS.md`, `runs.jsonl` and `tasks/` directly under another directory that is under the same parent as the goal's own directory and has a `SPEC.md` in the current working tree. That directory's `SPEC.md`, the documents it links, and other files such as `checks/` are code. A directory that is not under the same parent, or that has no `SPEC.md` (for example, a goal-shaped directory under `examples/` or `testdata/`), is also code. The `amendments/` of that other goal directory is not an execution bundle file, but under every rules version it is left out of the code state regardless of the PLAN's `다른 목표 실행 묶음` declaration (§2). This list is used alike in every judgment that uses the bundle documents.
 - Whether the working tree is clean: the §3 premise, the `tree_clean` that `check` and `baseline` leave, and path confirmations (`confirm`)
@@ -849,7 +853,7 @@ Human-readable status shows `- check freeze: <stage> round <series>/<round> at <
 
 ### 4.11 run-rules/8
 
-A goal started with `ha start --rules run-rules/8` retains the rules of `run-rules/7` except for the baseline overlay, the check freeze, the elapsed-time limit and `ha budget --preapprove` below. The default start rule stays `run-rules/3`. Current Seal starts with `--rules run-rules/8 --check-skill` and refuses without a record when required support is missing. Goals started under `run-rules/1` through `run-rules/7` keep their judgments, output and records; existing records are not converted.
+A goal started with `ha start --rules run-rules/8` retains the rules of `run-rules/7` except for the baseline overlay, the check freeze, the elapsed-time limit, `ha budget --preapprove` and `review` conditions below. The default start rule stays `run-rules/3`. Current Seal starts with `--rules run-rules/8 --check-skill` and refuses without a record when required support is missing. Goals started under `run-rules/1` through `run-rules/7` keep their judgments, output and records; existing records are not converted.
 
 **Baseline overlay.** A baseline copies the check paths of every marked change condition from HEAD onto the base commit, whichever condition it records. No other check paths are copied: an explicitly recorded unmarked condition adds none of its own, and with no marked condition the overlay is empty. The overlay lists each path once, sorted by path. A baseline is fresh only when its overlay paths equal the union of the check paths of the currently marked change conditions and each digest equals the HEAD blob; the other freshness conditions are those of `run-rules/7`. The recorded overlay must be that sorted list exactly, with no path repeated or missing. A commit that changes a file in that union leaves every earlier baseline stale; a change of the marks does so only when it changes the union.
 
@@ -858,6 +862,8 @@ A goal started with `ha start --rules run-rules/8` retains the rules of `run-rul
 **Elapsed time.** The PLAN's `경과 시간` is optional and informational: exceeding it never makes `budget_exceeded` or `budget_exhausted`. Without the line the start budget records `elapsed_seconds` 0. Status and cost still show the elapsed time, computed as under `run-rules/7`, and the written limit, never as exceeded. The run limit still makes `budget_exceeded` (§5.2).
 
 **Run limit changes.** `ha budget --preapprove` exits with 65 without a record; `ha budget --runs` changes the run limit as under `run-rules/7`. With no pre-approved limit, every increase needs the user's quote and its request context, as under `run-rules/3`.
+
+**Review conditions.** The condition table accepts the kind `review`, for the criteria [bundle.md](bundle.md) §2.1 names; under `run-rules/1` through `run-rules/7` it stays `invalid_kind`, and their judgments are unchanged. A `review` condition never runs: `ha check` and `ha check --baseline` refuse it with 64 and no record, the default selection leaves it out, the minimum and the automatic limit count it as 0 runs (§1.1), and `ha note confirm` stays for `manual` conditions only. Under `Assurance: standard` or `strict` it is met while the goal has no review reason (§4.2, §4.8), with no `check` record; its record is the seq of the last `review` note, which the `done` line stores (§2.5). While review reasons remain it is `review_pending`, so a later commit or a goal document change after the gate leaves it unmet again. A valid completion record keeps out review reasons (§4.8), so while one holds, a condition its `done` line stored as a met review condition stays met with that line's record; a commit of bundle documents alone keeps both. A review condition the line did not store so, such as one that was `manual` then, voids the completion while it is unmet, like any other required condition. Under `light`, or without an `Assurance:` line, it is `review_tier_missing` and `ha done` records no completion while the condition is required.
 
 ## 5. Completion record and budget
 

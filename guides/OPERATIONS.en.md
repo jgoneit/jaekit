@@ -59,7 +59,7 @@ The Python compatibility helper is optional. Even without Python, you can direct
 - Without a budget it starts with `검증 실행: 자동` and asks once, only when approval is needed.
 - It checks the tools the checks need with `ha doctor` before any baseline and asks about unavailable tools in one question.
 
-The agent can compare the minimum verification run count in PLAN with the limit using `ha estimate docs/specs/<goal>`. For example, up to `run-rules/6`, 34 required `change` conditions need at least 68 runs: one before and one after the change for each. `manual` conditions are not included in the check execution count. The estimate also separately displays:
+The agent can compare the minimum verification run count in PLAN with the limit using `ha estimate docs/specs/<goal>`. For example, up to `run-rules/6`, 34 required `change` conditions need at least 68 runs: one before and one after the change for each. `manual` and `review` conditions are not included in the check execution count. The estimate also separately displays:
 - Optional conditions included in default comparative verification.
 - Additional run counts for explicitly selected `AC`, `EX`, or task commands.
 
@@ -143,7 +143,7 @@ Current Seal starts new goals under `run-rules/8`, which keeps the baseline sele
 
 Only change conditions with `요구` in the condition table's optional `baseline` column require a baseline. An empty cell, `—`, or no column means none is required. Seal marks only two kinds: a bug fix or regression whose defect is already present at the base commit, and a prohibition such as "X does not happen". A condition that adds a new feature is not marked by default. REVIEW gives the reason for each marked condition before the plan round; an unmarked condition needs no reason. A goal already started keeps the marks it started with. Unmarked change conditions still need check paths and the structured result contract, but can link to tests of new functions without an entry point that also exists at base.
 
-The required minimum is marked required change × 2 + unmarked required change + required maintain (`표시한 필수 change × 2 + 표시하지 않은 필수 change + 필수 maintain`). Manual conditions count as 0 runs. One marked change, four unmarked changes and three maintains, all required, need at least 9 runs; the automatic limit is `max(50, ⌈9 × 1.5⌉) = 50`. Before starting, view this with `ha estimate <goal> --rules run-rules/8`. Started goals use their saved rules and refuse a different `--rules`.
+The required minimum is marked required change × 2 + unmarked required change + required maintain (`표시한 필수 change × 2 + 표시하지 않은 필수 change + 필수 maintain`). Manual and review conditions count as 0 runs. One marked change, four unmarked changes and three maintains, all required, need at least 9 runs; the automatic limit is `max(50, ⌈9 × 1.5⌉) = 50`. Before starting, view this with `ha estimate <goal> --rules run-rules/8`. Started goals use their saved rules and refuse a different `--rules`.
 
 With no target, `ha check <goal> --baseline` selects only marked change conditions, including marked optional conditions. With none marked, it refuses without a record. An explicitly named unmarked condition can also run a baseline, and actual runs count toward the budget. Fresh adverse results from that baseline still affect judgment. Seal records a marked condition's baseline once, after the last review round and right before the completion record. If that baseline passes or errs instead of showing the declared violation, Seal fixes the check, has the fixed check reviewed like fixed code, and records the baseline again. This reduces the habit of recording after every check fix; it does not make stale evidence fresh.
 
@@ -166,7 +166,7 @@ After changing a check file following the freeze, commit it and record `ha note 
 The completion report (`## 완료 보고`) appears in `PROGRESS.md` in the goal folder and in the conversation. Check the following:
 
 1. **What changed.** Check whether actual files, screens, and behaviors match the request.
-2. **How required conditions were satisfied.** Distinguish between automated check results and items confirmed manually. Optional conditions do not block completion and are marked separately.
+2. **How required conditions were satisfied.** Distinguish between automated check results, items confirmed manually and `review` conditions met by the review gate. `review` conditions appear under `To review` with the seq of the gate record. Optional conditions do not block completion and are marked separately.
 3. **What the checks covered.** Review checks that verified new behavior, behavior that must be preserved, and unverified scope. If verification commands or condition kinds were changed, check the reason.
 4. **What assumptions and limitations exist.** Review whether agent-chosen assumptions match your intent, and whether remaining limitations affect the result.
 
@@ -189,12 +189,15 @@ When items remain that the agent cannot decide on its own, it asks along with th
 | Reason | What to check | How to proceed |
 | --- | --- | --- |
 | `manual_unconfirmed` | Did you manually confirm conditions that cannot be verified by automated checks? | Check the result and let the agent know. If the condition text changes, it must be re-confirmed. |
+| `review_tier_missing` | Does a goal whose review tier is `light` or missing have a `review` condition? A `review` condition is about document content that no product behavior reads, and only the independent review gate of a `standard` or `strict` goal meets it. | With Spec, raise the goal document's `Assurance:` tier to `standard` or `strict`, or change that criterion. |
 | `out_of_scope` | Is a change outside the planned scope required? | Allow or revert the change. If the goal itself has changed, update it with Spec. |
 | `test_definition_changed` | Is changing existing tests justified? | Review the reason and contents of the change, then allow or revert it. |
 | `spec_changed` | Was the change to the goal document intentional? | Confirm if the change was intentional. A request to continue or implement sent after editing is also recorded as confirmation. |
 | `error_limit` | What caused repeated check errors on the same code? | Fix the environment, then have the agent rerun. Review the goal first if switching to a condition that requires manual confirmation. |
 | `record_integrity` | Is the run record corrupted? | Check the cause. Do not arbitrarily edit records to pass; if needed, start in a new goal folder. |
 | `review_open_question` | What does the open `requirement-question` in the recorded review gate ask? | Answer it. The agent records your answer, has the review run again and records a new gate ([Review gate](USAGE.en.md#review-gate-run-rules5)). |
+
+`review_pending` is not in this table because the agent, not you, resolves it. It means that for a `review` condition the review gate does not yet cover the current HEAD and goal documents, or another review reason remains; the agent runs the remaining review rounds and records the gate.
 
 ## Blocks and budget
 

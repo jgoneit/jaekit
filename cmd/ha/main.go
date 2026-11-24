@@ -299,7 +299,7 @@ func (c *cli) openGoal(arg string) (*workspace, error) {
 	if err != nil {
 		return nil, err
 	}
-	b, err := bundle.LoadForRulesIn(c.env, repo.Root, g, rules(lines))
+	b, err := bundle.LoadForRulesIn(c.env, repo.Root, g, rules(lines), startLine(lines) == nil)
 	if err != nil {
 		return nil, err
 	}
@@ -408,9 +408,10 @@ func (c *cli) start(in []string) int {
 			return c.fail(exitUsage, "--rules accepts %s, %s, %s, %s, %s or %s", status.RulesV3, status.RulesV4, status.RulesV5, status.RulesV6, status.RulesV7, status.RulesV8)
 		}
 		goalRules = r
-		if w.bundle, err = bundle.LoadForRulesIn(w.env, w.repo.Root, w.goal, goalRules); err != nil {
-			return c.fail(exitInternal, "%v", err)
-		}
+	}
+	// The start reads the PLAN under the rules it records (bundle.md §2.1).
+	if w.bundle, err = bundle.LoadForRulesIn(w.env, w.repo.Root, w.goal, goalRules, false); err != nil {
+		return c.fail(exitInternal, "%v", err)
 	}
 	w.goalRules = goalRules
 	interpretation, hasAuthority := a.vals["test-authority"]
@@ -608,6 +609,8 @@ func (c *cli) targets(w *workspace, names []string, baseline bool) ([]target, er
 		switch {
 		case r.Kind == bundle.KindManual:
 			return nil, fmt.Errorf("%s is a manual condition; it is satisfied by `ha note confirm`, not by a check", n)
+		case r.Kind == bundle.KindReview:
+			return nil, fmt.Errorf("%s is a review condition; it is met by the review gate (`ha note review`), not by a check", n)
 		case baseline && r.Kind != bundle.KindChange:
 			return nil, fmt.Errorf("--baseline applies only to change conditions; %s is %s", n, r.Kind)
 		}
@@ -1126,7 +1129,7 @@ func (c *cli) note(in []string) int {
 		}
 		data := &record.RecoveryData{Criterion: a.pos[2], Input: a.vals["input"]}
 		row := w.bundle.Row(data.Criterion)
-		if row == nil || row.Kind == bundle.KindManual {
+		if row == nil || row.Kind == bundle.KindManual || row.Kind == bundle.KindReview && w.bundle.ReviewKind {
 			return c.fail(exitUsage, "%s: %s is not a condition with a command", kind, data.Criterion)
 		}
 		if data.Input != "check" && (data.Input != "baseline" || row.Kind != bundle.KindChange) {

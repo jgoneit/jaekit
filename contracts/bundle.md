@@ -38,16 +38,18 @@ Every file is plain Markdown. Only the parts `ha lint` must read follow the tabl
 | Column | Meaning |
 | --- | --- |
 | `ID` | The goal documents' `AC-n`. Do not rewrite the condition text. `ha` reads it from the goal documents. Whether the condition is required also follows the `(선택)` (optional) mark in the goal documents ([goal-docs.md](goal-docs.md) §2.1). Checks the executor adds are `EX-n` and are always optional. |
-| `종류` | `change` (new behavior), `maintain` (existing behavior kept), `manual` (cannot be checked by machine in this environment) |
-| `검증 명령` | The command to run from the repository root, written as one code span. `ha` runs it as argv without a shell, so do not use pipes (`\|`), redirects, `&`, `;`, `$` or backquotes. Words are split on spaces and can be grouped with single or double quotes. When it is complex, point to a script in the repository. For `manual`, write `—` and the reason. |
-| `검사 경로` | Paths of the check files that judge this condition (no globs). Required for `change` conditions. Up to `run-rules/7` the baseline check overlays only these files on the base; under `run-rules/8` it overlays those of every marked change condition instead ([run-record.md](run-record.md) §4.11). |
+| `종류` | `change` (new behavior), `maintain` (existing behavior kept), `manual` (cannot be checked by machine in this environment), `review` (met by the review gate, below) |
+| `검증 명령` | The command to run from the repository root, written as one code span. `ha` runs it as argv without a shell, so do not use pipes (`\|`), redirects, `&`, `;`, `$` or backquotes. Words are split on spaces and can be grouped with single or double quotes. When it is complex, point to a script in the repository. For `manual`, write `—` and the reason; for `review`, `—`, optionally followed by a reason. |
+| `검사 경로` | Paths of the check files that judge this condition (no globs). Required for `change` conditions; empty for `review`. Up to `run-rules/7` the baseline check overlays only these files on the base; under `run-rules/8` it overlays those of every marked change condition instead ([run-record.md](run-record.md) §4.11). |
 | `Task` | The list of task IDs that implement this condition |
 
 The rules are as follows (`ha lint` checks them).
 1. Every `AC-n` of the goal documents appears in the condition table exactly once. A missing ID, and an `AC` ID that is not in the goal documents, are errors. A condition without an ID in the goal documents is an error, and the executor tells the user instead of editing the goal documents.
 2. Every condition has at least one task. Every task rests on a condition or on another task's prerequisite output. An orphan task is an error.
-3. A `change` condition has a verification command and check paths. A `maintain` condition has a verification command. A `manual` condition has a reason.
+3. A `change` condition has a verification command and check paths. A `maintain` condition has a verification command. A `manual` condition has a reason. A `review` condition has neither a verification command (`review_command_present`) nor check paths (`review_check_paths_present`).
 4. To use the whole existing test suite as a preservation condition, add one `maintain` condition. When the goal documents have no such condition, add it as `EX-n`. `EX-n` is the executor's extra check, so it does not block the status. Behavior that must be preserved must be a required condition in the goal documents ([goal-docs.md](goal-docs.md) §2.3). When there is no such condition but you see behavior that must not break, ask the user in the pre-execution review (`중요한 미결정`, important open decisions, in §4).
+
+A criterion whose required result is document content that no product behavior reads, such as what a contract or a guide must say, is a `review` condition, met only by the review gate of a `standard` or `strict` goal. No new test pins document prose (that a sentence, phrase, heading or word appears or does not appear). Criteria about the behavior of `ha`, `spar` or scripts, and about format tokens code parses, stay `change` or `maintain`. The `review` kind is read before a start record and in a goal started under `run-rules/8`; `ha start` and `ha estimate --rules` under other rules, and goals started under `run-rules/1` through `run-rules/7`, keep `invalid_kind` for it. How it is satisfied is in [run-record.md](run-record.md) §4.1 and §4.11.
 
 An optional `baseline` column may be added at the end; the five-column table remains valid. In `run-rules/7` and `run-rules/8`, `요구` in the `baseline` column means that the change condition requires a baseline. An empty cell, `—`, or no column means no baseline is required. Check paths and the structured result contract remain required for every change condition, marked or not.
 
@@ -409,7 +411,9 @@ Execution bundle
 | `criterion_duplicate_row` | The same condition appears twice in the condition table |
 | `criterion_unknown` | An `AC-n` in the condition table is not in the goal documents |
 | `criterion_not_in_plan` | An `AC-n` in the goal documents is not in the condition table |
-| `invalid_kind` | The kind is not `change`, `maintain` or `manual` |
+| `invalid_kind` | The kind is not `change`, `maintain` or `manual`, nor `review` where §2.1 reads it |
+| `review_command_present` | A `review` condition has a verification command |
+| `review_check_paths_present` | A `review` condition has check paths |
 | `command_missing` | A `change` or `maintain` condition has no verification command |
 | `command_multiple` | One cell holds more than one verification command |
 | `shell_syntax` | A verification command contains shell syntax |

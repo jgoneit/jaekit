@@ -15,7 +15,7 @@ func TestSpecInvocationGuide(t *testing.T) {
 		musts []string
 	}{
 		{"../guides/USAGE.md", []string{"`/spec:spec <요청>`", "`$spec:spec <요청>`", "`@Spec`"}},
-		{"spec/.codex-plugin/plugin.json", []string{"spec:spec", "$ menu", "@Spec"}},
+		{"spec/.codex-plugin/plugin.json", []string{"spec:spec", "@Spec"}},
 	} {
 		text := read(t, c.path)
 		for _, s := range c.musts {
@@ -38,10 +38,4 @@ func TestSealStartCommandGuide(t *testing.T) {
 			}
 		}
 	}
-}
-
-// every document that describes J2 tells the same two steps:
-// save the goal documents, then send the start command.
-func TestPublicWorkflowUsesSeparateStart(t *testing.T) {
-	requireAll(t, "../contracts/goal-docs.md", "`Status: Ready` is not an authority to execute.", "an implementation request that the user sends separately after the goal documents are saved")
 }

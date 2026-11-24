@@ -200,6 +200,9 @@ var classOf = map[string]string{
 	"review_base_mismatch": ClassExecutor,
 	"review_docs_stale":    ClassExecutor,
 	"review_plan_missing":  ClassExecutor,
+	// run-rules/8 review conditions (run-record.md §4.1).
+	"review_pending":      ClassExecutor,
+	"review_tier_missing": ClassUser,
 }
 
 // UnsupportedRulesError means the goal was started under rules this build
@@ -550,11 +553,22 @@ func Compute(in Input) (*Report, error) {
 	}
 	if completion == nil {
 		rep.doneState = e.doneState(rep)
+	} else if b.ReviewKind {
+		// The review conditions its done line met stay met, with its record.
+		for _, l := range e.in.Lines {
+			for i := 0; l.Seq == *completion && i < len(rep.Criteria); i++ {
+				if c := &rep.Criteria[i]; c.Kind == bundle.KindReview {
+					if records, ok := storedReview(&l, c.ID); ok {
+						c.Satisfied, c.Reason, c.Records = true, "", records
+					}
+				}
+			}
+		}
 	}
 	var reasons []Reason
 	for _, c := range rep.Criteria {
 		if c.Required && !c.Satisfied {
-			reasons = append(reasons, Reason{Code: c.Reason, Class: classOf[c.Reason], Criterion: c.ID})
+			reasons = append(reasons, Reason{Code: c.Reason, Class: classOf[c.Reason], Criterion: c.ID, Detail: reviewDetail(c.Reason, goalReasons)})
 		}
 	}
 	reasons = append(reasons, goalReasons...)
@@ -782,6 +796,14 @@ func (e *evaluator) criteria(rep *Report) error {
 					ev.Attempts.Stale++
 				}
 			}
+		}
+		if kind == bundle.KindReview && b.ReviewKind {
+			var seq int
+			if ev.Reason, seq = e.reviewCondition(); ev.Reason == "" {
+				ev.Satisfied, ev.Records = true, []int{seq}
+			}
+			rep.Criteria = append(rep.Criteria, ev)
+			continue
 		}
 		if Autonomous(e.rules) && kind != "" && kind != bundle.KindManual {
 			e.reportRecoveries(rep, c.id, kind, C, B)
@@ -1196,13 +1218,6 @@ func (e *evaluator) completionRecord(rep *Report) (*int, error) {
 	if e.in.Integrity != nil || !e.clean || len(e.invalid) > 0 {
 		return nil, nil
 	}
-	if Structured(e.rules) {
-		for _, c := range rep.Criteria {
-			if c.Required && !c.Satisfied {
-				return nil, nil
-			}
-		}
-	}
 	lines := e.in.Lines
 	tier := e.in.Goal.Assurance
 	reviewInvalidates := Reviewed(e.rules) && (!CompletionIntegrity(e.rules) || tier == "standard" || tier == "strict")
@@ -1210,6 +1225,14 @@ func (e *evaluator) completionRecord(rep *Report) (*int, error) {
 		d := lines[i]
 		if d.Kind != "done" || d.Status != Complete {
 			continue
+		}
+		for _, c := range rep.Criteria {
+			// A review condition d stored as met waits on review reasons,
+			// which a valid completion record keeps out (run-record.md §4.11).
+			_, met := storedReview(&d, c.ID)
+			if Structured(e.rules) && c.Required && !c.Satisfied && !(c.Kind == bundle.KindReview && e.in.Bundle.ReviewKind && met) {
+				return nil, nil
+			}
 		}
 		for _, l := range lines[i+1:] {
 			if l.Kind == "note" && (l.Note == "reopen" || (l.Note == "review" && reviewInvalidates)) {
@@ -1235,6 +1258,17 @@ func (e *evaluator) completionRecord(rep *Report) (*int, error) {
 		return &seq, nil
 	}
 	return nil, nil
+}
+
+// storedReview returns the records done line d stored for id as a met review
+// condition, and whether it stored it so.
+func storedReview(d *record.Line, id string) ([]int, bool) {
+	for _, s := range d.Criteria {
+		if s.ID == id && s.Kind == bundle.KindReview && s.Satisfied {
+			return s.Records, true
+		}
+	}
+	return nil, false
 }
 
 // judgedLast reports whether the done line at index i judged the record as it

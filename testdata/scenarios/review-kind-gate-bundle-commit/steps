@@ -1,0 +1,35 @@
+# AC-2 with run-record.md §4.8: a completion record fixes the code state and
+# goal documents it judged. After ha done with the review condition AC-4 met,
+# a commit of only the goal's PROGRESS.md keeps the completion record, AC-4
+# met and no review reason; a code commit after that still loses it.
+include review-kind-goal
+commit "strict goal with a review condition"
+ha start $GOAL --request "implement the synthetic goal" --rules run-rules/8
+expect-exit 0
+include rules-v7-implement
+ha check $GOAL --baseline
+expect-exit 0
+ha check $GOAL
+expect-exit 0
+ha note $GOAL review --gate .git/gate.json
+expect-exit 0
+ha done $GOAL
+expect-exit 0
+expect-records 7
+expect-completion-record present
+append $GOAL/PROGRESS.md "\n완료 기록 seq 7 뒤에 남긴 메모\n"
+commit "a progress note after completion"
+expect-status complete
+expect-completion-record present
+expect-satisfied AC-4
+expect-reasons none
+ha status $GOAL
+expect-exit 0
+expect-output "- completion record: seq 7\n"
+write src/extra.txt "extra\n"
+commit "a later code commit"
+expect-completion-record absent
+expect-unsatisfied AC-4
+expect-reason review_pending AC-4
+expect-reason review_head_stale
+expect-records 7

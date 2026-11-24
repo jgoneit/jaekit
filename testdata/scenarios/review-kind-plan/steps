@@ -1,0 +1,57 @@
+# AC-1: a PLAN accepts a `review` row before start and after a run-rules/8
+# start. The estimate counts it as no run, so the run-rules/8 minimum stays 4
+# and a four-run limit starts. Checks and baselines of it are refused before
+# anything runs or is recorded, a check without targets leaves it out, and a
+# confirmation stays only for manual conditions.
+include review-kind-goal
+commit "strict goal with a review condition"
+ha lint $GOAL
+expect-exit 0
+expect-output "ok: no lint problems"
+expect-no-reason lint_error
+# Before start the estimate reads run-rules/3 (every change needs a baseline).
+ha estimate $GOAL --format json
+expect-exit 0
+expect-output "\"required_change\": 2"
+expect-output "\"required_maintain\": 1"
+expect-output "\"minimum_runs\": 5"
+expect-output "\"default_check_runs\": 3"
+expect-no-output "\"AC-4\""
+ha estimate $GOAL --rules run-rules/8 --format json
+expect-exit 0
+expect-output "\"minimum_runs\": 4"
+expect-output "\"default_check_runs\": 3"
+expect-output "\"default_baseline_runs\": 1"
+expect-output "\"computed_runs\": 50"
+expect-no-output "\"AC-4\""
+replace $GOAL/PLAN.md "검증 실행: 자동" "검증 실행: 4"
+commit "a four-run limit, the run-rules/8 minimum"
+ha estimate $GOAL --rules run-rules/8 --format json
+expect-exit 0
+expect-output "\"minimum_runs\": 4"
+expect-output "\"shortfall\": 0"
+ha start $GOAL --request "implement the synthetic goal" --rules run-rules/8
+expect-exit 0
+expect-records 1
+expect-record 1 rules run-rules/8
+ha lint $GOAL
+expect-exit 0
+expect-output "ok: no lint problems"
+# A review condition is never a check target, like a manual one (exit 64).
+ha check $GOAL AC-4
+expect-exit 64
+expect-records 1
+ha check $GOAL --baseline AC-4
+expect-exit 64
+expect-records 1
+include rules-v7-implement
+ha check $GOAL
+expect-exit 0
+expect-records 4
+expect-record 2 target "{\"criterion\":\"AC-1\"}"
+expect-record 3 target "{\"criterion\":\"AC-2\"}"
+expect-record 4 target "{\"criterion\":\"AC-3\"}"
+# A confirmation stays only for manual conditions (exit 65).
+ha note $GOAL confirm AC-4 --quote "읽어 보니 맞아"
+expect-exit 65
+expect-records 4
