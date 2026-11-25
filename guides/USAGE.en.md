@@ -277,7 +277,7 @@ To check the tools your checks need beforehand, add a `## 실행 환경` section
 
 ## Review gate (run-rules/5)
 
-From v0.1.7, Seal (0.1.21 or later) starts new goals with `ha start --rules run-rules/5`. `run-rules/5` keeps all of `run-rules/4`'s autonomy and adds a recorded independent review as a completion condition for goals whose SPEC tier is `standard` or `strict`. So a `standard` or `strict` goal started under `run-rules/5` completes only with a recorded Spar gate. `light` goals, goals without an `Assurance:` line and goals started under `run-rules/4` or earlier do not need Spar. To finish without review, you decide a goal-document change that lowers the tier to `light` (see the list below).
+From v0.1.7, Seal (0.1.21 or later) started new goals with `ha start --rules run-rules/5`; Seal 0.1.36 in v0.1.9 starts them under `run-rules/8`. `run-rules/5` keeps all of `run-rules/4`'s autonomy and adds a recorded independent review as a completion condition for goals whose SPEC tier is `standard` or `strict`. So a `standard` or `strict` goal started under `run-rules/5` or later completes only with a recorded Spar gate. `light` goals, goals without an `Assurance:` line and goals started under `run-rules/4` or earlier do not need Spar. To finish without review, you decide a goal-document change that lowers the tier to `light` (see the list below).
 
 When the installed `ha` does not know `run-rules/5` or other support Seal requires, Seal stops without a record and does not fall back to older rules. What to do is install an `ha` that has that support.
 

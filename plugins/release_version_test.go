@@ -221,8 +221,8 @@ func TestReleaseVersionSkillLinks(t *testing.T) {
 // rvSeal is the Seal plugin version of the current release.
 const rvSeal = "0.1.36"
 
-// The install guides' combination table has the current release's versions
-// and the source build's versions in table rows, and the usage and
+// The install guides' combination table labels the current release's row and
+// the previous release's row, and has the source build's versions; the usage and
 // operations guides state the current combination.
 func TestReleaseVersionCombination(t *testing.T) {
 	for _, c := range []struct {
@@ -230,10 +230,12 @@ func TestReleaseVersionCombination(t *testing.T) {
 		rows []string
 	}{
 		{"../guides/INSTALL.md", []string{
-			" `v0.1.9` | `ha 0.1.9`, `spar 0.1.9` | 0.1.16 | 0.1.36 | 0.1.9 |",
+			"| 현재 배포판 `v0.1.9` | `ha 0.1.9`, `spar 0.1.9` | 0.1.16 | 0.1.36 | 0.1.9 |",
+			"| 이전 배포판 `v0.1.8` | `ha 0.1.8`, `spar 0.1.8` | 0.1.13 | 0.1.23 | 0.1.4 |",
 			" | `ha 0.1.9-dev`, `spar 0.1.9-dev` |"}},
 		{"../guides/INSTALL.en.md", []string{
-			" `v0.1.9` | `ha 0.1.9`, `spar 0.1.9` | 0.1.16 | 0.1.36 | 0.1.9 |",
+			"| Current release `v0.1.9` | `ha 0.1.9`, `spar 0.1.9` | 0.1.16 | 0.1.36 | 0.1.9 |",
+			"| Previous release `v0.1.8` | `ha 0.1.8`, `spar 0.1.8` | 0.1.13 | 0.1.23 | 0.1.4 |",
 			" | `ha 0.1.9-dev`, `spar 0.1.9-dev` |"}},
 	} {
 		lines := strings.Split(read(t, c.path), "\n")

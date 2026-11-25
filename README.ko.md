@@ -189,7 +189,7 @@ codex plugin add spar@jaekit
 > 설치 후 **Codex를 새로 엽니다.** `@v0.1.9`는 사용할 배포판을 고정합니다.
 
 > [!NOTE]
-> **`standard`·`strict` 목표와 Spar.** v0.1.7부터 `standard`·`strict` 목표에는 Spar 실행 파일과 Spar 플러그인이 필요하고(위 명령이 둘 다 설치합니다), 리뷰어는 가진 CLI에 맞춰 정합니다. [Spar 설치](guides/INSTALL.md#spar)를 봅니다. v0.1.7의 Seal은 새 목표를 `run-rules/5`로 시작하고, `run-rules/5`로 시작한 `standard`·`strict` 목표는 기록된 Spar gate가 있어야 완료됩니다. `light` 목표, `Assurance:` 줄이 없는 목표, `run-rules/4` 이하로 시작한 목표에는 Spar가 필요 없습니다. 검토 없이 끝내려면 등급을 `light`로 낮추는 목표 문서 수정을 사용자가 정합니다([검토 gate](guides/USAGE.md#검토-gate-run-rules5)).
+> **`standard`·`strict` 목표와 Spar.** v0.1.7부터 `standard`·`strict` 목표에는 Spar 실행 파일과 Spar 플러그인이 필요하고(위 명령이 둘 다 설치합니다), 리뷰어는 가진 CLI에 맞춰 정합니다. [Spar 설치](guides/INSTALL.md#spar)를 봅니다. v0.1.7의 Seal은 새 목표를 `run-rules/5`로 시작했고, v0.1.9의 Seal 0.1.36은 `run-rules/8`로 시작합니다. `run-rules/5` 이후로 시작한 `standard`·`strict` 목표는 기록된 Spar gate가 있어야 완료됩니다. `light` 목표, `Assurance:` 줄이 없는 목표, `run-rules/4` 이하로 시작한 목표에는 Spar가 필요 없습니다. 검토 없이 끝내려면 등급을 `light`로 낮추는 목표 문서 수정을 사용자가 정합니다([검토 gate](guides/USAGE.md#검토-gate-run-rules5)).
 
 ### 첫 `standard` 목표 전에
 

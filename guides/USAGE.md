@@ -277,7 +277,7 @@ base commit이 없는 얕은 clone처럼 Git이 base와 HEAD를 비교할 수 �
 
 ## 검토 gate (run-rules/5)
 
-v0.1.7부터 Seal(0.1.21 이상)은 새 목표를 `ha start --rules run-rules/5`로 시작합니다. `run-rules/5`는 `run-rules/4`의 자율 처리를 모두 그대로 두고, SPEC의 등급이 `standard`나 `strict`인 목표에 독립 검토의 기록을 완료 조건으로 더합니다. 그래서 `run-rules/5`로 시작한 `standard`·`strict` 목표는 기록된 Spar gate가 있어야 완료됩니다. `light` 목표, `Assurance:` 줄이 없는 목표, `run-rules/4` 이하로 시작한 목표에는 Spar가 필요 없습니다. 검토 없이 끝내려면 등급을 `light`로 낮추는 목표 문서 수정을 사용자가 정합니다(아래 목록).
+v0.1.7의 Seal(0.1.21 이상)은 새 목표를 `ha start --rules run-rules/5`로 시작했고, v0.1.9의 Seal 0.1.36은 `run-rules/8`로 시작합니다. `run-rules/5`는 `run-rules/4`의 자율 처리를 모두 그대로 두고, SPEC의 등급이 `standard`나 `strict`인 목표에 독립 검토의 기록을 완료 조건으로 더합니다. 그래서 `run-rules/5` 이후로 시작한 `standard`·`strict` 목표는 기록된 Spar gate가 있어야 완료됩니다. `light` 목표, `Assurance:` 줄이 없는 목표, `run-rules/4` 이하로 시작한 목표에는 Spar가 필요 없습니다. 검토 없이 끝내려면 등급을 `light`로 낮추는 목표 문서 수정을 사용자가 정합니다(아래 목록).
 
 설치된 `ha`가 `run-rules/5`나 Seal이 요구하는 다른 지원을 모르면, Seal은 기록 없이 멈추고 이전 규칙으로 물러나지 않습니다. 할 일은 그 지원을 갖춘 `ha`를 설치하는 것입니다.
 
