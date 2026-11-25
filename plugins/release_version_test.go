@@ -94,10 +94,22 @@ func TestReleaseVersionWindowsGuides(t *testing.T) {
 			t.Errorf("%s names no release tag in a code span, want %s", path, rvTag)
 		}
 		// The first release with Windows files is planned after the current
-		// one, and the guide's blocks already carry that version.
-		requireAll(t, path, "`"+rvWindowsPlanned+"`", "$version = '"+rvWindowsPlanned+"'")
+		// one, and every block of the guide already carries that version.
+		requireAll(t, path, "`"+rvWindowsPlanned+"`")
+		blocks := rvWindowsVersion.FindAllStringSubmatch(read(t, path), -1)
+		if len(blocks) < 2 {
+			t.Errorf("%s has %d $version lines, want the install and remove blocks' two", path, len(blocks))
+		}
+		for _, m := range blocks {
+			if m[1] != rvWindowsPlanned {
+				t.Errorf("%s has %q, want $version = '%s'", path, m[0], rvWindowsPlanned)
+			}
+		}
 	}
 }
+
+// rvWindowsVersion is a Windows block's release version assignment.
+var rvWindowsVersion = regexp.MustCompile(`\$version = '([^']*)'`)
 
 // rvWindowsPlanned is the planned first release with Windows files.
 const rvWindowsPlanned = "0.1.10"
@@ -206,8 +218,13 @@ func TestReleaseVersionSkillLinks(t *testing.T) {
 	}
 	requireAll(t, "../contracts/core-capabilities.md",
 		"[check_core.py](https://github.com/jgoneit/jaekit/blob/"+rvTag+"/plugins/seal/skills/seal/scripts/check_core.py)",
-		"Core `"+rvVersion+"` and Seal `"+rvSeal+"` of "+rvTag,
 		`"ha_version": "`+rvVersion+`"`)
+	// The core capabilities contract names the Core, Seal and release versions
+	// it applies to on one line, in that order; only the numbers are read.
+	applies := regexp.MustCompile(`(?:^|[^0-9.])` + regexp.QuoteMeta(rvVersion) + `[^0-9]+` + regexp.QuoteMeta(rvSeal) + `[^0-9]+` + regexp.QuoteMeta(rvVersion) + `(?:[^0-9]|$)`)
+	if !slices.ContainsFunc(strings.Split(read(t, "../contracts/core-capabilities.md"), "\n"), applies.MatchString) {
+		t.Errorf("../contracts/core-capabilities.md has no line naming Core %s, Seal %s and release %s in that order", rvVersion, rvSeal, rvTag)
+	}
 	// The contracts link the published skills and show the current release's
 	// versions in their examples.
 	requireAll(t, "../contracts/role-card.md",

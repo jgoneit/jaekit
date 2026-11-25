@@ -283,7 +283,7 @@ v0.1.7의 Seal(0.1.21 이상)은 새 목표를 `ha start --rules run-rules/5`로
 
 - 누적 라운드가 열린 지적 없이 끝나면 Seal이 그 series의 라운드로 `spar gate`를 HEAD에 대해 만들고, `ha note <goal> review --gate <file>`로 gate 파일을 기록한 다음 `ha done`을 실행합니다. 기록에는 파일 digest와 판정에 필요한 요약만 남고 지적 원문은 남지 않습니다.
 - gate가 없으면 `review_missing`, 검토 뒤 commit이 더 있으면 `review_head_stale`, 검토 뒤 목표 문서가 바뀌었거나 라운드가 목표 문서를 모두 받지 않았으면 `review_docs_stale`이 나오고 완료가 기록되지 않습니다. gate가 `blocked`·`degraded`이거나 열린 `defect`·`requirement-question`이 있을 때, code 라운드가 없을 때, `strict`인데 plan 라운드가 없을 때도 각자의 이유가 나옵니다. 사용자 확인이나 다른 note는 gate를 대신하지 않습니다.
-- Spar를 쓸 수 없어 검토 없이 끝내려면, 사용자가 SPEC을 `Assurance: light`로 낮추는 수정을 정합니다. 그 뒤 `confirm spec`과 신선한 검사로 gate 없이 완료됩니다.
+- Spar를 쓸 수 없어 검토 없이 끝내려면, 사용자가 SPEC을 `Assurance: light`로 낮추는 수정을 정합니다. 그 뒤 `confirm spec`과 신선한 검사로 gate 없이 완료됩니다. `run-rules/8` 목표에 `review` 조건이 있으면 그 기준도 바꿔야 하며, 그렇지 않으면 `review_tier_missing`으로 완료되지 않습니다.
 - `light`이거나 등급 줄이 없는 목표, 그리고 `run-rules/1`~`run-rules/4`로 시작한 목표는 지금처럼 gate 없이 판정합니다.
 
 Seal 0.1.26은 위 시작 규칙을 대신해 새 목표를 `ha start --rules run-rules/6 … --check-skill`로 시작합니다. `run-rules/6`을 지원하는 Core가 필요하며, ha 0.1.8은 이를 지원하지 않습니다. 지원이 없으면 기록 없이 멈추고 이전 규칙으로 물러나지 않습니다. `/6`은 `/5`의 규칙 가운데 다음 네 판정만 바꿉니다.
@@ -301,7 +301,7 @@ Seal 0.1.26은 위 시작 규칙을 대신해 새 목표를 `ha start --rules ru
 
 PLAN 조건표의 선택 `baseline` 열에 `요구`를 적은 change 조건만 baseline을 요구합니다. 빈 칸·`—`나 열이 없으면 요구하지 않습니다. Seal은 두 가지에만 표시합니다. base commit에 이미 있는 결함을 고치는 버그 수정·회귀와, "X가 일어나지 않는다" 같은 금지 조건입니다. 새 기능을 더하는 조건은 기본으로 표시하지 않습니다. 표시한 조건마다 이유를 plan 라운드 전에 REVIEW에 적고, 표시하지 않은 조건에는 이유가 필요 없습니다. 이미 시작한 목표는 시작할 때의 표시를 그대로 둡니다. 표시하지 않은 change 조건도 검사 경로와 구조화 결과 계약은 필요하지만, base에도 있는 진입점에 묶을 필요 없이 새 함수의 시험에 연결할 수 있습니다.
 
-필수 최소량은 `표시한 필수 change × 2 + 표시하지 않은 필수 change + 필수 maintain`입니다. manual은 0회입니다. 표시한 change 1개, 표시하지 않은 change 4개, maintain 3개가 모두 필수라면 최소 9회이고, 자동 상한은 `max(50, ⌈9 × 1.5⌉) = 50`입니다. 시작 전에는 `ha estimate <goal> --rules run-rules/8`로 이 값을 봅니다. 시작한 목표는 저장된 규칙을 쓰며 다른 `--rules`를 주면 거절합니다.
+필수 최소량은 `표시한 필수 change × 2 + 표시하지 않은 필수 change + 필수 maintain`입니다. manual과 review는 0회입니다. 표시한 change 1개, 표시하지 않은 change 4개, maintain 3개가 모두 필수라면 최소 9회이고, 자동 상한은 `max(50, ⌈9 × 1.5⌉) = 50`입니다. 시작 전에는 `ha estimate <goal> --rules run-rules/8`로 이 값을 봅니다. 시작한 목표는 저장된 규칙을 쓰며 다른 `--rules`를 주면 거절합니다.
 
 대상 없는 `ha check <goal> --baseline`은 표시한 change 조건만 고릅니다(표시한 선택 조건도 포함). 표시가 하나도 없으면 기록 없이 거절합니다. 표시하지 않은 조건을 직접 지정해 baseline을 실행할 수도 있고, 실제 실행은 예산에 셉니다. 그 baseline의 신선한 불리한 결과도 판정에 남습니다. 표시한 조건의 baseline은 마지막 검토 라운드 뒤, 완료 기록 직전에 한 번 기록합니다. 그 baseline이 선언한 위반 대신 통과하거나 오류를 내면 Seal은 검사를 고치고, 고친 검사를 고친 코드처럼 검토받은 뒤 baseline을 다시 기록합니다. 검사 수정마다 기록하는 습관을 줄이자는 안내이며, 이미 낡은 근거를 신선하게 만드는 예외가 아닙니다.
 

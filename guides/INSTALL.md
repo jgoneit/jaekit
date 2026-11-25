@@ -76,7 +76,7 @@ Claude Code를 새로 열고 대화에서 `/spec:spec <요청>`으로 목표를 
 
 ### Spar
 
-Spar는 여러 리뷰어 CLI로 독립 검토 라운드를 돌립니다. [Spar 안내](SPAR.md)를 보세요. v0.1.7부터 `standard`·`strict` 목표에는 Spar 실행 파일과 Spar 플러그인이 필요합니다. v0.1.7의 Seal은 새 목표를 `run-rules/5`로 시작했고, v0.1.9의 Seal 0.1.36은 `run-rules/8`로 시작합니다. `run-rules/5` 이후로 시작한 `standard`·`strict` 목표는 기록된 Spar gate가 있어야 완료됩니다. `light` 목표, `Assurance:` 줄이 없는 목표, `run-rules/4` 이하로 시작한 목표에는 Spar가 필요 없습니다. 검토 없이 끝내려면 등급을 `light`로 낮추는 목표 문서 수정을 사용자가 정합니다([검토 gate](USAGE.md#검토-gate-run-rules5)).
+Spar는 여러 리뷰어 CLI로 독립 검토 라운드를 돌립니다. [Spar 안내](SPAR.md)를 보세요. v0.1.7부터 `standard`·`strict` 목표에는 Spar 실행 파일과 Spar 플러그인이 필요합니다. v0.1.7의 Seal은 새 목표를 `run-rules/5`로 시작했고, v0.1.9의 Seal 0.1.36은 `run-rules/8`로 시작합니다. `run-rules/5` 이후로 시작한 `standard`·`strict` 목표는 기록된 Spar gate가 있어야 완료됩니다. `light` 목표, `Assurance:` 줄이 없는 목표, `run-rules/4` 이하로 시작한 목표에는 Spar가 필요 없습니다. 검토 없이 끝내려면 등급을 `light`로 낮추는 목표 문서 수정을 사용자가 정합니다([검토 gate](USAGE.md#검토-gate-run-rules5)). `run-rules/8` 목표에 `review` 조건이 있으면 그 기준도 바꿔야 하며, 그렇지 않으면 `review_tier_missing`으로 완료되지 않습니다.
 
 v0.1.7부터는 Homebrew formula와 Release 파일이 `ha`와 `spar`를 함께 설치하고 두 버전이 같습니다. v0.1.6 이하의 릴리스 파일, formula, marketplace 태그에는 Spar가 없습니다.
 

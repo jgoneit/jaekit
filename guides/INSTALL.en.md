@@ -76,7 +76,7 @@ Reopen Claude Code and use `/spec:spec <request>` in the conversation to define 
 
 ### Spar
 
-Spar runs independent review rounds with several reviewer CLIs; see the [Spar guide](SPAR.en.md). From v0.1.7, `standard` and `strict` goals need the Spar executable and the Spar plugin. The v0.1.7 Seal started new goals under `run-rules/5`; Seal 0.1.36 in v0.1.9 starts them under `run-rules/8`. A `standard` or `strict` goal started under `run-rules/5` or later completes only with a recorded Spar gate. `light` goals, goals without an `Assurance:` line and goals started under `run-rules/4` or earlier do not need Spar. To finish without review, you decide a goal-document change that lowers the tier to `light` ([Review gate](USAGE.en.md#review-gate-run-rules5)).
+Spar runs independent review rounds with several reviewer CLIs; see the [Spar guide](SPAR.en.md). From v0.1.7, `standard` and `strict` goals need the Spar executable and the Spar plugin. The v0.1.7 Seal started new goals under `run-rules/5`; Seal 0.1.36 in v0.1.9 starts them under `run-rules/8`. A `standard` or `strict` goal started under `run-rules/5` or later completes only with a recorded Spar gate. `light` goals, goals without an `Assurance:` line and goals started under `run-rules/4` or earlier do not need Spar. To finish without review, you decide a goal-document change that lowers the tier to `light` ([Review gate](USAGE.en.md#review-gate-run-rules5)). A `run-rules/8` goal with a `review` condition also needs that criterion changed, or it stops at `review_tier_missing`.
 
 From v0.1.7, installing with Homebrew or from a Release file installs `ha` and `spar` together, with the same version. Release files, formulas and marketplace tags of v0.1.6 and earlier do not contain Spar.
 
