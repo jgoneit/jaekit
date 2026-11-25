@@ -148,7 +148,7 @@ New rounds start only with these two stages. `--stage plan-delta` and `--stage f
 
 One series allows one plan round and two code rounds. A round past its cap is refused before any reviewer starts; only your words, recorded with `spar extend`, allow more. Rerunning reviewers that did not finish the same packet, for example after a quota refusal, does not count. A new round in a recorded series is counted against the caps it records. Recorded fixes rounds count as code rounds, so a series that already recorded that many code rounds needs an extension for another candidate round.
 
-When the code rounds run out, the `spar run` refusal points to that series' cap report. `spar cap-report` reads only the series' records and Git, shows the cap use, the rounds, the open findings and four signals (churn, recurring links, unrelated defects, check growth), and writes nothing. Churn is counted by file and recurring links by link, and unrelated defects use each reviewer's judgment as given.
+When the code rounds run out, the `spar run` refusal points to that series' cap report. `spar cap-report` reads only the series' records and Git, shows the cap use, the rounds, the open findings and four signals (churn, recurring links, unrelated defects, check growth), and writes nothing. Churn is counted by file and recurring links by link, and unrelated defects use each reviewer's judgment as given. Check growth is measured only in a series with recorded fixes rounds; for a series of plan and candidate rounds the report says it was not measured.
 
 ```bash
 spar cap-report docs/reviews/example
