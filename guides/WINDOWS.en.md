@@ -2,7 +2,7 @@
 
 [한국어](WINDOWS.md) · **English**
 
-Read this when you help develop Jaekit and try the native Windows candidate. To use Jaekit on Windows, see the [WSL2 preparation guide](WSL.en.md). This guide covers two paths targeting **Windows 11 x64 with Windows PowerShell 5.1 and PowerShell 7**: the [public release path](#install-from-a-public-release), which installs from a public release with Windows files, and the local candidate installation path after it. It does not mean the current public release, `v0.1.8`, includes Windows files. Candidate packaging and cross-compilation do not establish Windows installation, execution, or actual agent Skill loading. Read the observations and remaining gaps for the particular candidate.
+Read this when you help develop Jaekit and try the native Windows candidate. To use Jaekit on Windows, see the [WSL2 preparation guide](WSL.en.md). This guide covers two paths targeting **Windows 11 x64 with Windows PowerShell 5.1 and PowerShell 7**: the [public release path](#install-from-a-public-release), which installs from a public release with Windows files, and the local candidate installation path after it. It does not mean the current public release, `v0.1.9`, includes Windows files. Candidate packaging and cross-compilation do not establish Windows installation, execution, or actual agent Skill loading. Read the observations and remaining gaps for the particular candidate.
 
 Windows ARM64/x86, earlier Windows versions, network/UNC repositories and using the same checkout from both Windows and WSL are outside this path's support scope. WSL and native Windows support are separate.
 
@@ -22,14 +22,14 @@ The block proceeds only in this order:
 
 **Checksums.** Checksums establish that the downloaded ZIP matches the same release's list. They are not signatures that authenticate the source. Read this guide and the block from a trusted source.
 
-No public release with Windows files exists yet, and the current release, `v0.1.8`, has no Windows files. The block below works once the first release with Windows files is published. Its version value (planned `0.1.9`) is confirmed when that release is prepared. Until then, use the candidate path below.
+No public release with Windows files exists yet, and the current release, `v0.1.9`, has no Windows files. The block below works once the first release with Windows files is published. Its version value (planned `0.1.10`) is confirmed when that release is prepared. Until then, use the candidate path below.
 
 <!-- BEGIN WINDOWS PUBLIC INSTALL -->
 ```powershell
 & {
     $ErrorActionPreference = 'Stop'
     $ProgressPreference = 'SilentlyContinue'
-    $version = '0.1.9'
+    $version = '0.1.10'
     $source = 'https://github.com/jgoneit/jaekit/releases/download/v' + $version
     $name = 'ha_' + $version + '_windows_amd64.zip'
     $shell = (Get-Process -Id $PID).Path
@@ -99,7 +99,7 @@ Close `ha` and running checks, then paste the block below. It checks the downloa
 & {
     $ErrorActionPreference = 'Stop'
     $ProgressPreference = 'SilentlyContinue'
-    $version = '0.1.9'
+    $version = '0.1.10'
     $source = 'https://github.com/jgoneit/jaekit/releases/download/v' + $version
     $name = 'ha_' + $version + '_windows_amd64.zip'
     $shell = (Get-Process -Id $PID).Path

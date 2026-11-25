@@ -22,7 +22,7 @@ func TestCompatibilityAC10_SourceVersions(t *testing.T) {
 		Plugins  []manifest               `json:"plugins"`
 	}
 	readJSON(t, "../.claude-plugin/marketplace.json", &marketplace)
-	if marketplace.Metadata.Version != "0.1.8" {
+	if marketplace.Metadata.Version != "0.1.9" {
 		t.Errorf("[requirement] current released marketplace identity changed: %s", marketplace.Metadata.Version)
 	}
 	// Release v0.1.6 shipped Spec 0.1.12 and Seal 0.1.17. Spec 0.1.13 adds
@@ -45,7 +45,8 @@ func TestCompatibilityAC10_SourceVersions(t *testing.T) {
 	// before completion. Seal 0.1.33 runs review rounds only as plan and
 	// candidate: one candidate round from the base commit after review fixes.
 	// Seal 0.1.34 drops its guidance for the removed `ha history` command.
-	// Seal 0.1.35 reduces the review summary to four headings.
+	// Seal 0.1.35 reduces the review summary to four headings. Release v0.1.9
+	// ships Spec 0.1.16 and Seal 0.1.35.
 	for name, want := range map[string]string{"spec": "0.1.16", "seal": "0.1.35"} {
 		t.Run(name, func(t *testing.T) {
 			_, version := frontMatter(t, filepath.Join(name, "skills", name, "SKILL.md"))
@@ -70,14 +71,14 @@ func TestCompatibilityAC10_SourceVersions(t *testing.T) {
 			}
 		})
 	}
-	compatibilityContains(t, "Core development version", read(t, "../cmd/ha/main.go"), `var version = "0.1.8-dev"`)
+	compatibilityContains(t, "Core development version", read(t, "../cmd/ha/main.go"), `var version = "0.1.9-dev"`)
 	// These package a checkout build, which prints the development version;
 	// install.ps1 refuses a manifest version the executable does not print.
 	for _, path := range []string{"../tools/windows/docs_check.py", "../tools/windows/README.md"} {
 		content := read(t, path)
-		compatibilityContains(t, path, content, "0.1.8-dev")
-		if strings.Contains(content, "0.1.7-dev") {
-			t.Errorf("[requirement] %s packages a checkout build as 0.1.7-dev", path)
+		compatibilityContains(t, path, content, "0.1.9-dev")
+		if strings.Contains(content, "0.1.8-dev") {
+			t.Errorf("[requirement] %s packages a checkout build as 0.1.8-dev", path)
 		}
 	}
 	// Codex's marketplace format has no component version field.
@@ -99,11 +100,11 @@ func TestCompatibilityAC11_ReleaseAndDevelopmentGuidance(t *testing.T) {
 				if path == "../README.ko.md" {
 					guide, heading, anchor = "../guides/INSTALL.md", "## 배포판과 개발 조합", "배포판과-개발-조합"
 				}
-				compatibilityContains(t, path, content, "v0.1.8", "ha 0.1.8", "("+strings.TrimPrefix(guide, "../")+"#"+anchor+")")
+				compatibilityContains(t, path, content, "v0.1.9", "ha 0.1.9", "("+strings.TrimPrefix(guide, "../")+"#"+anchor+")")
 				content += "\n" + visualSection(t, guide, heading)
 			}
-			// Spec 0.1.13 and Seal 0.1.23 make up the current release.
-			compatibilityContains(t, path, content, "v0.1.8", "ha 0.1.8", "0.1.13", "0.1.23")
+			// Spec 0.1.16 and Seal 0.1.35 make up the current release.
+			compatibilityContains(t, path, content, "v0.1.9", "ha 0.1.9", "0.1.16", "0.1.35")
 			for _, stale := range []string{"jaekit@v0.1.2", "jaekit#v0.1.2", "/releases/download/v0.1.2"} {
 				if strings.Contains(strings.ToLower(content), stale) {
 					t.Errorf("[requirement] %s retains obsolete release guidance: %s", path, stale)
@@ -112,7 +113,7 @@ func TestCompatibilityAC11_ReleaseAndDevelopmentGuidance(t *testing.T) {
 		})
 	}
 	for path, capabilities := range map[string]string{"../guides/INSTALL.md": "contracts/core-capabilities.md", "../guides/INSTALL.en.md": "contracts/core-capabilities.md"} {
-		compatibilityContains(t, path, read(t, path), "jaekit@v0.1.8", "jaekit#v0.1.8", "ha_0.1.8_${os}_${arch}", capabilities, "ha 0.1.8-dev", "v0.1.2")
+		compatibilityContains(t, path, read(t, path), "jaekit@v0.1.9", "jaekit#v0.1.9", "ha_0.1.9_${os}_${arch}", capabilities, "ha 0.1.9-dev", "v0.1.2")
 	}
 	// The operations guide points to the contract for what /4 adds to the /3
 	// budget rules.

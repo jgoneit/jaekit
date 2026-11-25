@@ -6,7 +6,7 @@ Read this when you change or try out Jaekit itself. You do not need it to use Ja
 
 ## Build from source (development)
 
-An `ha` built from a repository checkout shows a development version (`ha 0.1.8-dev`). You need Go 1.27 or later and git. Run this from the root of the checkout.
+An `ha` built from a repository checkout shows a development version (`ha 0.1.9-dev`). You need Go 1.27 or later and git. Run this from the root of the checkout.
 
 ```bash
 go install ./cmd/ha ./cmd/spar
@@ -14,7 +14,7 @@ ha --version
 spar --version
 ```
 
-The `ha` and `spar` files go to the folder `go env GOBIN` prints, or to `$(go env GOPATH)/bin` when that is empty. `ha --version` prints `ha 0.1.8-dev`, and `spar --version` prints `spar 0.1.8-dev`. Seal separately checks the actual support information from `ha capabilities --format json`. A Python compatibility helper is optional; Python 3 installation is not a prerequisite for Seal.
+The `ha` and `spar` files go to the folder `go env GOBIN` prints, or to `$(go env GOPATH)/bin` when that is empty. `ha --version` prints `ha 0.1.9-dev`, and `spar --version` prints `spar 0.1.9-dev`. Seal separately checks the actual support information from `ha capabilities --format json`. A Python compatibility helper is optional; Python 3 installation is not a prerequisite for Seal.
 
 To use the plugins while you change the checkout, register the checkout path as the marketplace. That registration uses the plugin files in the checkout as they are. Replace `<path to jaekit>` with the path of your checkout.
 

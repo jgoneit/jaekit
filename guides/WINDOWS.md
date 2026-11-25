@@ -2,7 +2,7 @@
 
 **한국어** · [English](WINDOWS.en.md)
 
-Jaekit 개발에 참여해 Windows 네이티브 후보를 시험할 때 읽는 문서입니다. Windows에서 Jaekit을 쓰려면 [WSL2 준비 안내](WSL.md)를 봅니다. 이 안내는 **Windows 11 x64, Windows PowerShell 5.1·PowerShell 7**을 대상으로 두 경로를 다룹니다. 하나는 Windows 파일이 든 공개 릴리스에서 설치하는 [공개 릴리스 경로](#공개-릴리스로-설치)이고, 다른 하나는 그 아래의 로컬 후보 설치 경로입니다. 현재 공개 배포판 `v0.1.8`에 Windows 파일이 있다는 뜻이 아닙니다. 후보 패키지 생성과 교차 빌드는 Windows에서의 설치·실행 관측이나 에이전트의 실제 Skill 사용을 증명하지 않습니다. 해당 후보의 확인 결과와 미확인 범위를 함께 읽습니다.
+Jaekit 개발에 참여해 Windows 네이티브 후보를 시험할 때 읽는 문서입니다. Windows에서 Jaekit을 쓰려면 [WSL2 준비 안내](WSL.md)를 봅니다. 이 안내는 **Windows 11 x64, Windows PowerShell 5.1·PowerShell 7**을 대상으로 두 경로를 다룹니다. 하나는 Windows 파일이 든 공개 릴리스에서 설치하는 [공개 릴리스 경로](#공개-릴리스로-설치)이고, 다른 하나는 그 아래의 로컬 후보 설치 경로입니다. 현재 공개 배포판 `v0.1.9`에 Windows 파일이 있다는 뜻이 아닙니다. 후보 패키지 생성과 교차 빌드는 Windows에서의 설치·실행 관측이나 에이전트의 실제 Skill 사용을 증명하지 않습니다. 해당 후보의 확인 결과와 미확인 범위를 함께 읽습니다.
 
 Windows ARM64·x86, 이전 Windows, 네트워크/UNC 저장소와 같은 checkout의 Windows·WSL 교차 사용은 이 경로의 지원 대상이 아닙니다. WSL 지원과 네이티브 지원은 별개입니다.
 
@@ -22,14 +22,14 @@ Windows ARM64·x86, 이전 Windows, 네트워크/UNC 저장소와 같은 checkou
 
 **체크섬.** 체크섬은 받은 ZIP이 같은 릴리스의 목록과 같은지 확인할 뿐, 출처를 인증하는 서명이 아닙니다. 이 안내와 블록은 신뢰한 출처에서 읽습니다.
 
-아직 Windows 파일이 든 공개 릴리스는 없으며, 현재 배포판 `v0.1.8`에도 Windows 파일이 없습니다. 아래 블록은 Windows 파일이 든 첫 릴리스가 게시된 뒤부터 동작합니다. 블록의 버전 값(예정 `0.1.9`)은 그 릴리스를 준비할 때 확정합니다. 그 전에는 아래의 후보 경로를 씁니다.
+아직 Windows 파일이 든 공개 릴리스는 없으며, 현재 배포판 `v0.1.9`에도 Windows 파일이 없습니다. 아래 블록은 Windows 파일이 든 첫 릴리스가 게시된 뒤부터 동작합니다. 블록의 버전 값(예정 `0.1.10`)은 그 릴리스를 준비할 때 확정합니다. 그 전에는 아래의 후보 경로를 씁니다.
 
 <!-- BEGIN WINDOWS PUBLIC INSTALL -->
 ```powershell
 & {
     $ErrorActionPreference = 'Stop'
     $ProgressPreference = 'SilentlyContinue'
-    $version = '0.1.9'
+    $version = '0.1.10'
     $source = 'https://github.com/jgoneit/jaekit/releases/download/v' + $version
     $name = 'ha_' + $version + '_windows_amd64.zip'
     $shell = (Get-Process -Id $PID).Path
@@ -99,7 +99,7 @@ Windows ARM64·x86, 이전 Windows, 네트워크/UNC 저장소와 같은 checkou
 & {
     $ErrorActionPreference = 'Stop'
     $ProgressPreference = 'SilentlyContinue'
-    $version = '0.1.9'
+    $version = '0.1.10'
     $source = 'https://github.com/jgoneit/jaekit/releases/download/v' + $version
     $name = 'ha_' + $version + '_windows_amd64.zip'
     $shell = (Get-Process -Id $PID).Path

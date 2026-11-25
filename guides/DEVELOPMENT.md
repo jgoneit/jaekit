@@ -6,7 +6,7 @@ Jaekit 자체를 고치거나 시험할 때 읽는 문서입니다. Jaekit을 �
 
 ## 소스에서 빌드 (개발)
 
-저장소 checkout에서 빌드한 `ha`는 개발 버전(`ha 0.1.8-dev`)을 표시합니다. Go 1.27 이상과 git이 필요합니다. checkout의 루트에서 실행합니다.
+저장소 checkout에서 빌드한 `ha`는 개발 버전(`ha 0.1.9-dev`)을 표시합니다. Go 1.27 이상과 git이 필요합니다. checkout의 루트에서 실행합니다.
 
 ```bash
 go install ./cmd/ha ./cmd/spar
@@ -14,7 +14,7 @@ ha --version
 spar --version
 ```
 
-`ha`와 `spar` 파일은 `go env GOBIN`이 가리키는 폴더에 생기고, 그 값이 비어 있으면 `$(go env GOPATH)/bin`에 생깁니다. `ha --version`은 `ha 0.1.8-dev`를, `spar --version`은 `spar 0.1.8-dev`를 출력합니다. Seal은 별도로 `ha capabilities --format json`의 실제 지원 정보를 확인합니다. 선택적인 Python 호환 검사 도우미도 있지만 Python 3 설치가 Seal의 필수 조건은 아닙니다.
+`ha`와 `spar` 파일은 `go env GOBIN`이 가리키는 폴더에 생기고, 그 값이 비어 있으면 `$(go env GOPATH)/bin`에 생깁니다. `ha --version`은 `ha 0.1.9-dev`를, `spar --version`은 `spar 0.1.9-dev`를 출력합니다. Seal은 별도로 `ha capabilities --format json`의 실제 지원 정보를 확인합니다. 선택적인 Python 호환 검사 도우미도 있지만 Python 3 설치가 Seal의 필수 조건은 아닙니다.
 
 checkout을 고치며 plugin을 쓰려면 checkout 경로를 marketplace로 등록합니다. 이 등록은 checkout의 plugin 파일을 그대로 씁니다. `<jaekit 경로>`는 checkout의 경로로 바꿉니다.
 
