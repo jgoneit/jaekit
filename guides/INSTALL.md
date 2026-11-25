@@ -39,7 +39,7 @@ spar --version
 which -a spar
 ```
 
-`ha --version`은 `ha 0.1.9`을 출력해야 합니다. `spar --version`도 같은 버전 `spar 0.1.9`을 보여야 합니다. `which -a ha`의 첫 줄이 실제로 실행되는 파일입니다(`spar`는 `which -a spar`의 첫 줄). PATH는 명령을 찾을 폴더의 순서입니다. 버전이 다르면 먼저 이 경로를 확인합니다. 예전에 `go install`로 만든 파일이 앞에 있다면 해당 파일을 지우거나 PATH 순서를 바꿉니다. 그 파일은 `go env GOBIN`이 가리키는 폴더, 비어 있으면 `$(go env GOPATH)/bin`에 있습니다.
+`ha --version`은 `ha 0.1.9`를 출력해야 합니다. `spar --version`도 같은 버전 `spar 0.1.9`를 보여야 합니다. `which -a ha`의 첫 줄이 실제로 실행되는 파일입니다(`spar`는 `which -a spar`의 첫 줄). PATH는 명령을 찾을 폴더의 순서입니다. 버전이 다르면 먼저 이 경로를 확인합니다. 예전에 `go install`로 만든 파일이 앞에 있다면 해당 파일을 지우거나 PATH 순서를 바꿉니다. 그 파일은 `go env GOBIN`이 가리키는 폴더, 비어 있으면 `$(go env GOPATH)/bin`에 있습니다.
 
 명령을 못 찾고 `which -a ha`도 비어 있다면 설치가 끝났는지 확인하고, 설치한 폴더가 PATH에 있는지 봅니다. 에이전트도 `ha`를 찾을 수 있도록 설정한 뒤 Codex 또는 Claude Code를 새로 엽니다.
 
@@ -54,7 +54,7 @@ codex plugin add seal@jaekit
 codex plugin add spar@jaekit
 ```
 
-`@v0.1.9`은 marketplace(플러그인 목록)를 해당 태그에 고정합니다. main이 바뀌어도 배포판의 spec 0.1.16·seal 0.1.35·spar 0.1.9를 받습니다.
+`@v0.1.9`는 marketplace(플러그인 목록)를 해당 태그에 고정합니다. main이 바뀌어도 배포판의 spec 0.1.16·seal 0.1.35·spar 0.1.9를 받습니다.
 
 Codex를 새로 열고 대화에 `$`를 입력해 Jaekit의 `spec:spec` 또는 `seal:seal`을 고릅니다. 호출 이름은 `$spec:spec`과 `$seal:seal`입니다. [첫 작업 맡기기](../README.ko.md#첫-작업-맡기기)를 따라 해 봅니다. 다른 플러그인과 혼동되면 [문제 해결](USAGE.md#문제-해결)을 봅니다.
 
@@ -70,7 +70,7 @@ claude plugin install spar@jaekit
 claude plugin list
 ```
 
-`#v0.1.9`은 marketplace를 해당 태그에 고정합니다. 마지막 목록에서 `spec@jaekit`, `seal@jaekit`, `spar@jaekit`가 enabled인지 봅니다. 다른 플러그인과 혼동되면 [문제 해결](USAGE.md#문제-해결)을 봅니다.
+`#v0.1.9`는 marketplace를 해당 태그에 고정합니다. 마지막 목록에서 `spec@jaekit`, `seal@jaekit`, `spar@jaekit`가 enabled인지 봅니다. 다른 플러그인과 혼동되면 [문제 해결](USAGE.md#문제-해결)을 봅니다.
 
 Claude Code를 새로 열고 대화에서 `/spec:spec <요청>`으로 목표를 정리한 뒤, 별도 메시지의 `/seal:seal docs/specs/<goal>`로 구현을 시작합니다. 플러그인의 스킬은 `/플러그인-이름:스킬-이름`으로 호출합니다. 목표 확인과 이어 가기는 [사용 안내](USAGE.md#명령-보내기)에 있습니다.
 
@@ -205,7 +205,7 @@ brew 대신 [v0.1.9 Release](https://github.com/jgoneit/jaekit/releases/tag/v0.1
 
 배포판마다 들어 있는 기능은 다음과 같습니다.
 
-- **현재 배포판 `v0.1.9`**: v0.1.8의 범위에 더해 Seal의 새 목표는 `/8`(`run-rules/6`~`/8`: 표시한 change 조건만 baseline, 검사 동결 없음, 참고값인 경과 시간, 검토 gate로 충족하는 `review` 조건), `PROGRESS.md`의 `## 검수 요약`, `ha report`의 검토 지적, Spar 리뷰어 관점과 candidate 라운드가 받는 이전 처리; `ha history` 제거
+- **현재 배포판 `v0.1.9`**: v0.1.8의 범위에 더해 Seal의 새 목표는 `/8`(`run-rules/6`~`/8`: 표시한 change 조건만 baseline, 검사 동결 없음, 참고값인 경과 시간, 검토 gate로 충족하는 `review` 조건), `PROGRESS.md`의 `## 검수 요약`, `ha report`의 검토 지적, Spar 상한 보고(`spar cap-report`, 연장 원인을 남기는 `spar extend --cause`와 그 원인을 보이는 `ha cost`), 사용자 설정이 비워 둔 리뷰어의 모델·강도를 에이전트가 고르고 사용자가 허용 목록으로 그 범위를 묶는 것, Spar 리뷰어 관점과 candidate 라운드가 받는 이전 처리; `ha history` 제거
 - **소스 빌드**: 개발용 식별자이며 배포 파일의 설치 근거가 아님
 
 <details>
@@ -221,7 +221,7 @@ brew 대신 [v0.1.9 Release](https://github.com/jgoneit/jaekit/releases/tag/v0.1
 
 </details>
 
-아래 태그 고정 설치 명령은 v0.1.9을 받습니다. Seal은 실제 사용할 Core의 지원 정보를 확인하고, 확인할 수 없거나 부족하면 기록 전에 멈춥니다. 버전 숫자만 맞추거나 구규칙으로 바꿔 진행하지 않습니다. 지원 조건은 [Core 지원 정보 계약](../contracts/core-capabilities.md)에 있습니다.
+아래 태그 고정 설치 명령은 v0.1.9를 받습니다. Seal은 실제 사용할 Core의 지원 정보를 확인하고, 확인할 수 없거나 부족하면 기록 전에 멈춥니다. 버전 숫자만 맞추거나 구규칙으로 바꿔 진행하지 않습니다. 지원 조건은 [Core 지원 정보 계약](../contracts/core-capabilities.md)에 있습니다.
 
 Spec은 Core 설치나 지원 조회 없이 문서를 작성합니다. Spec 0.1.16의 새 문서는 `nested/1`을 사용하므로 구현을 맡길 때는 그 형식을 지원하는 Core가 필요합니다. 기존 목표의 형식과 `/1`·`/2`·`/3` 기록, 사용량과 시간 한도는 업데이트로 바꾸지 않습니다. 실제 호스트 확인 범위는 [v0.1.9 릴리스 노트](https://github.com/jgoneit/jaekit/releases/tag/v0.1.9)에 따릅니다.
 
@@ -278,7 +278,7 @@ brew upgrade jgoneit/tap/jaekit
 
 Release 파일로 설치한 `ha`는 [Release 파일로 설치](#release-파일로-설치)의 명령을 다시 붙여 넣습니다. 새 버전의 파일이 `~/.local/bin/ha`를 덮어쓰고 `~/.local/bin/spar`를 둡니다.
 
-그다음 두 실행 파일의 버전과 실제로 실행되는 위치를 확인합니다. `ha 0.1.9`과 `spar 0.1.9`이 나오면 됩니다. 다른 버전이 나오면 `which -a ha`·`which -a spar`의 첫 줄이 실제로 실행되는 파일이므로 [버전 확인](#버전-확인)대로 PATH를 봅니다.
+그다음 두 실행 파일의 버전과 실제로 실행되는 위치를 확인합니다. `ha 0.1.9`와 `spar 0.1.9`가 나오면 됩니다. 다른 버전이 나오면 `which -a ha`·`which -a spar`의 첫 줄이 실제로 실행되는 파일이므로 [버전 확인](#버전-확인)대로 PATH를 봅니다.
 
 ```bash
 ha --version
@@ -290,8 +290,8 @@ which -a spar
 <details>
 <summary>선택, Release 파일 설치만: 이전 버전 자료 지우기</summary>
 
-Release 파일로 설치했다면 이전 버전의 공개 자료가 `~/.local/share/jaekit/<버전>`에 그대로 남습니다. 위에서 `ha 0.1.9`을 확인한 뒤 아래 명령으로 설치한 버전 `0.1.9`보다 오래된 버전 폴더만 지울 수 있습니다. 자료 폴더는 v0.1.3부터 생겼습니다.
-- 현재 버전 폴더 `~/.local/share/jaekit/0.1.9`과 [참조 검사 가져오기](#참조-검사-가져오기)에 쓰는 파일, 더 새 버전 폴더, `0.1.2`처럼 세 숫자로 된 버전 이름이 아닌 항목은 남습니다.
+Release 파일로 설치했다면 이전 버전의 공개 자료가 `~/.local/share/jaekit/<버전>`에 그대로 남습니다. 위에서 `ha 0.1.9`를 확인한 뒤 아래 명령으로 설치한 버전 `0.1.9`보다 오래된 버전 폴더만 지울 수 있습니다. 자료 폴더는 v0.1.3부터 생겼습니다.
+- 현재 버전 폴더 `~/.local/share/jaekit/0.1.9`와 [참조 검사 가져오기](#참조-검사-가져오기)에 쓰는 파일, 더 새 버전 폴더, `0.1.2`처럼 세 숫자로 된 버전 이름이 아닌 항목은 남습니다.
 - 이름은 줄바꿈이나 공백으로 나누지 않고 전체를 판단하며, 버전처럼 보이는 일반 파일과 symlink도 남깁니다.
 - 버전은 숫자로 비교하므로 `0.1.10`은 `0.1.9`보다 새 버전입니다.
 - `~/.local/share/jaekit`이 symlink이면 아무것도 지우지 않습니다.

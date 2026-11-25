@@ -93,8 +93,14 @@ func TestReleaseVersionWindowsGuides(t *testing.T) {
 		if seen == 0 {
 			t.Errorf("%s names no release tag in a code span, want %s", path, rvTag)
 		}
+		// The first release with Windows files is planned after the current
+		// one, and the guide's blocks already carry that version.
+		requireAll(t, path, "`"+rvWindowsPlanned+"`", "$version = '"+rvWindowsPlanned+"'")
 	}
 }
+
+// rvWindowsPlanned is the planned first release with Windows files.
+const rvWindowsPlanned = "0.1.10"
 
 // rvFixedForms are the ways the READMEs and guides write a version that can
 // only mean the current release: marketplace pins, release pages and
@@ -224,8 +230,15 @@ func TestReleaseVersionCombination(t *testing.T) {
 			}
 		}
 	}
-	for _, path := range []string{"../guides/USAGE.md", "../guides/USAGE.en.md", "../guides/OPERATIONS.md", "../guides/OPERATIONS.en.md"} {
-		rvLine(t, path, "v0.1.9", "ha 0.1.9", "spar 0.1.9", "spec 0.1.16", "seal 0.1.35", "0.1.9")
+	// The Spar plugin version is read with its label, since a bare number
+	// can also be part of the release tag or the executables' versions.
+	for _, c := range []struct{ path, plugin string }{
+		{"../guides/USAGE.md", "플러그인 0.1.9"},
+		{"../guides/USAGE.en.md", "plugin 0.1.9"},
+		{"../guides/OPERATIONS.md", "플러그인 0.1.9"},
+		{"../guides/OPERATIONS.en.md", "plugin 0.1.9"},
+	} {
+		rvLine(t, c.path, "v0.1.9", "ha 0.1.9", "spar 0.1.9", "spec 0.1.16", "seal 0.1.35", c.plugin)
 	}
 	// The Seal skill states the combination its commands describe on one
 	// line: the release, ha, spar and Seal versions in that order, with no

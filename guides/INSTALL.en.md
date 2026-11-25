@@ -205,7 +205,7 @@ If `~/.local/bin` is not on your PATH, add `export PATH="$HOME/.local/bin:$PATH"
 
 What each release includes:
 
-- **Current release `v0.1.9`**: Everything in v0.1.8, plus Seal starting new goals under `/8` (from `run-rules/6` to `/8`: baselines only for marked change conditions, no check freeze, an informational elapsed time and `review` conditions met by the review gate), the `## 검수 요약` review summary in `PROGRESS.md`, review findings in `ha report`, and Spar reviewer standpoints and the earlier dispositions candidate rounds receive; `ha history` is removed
+- **Current release `v0.1.9`**: Everything in v0.1.8, plus Seal starting new goals under `/8` (from `run-rules/6` to `/8`: baselines only for marked change conditions, no check freeze, an informational elapsed time and `review` conditions met by the review gate), the `## 검수 요약` review summary in `PROGRESS.md`, review findings in `ha report`, the Spar cap report (`spar cap-report`, `spar extend --cause` recording why a cap was extended, and that cause in `ha cost`), reviewer models and efforts the agent chooses where the user's settings leave them unset, within an allow list the user can set, and Spar reviewer standpoints and the earlier dispositions candidate rounds receive; `ha history` is removed
 - **Source build**: Development identity; not evidence of installing a release artifact
 
 <details>
