@@ -6,7 +6,7 @@ Read this before your first `standard` or `strict` goal, or when you change revi
 
 In detail, Spar sends one review packet, pinned to two commits, to several reviewers at once and keeps what they found and what was done about it. The `spar` binary runs the rounds; the `spar` plugin tells your agent when to run them and how findings may be closed.
 
-Seal 0.1.35 in v0.1.9 starts new goals under `run-rules/8`. From v0.1.7, a `standard` or `strict` goal started under `run-rules/5` or later completes only with a recorded Spar gate. `light` goals, goals without an `Assurance:` line and goals started under `run-rules/4` or earlier do not need Spar. To finish without review, you decide a goal-document change that lowers the tier to `light` ([Review gate](USAGE.en.md#review-gate-run-rules5)).
+Seal 0.1.36 in v0.1.9 starts new goals under `run-rules/8`. From v0.1.7, a `standard` or `strict` goal started under `run-rules/5` or later completes only with a recorded Spar gate. `light` goals, goals without an `Assurance:` line and goals started under `run-rules/4` or earlier do not need Spar. To finish without review, you decide a goal-document change that lowers the tier to `light` ([Review gate](USAGE.en.md#review-gate-run-rules5)).
 
 `spar` ships next to `ha` in the release files and the Homebrew formula from v0.1.7; release files and formulas of v0.1.6 and earlier do not contain it. See the [install guide](INSTALL.en.md).
 

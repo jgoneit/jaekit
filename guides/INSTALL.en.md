@@ -54,7 +54,7 @@ codex plugin add seal@jaekit
 codex plugin add spar@jaekit
 ```
 
-`@v0.1.9` pins the marketplace (the source of the plugin list) to that tag. Even when main changes, you get the release's spec 0.1.16, seal 0.1.35 and spar 0.1.9.
+`@v0.1.9` pins the marketplace (the source of the plugin list) to that tag. Even when main changes, you get the release's spec 0.1.16, seal 0.1.36 and spar 0.1.9.
 
 Reopen Codex, type `$` in the conversation, and choose Jaekit's `spec:spec` or `seal:seal`. The invocation names are `$spec:spec` and `$seal:seal`. Follow [your first task](../README.md#your-first-task). If you confuse them with another plugin, see [troubleshooting](USAGE.en.md#troubleshooting).
 
@@ -193,7 +193,7 @@ If `~/.local/bin` is not on your PATH, add `export PATH="$HOME/.local/bin:$PATH"
 
 | Combination | Core | Spec | Seal | Spar |
 | --- | --- | --- | --- | --- |
-| Current release `v0.1.9` | `ha 0.1.9`, `spar 0.1.9` | 0.1.16 | 0.1.35 | 0.1.9 |
+| Current release `v0.1.9` | `ha 0.1.9`, `spar 0.1.9` | 0.1.16 | 0.1.36 | 0.1.9 |
 | Previous release `v0.1.8` | `ha 0.1.8`, `spar 0.1.8` | 0.1.13 | 0.1.23 | 0.1.4 |
 | Previous release `v0.1.7` | `ha 0.1.7`, `spar 0.1.7` | 0.1.13 | 0.1.22 | 0.1.3 |
 | Previous release `v0.1.6` | `ha 0.1.6` | 0.1.12 | 0.1.17 | — |

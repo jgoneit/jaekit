@@ -28,7 +28,7 @@ const (
 	scrEarlier = sealSkillDir + "/references/earlier-goals.md"
 
 	// scrH0 is ha.md's release sentence.
-	scrH0 = "The commands below describe release v0.1.9: ha 0.1.9, spar 0.1.9 and Seal 0.1.35."
+	scrH0 = "The commands below describe release v0.1.9: ha 0.1.9, spar 0.1.9 and Seal 0.1.36."
 )
 
 // scrRulesLinks are the exact URLs of the run record contract's sections for

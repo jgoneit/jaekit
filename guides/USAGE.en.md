@@ -384,13 +384,13 @@ The reporting format introduced in Seal 0.1.10 separates these four things in th
 - Methods and substitutes.
 - Unobserved scope.
 
-Condition groups may share an explanation; a plan is not an observation. The current release v0.1.9 includes this format in Seal 0.1.35; existing goal formats stay unchanged.
+Condition groups may share an explanation; a plan is not an observation. The current release v0.1.9 includes this format in Seal 0.1.36; existing goal formats stay unchanged.
 
 See the [synthetic reporting example](../examples/verification-reporting.md); it is not an actual execution record.
 
 ## Release and rules
 
-The current release v0.1.9 combines ha 0.1.9, spar 0.1.9, spec 0.1.16, seal 0.1.35 and the spar plugin 0.1.9. The default rules are `/3`; Seal starts new goals under `run-rules/4` from 0.1.16, under `run-rules/5` from 0.1.21 and under `run-rules/8` in 0.1.35. Preflight refusal, run estimation, `/3` result classification and budget policy apply to this release. Existing goals keep their saved rules. See [Release and development combinations](INSTALL.en.md#release-and-development-combinations).
+The current release v0.1.9 combines ha 0.1.9, spar 0.1.9, spec 0.1.16, seal 0.1.36 and the spar plugin 0.1.9. The default rules are `/3`; Seal starts new goals under `run-rules/4` from 0.1.16, under `run-rules/5` from 0.1.21 and under `run-rules/8` from 0.1.35. Preflight refusal, run estimation, `/3` result classification and budget policy apply to this release. Existing goals keep their saved rules. See [Release and development combinations](INSTALL.en.md#release-and-development-combinations).
 
 Rules (`run-rules/N`) are the version of how `ha` computes a goal's records. A goal is computed under the rules it started with until it ends, so a new `ha` does not change the meaning of a goal in progress.
 

@@ -4,7 +4,7 @@
 
 Read this when you want to know why work stopped, or to check in detail what a completion report rests on. It covers pre-start checks, what a failure before the change means, the evidence behind the report, the state that needs your confirmation (`needs_user`), blocks and budgets, and the assurance policy. For first-time users, invocation, resuming, and troubleshooting are in the [usage guide](USAGE.en.md). For installation and checking versions, see the [install guide](INSTALL.en.md).
 
-This document describes preflight diagnostics, capability checks, `nested/1`, `/3` results, and total run-limit changes in v0.1.9 (ha 0.1.9, spar 0.1.9, spec 0.1.16, seal 0.1.35, spar plugin 0.1.9). Existing goals keep their saved rules and formats. The difference between release distributions and source builds is in [Release and development combinations](INSTALL.en.md#release-and-development-combinations).
+This document describes preflight diagnostics, capability checks, `nested/1`, `/3` results, and total run-limit changes in v0.1.9 (ha 0.1.9, spar 0.1.9, spec 0.1.16, seal 0.1.36, spar plugin 0.1.9). Existing goals keep their saved rules and formats. The difference between release distributions and source builds is in [Release and development combinations](INSTALL.en.md#release-and-development-combinations).
 
 ## Handing over a goal
 

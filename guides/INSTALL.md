@@ -54,7 +54,7 @@ codex plugin add seal@jaekit
 codex plugin add spar@jaekit
 ```
 
-`@v0.1.9`는 marketplace(플러그인 목록)를 해당 태그에 고정합니다. main이 바뀌어도 배포판의 spec 0.1.16·seal 0.1.35·spar 0.1.9를 받습니다.
+`@v0.1.9`는 marketplace(플러그인 목록)를 해당 태그에 고정합니다. main이 바뀌어도 배포판의 spec 0.1.16·seal 0.1.36·spar 0.1.9를 받습니다.
 
 Codex를 새로 열고 대화에 `$`를 입력해 Jaekit의 `spec:spec` 또는 `seal:seal`을 고릅니다. 호출 이름은 `$spec:spec`과 `$seal:seal`입니다. [첫 작업 맡기기](../README.ko.md#첫-작업-맡기기)를 따라 해 봅니다. 다른 플러그인과 혼동되면 [문제 해결](USAGE.md#문제-해결)을 봅니다.
 
@@ -193,7 +193,7 @@ brew 대신 [v0.1.9 Release](https://github.com/jgoneit/jaekit/releases/tag/v0.1
 
 | 구분 | Core | Spec | Seal | Spar |
 | --- | --- | --- | --- | --- |
-| 현재 배포판 `v0.1.9` | `ha 0.1.9`, `spar 0.1.9` | 0.1.16 | 0.1.35 | 0.1.9 |
+| 현재 배포판 `v0.1.9` | `ha 0.1.9`, `spar 0.1.9` | 0.1.16 | 0.1.36 | 0.1.9 |
 | 이전 배포판 `v0.1.8` | `ha 0.1.8`, `spar 0.1.8` | 0.1.13 | 0.1.23 | 0.1.4 |
 | 이전 배포판 `v0.1.7` | `ha 0.1.7`, `spar 0.1.7` | 0.1.13 | 0.1.22 | 0.1.3 |
 | 이전 배포판 `v0.1.6` | `ha 0.1.6` | 0.1.12 | 0.1.17 | — |

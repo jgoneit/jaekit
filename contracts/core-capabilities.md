@@ -1,6 +1,6 @@
 # Contract: Core capabilities and the Seal compatibility check
 
-This contract applies to Core `0.1.9` and Seal `0.1.35` of v0.1.9. The capability example below is from that release; §10 covers Seal 0.1.26 and `run-rules/6`, §11 covers `run-rules/7`, and §12 covers current Seal and `run-rules/8`. The capability query was introduced in v0.1.3, and the earlier release `v0.1.2` does not have this command. Even after an update, the capabilities of the actual executable are checked, and compatibility is never judged from version numbers alone. Spec writes documents without a Core installation or this query.
+This contract applies to Core `0.1.9` and Seal `0.1.36` of v0.1.9. The capability example below is from that release; §10 covers Seal 0.1.26 and `run-rules/6`, §11 covers `run-rules/7`, and §12 covers current Seal and `run-rules/8`. The capability query was introduced in v0.1.3, and the earlier release `v0.1.2` does not have this command. Even after an update, the capabilities of the actual executable are checked, and compatibility is never judged from version numbers alone. Spec writes documents without a Core installation or this query.
 
 ## 1. Query without a goal
 

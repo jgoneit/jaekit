@@ -205,8 +205,21 @@ func TestReleaseVersionSkillLinks(t *testing.T) {
 		t.Errorf("%s does not name %s", sealSkillDir, install)
 	}
 	requireAll(t, "../contracts/core-capabilities.md",
-		"[check_core.py](https://github.com/jgoneit/jaekit/blob/"+rvTag+"/plugins/seal/skills/seal/scripts/check_core.py)")
+		"[check_core.py](https://github.com/jgoneit/jaekit/blob/"+rvTag+"/plugins/seal/skills/seal/scripts/check_core.py)",
+		"Core `"+rvVersion+"` and Seal `"+rvSeal+"` of "+rvTag,
+		`"ha_version": "`+rvVersion+`"`)
+	// The contracts link the published skills and show the current release's
+	// versions in their examples.
+	requireAll(t, "../contracts/role-card.md",
+		"https://github.com/jgoneit/jaekit/blob/"+rvTag+"/plugins/seal/skills/seal/SKILL.md")
+	requireAll(t, "../contracts/goal-docs.md",
+		"https://github.com/jgoneit/jaekit/blob/"+rvTag+"/plugins/spec/skills/spec/SKILL.md",
+		"https://github.com/jgoneit/jaekit/blob/"+rvTag+"/plugins/spec/skills/spec/references/goal-docs.md")
+	requireAll(t, "../contracts/review-gate.md", `"spar_version": "`+rvVersion+`"`)
 }
+
+// rvSeal is the Seal plugin version of the current release.
+const rvSeal = "0.1.36"
 
 // The install guides' combination table has the current release's versions
 // and the source build's versions in table rows, and the usage and
@@ -217,10 +230,10 @@ func TestReleaseVersionCombination(t *testing.T) {
 		rows []string
 	}{
 		{"../guides/INSTALL.md", []string{
-			" `v0.1.9` | `ha 0.1.9`, `spar 0.1.9` | 0.1.16 | 0.1.35 | 0.1.9 |",
+			" `v0.1.9` | `ha 0.1.9`, `spar 0.1.9` | 0.1.16 | 0.1.36 | 0.1.9 |",
 			" | `ha 0.1.9-dev`, `spar 0.1.9-dev` |"}},
 		{"../guides/INSTALL.en.md", []string{
-			" `v0.1.9` | `ha 0.1.9`, `spar 0.1.9` | 0.1.16 | 0.1.35 | 0.1.9 |",
+			" `v0.1.9` | `ha 0.1.9`, `spar 0.1.9` | 0.1.16 | 0.1.36 | 0.1.9 |",
 			" | `ha 0.1.9-dev`, `spar 0.1.9-dev` |"}},
 	} {
 		lines := strings.Split(read(t, c.path), "\n")
@@ -238,13 +251,13 @@ func TestReleaseVersionCombination(t *testing.T) {
 		{"../guides/OPERATIONS.md", "플러그인 0.1.9"},
 		{"../guides/OPERATIONS.en.md", "plugin 0.1.9"},
 	} {
-		rvLine(t, c.path, "v0.1.9", "ha 0.1.9", "spar 0.1.9", "spec 0.1.16", "seal 0.1.35", c.plugin)
+		rvLine(t, c.path, "v0.1.9", "ha 0.1.9", "spar 0.1.9", "spec 0.1.16", "seal "+rvSeal, c.plugin)
 	}
 	// The Seal skill states the combination its commands describe on one
 	// line: the release, ha, spar and Seal versions in that order, with no
 	// other number between them. Only the numbers are read, which rewording
 	// and moving the sentence keep.
-	const seal = "0.1.35"
+	seal := rvSeal
 	v := regexp.QuoteMeta(rvVersion)
 	combo := regexp.MustCompile(`(?:^|[^0-9.])` + v + `[^0-9]+` + v + `[^0-9]+` + v + `[^0-9]+` + regexp.QuoteMeta(seal) + `(?:[^0-9]|$)`)
 	stated := false

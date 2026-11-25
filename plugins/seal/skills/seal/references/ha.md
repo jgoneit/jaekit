@@ -1,6 +1,6 @@
 # ha — Seal Core commands
 
-The commands below describe release v0.1.9: ha 0.1.9, spar 0.1.9 and Seal 0.1.35.
+The commands below describe release v0.1.9: ha 0.1.9, spar 0.1.9 and Seal 0.1.36.
 
 ## Core compatibility
 
