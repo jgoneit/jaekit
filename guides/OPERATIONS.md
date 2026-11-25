@@ -115,7 +115,7 @@ baseline을 기록할 때는 선언한 모든 대상이 실행돼야 하며 의�
 <details>
 <summary>규칙 버전(run-rules)별 차이</summary>
 
-Seal 0.1.16부터 새 목표를 `run-rules/4`로 시작합니다. 0.1.21부터는 `run-rules/5`로, 0.1.35부터는 `run-rules/8`로 시작합니다. `/5`는 `/4`를 모두 지키고 `standard`·`strict` 목표에 [검토 gate](USAGE.md#검토-gate-run-rules5)를 더합니다. `/4`는 `/3`의 결과 규칙을 그대로 지키고, 오류 회복을 포함한 [자율 처리](USAGE.md#자율-처리-run-rules4)를 더합니다.
+Seal 0.1.16부터 새 목표를 `run-rules/4`로 시작합니다. 0.1.21부터는 `run-rules/5`로, 0.1.26부터는 `run-rules/6`으로 시작했고, v0.1.9의 Seal 0.1.36은 `run-rules/8`로 시작합니다. `/5`는 `/4`를 모두 지키고 `standard`·`strict` 목표에 [검토 gate](USAGE.md#검토-gate-run-rules5)를 더합니다. `/4`는 `/3`의 결과 규칙을 그대로 지키고, 오류 회복을 포함한 [자율 처리](USAGE.md#자율-처리-run-rules4)를 더합니다.
 
 Seal 0.1.26은 `run-rules/6`으로 시작합니다. `/6`은 `/5`의 네 판정만 바꿉니다.
 

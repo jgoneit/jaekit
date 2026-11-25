@@ -124,7 +124,7 @@ Look at the reason in the status and the corresponding `ha log` to decide what m
 <details>
 <summary>Differences between rule versions (run-rules)</summary>
 
-Starting with Seal 0.1.16, Seal starts new goals under `run-rules/4`, from 0.1.21 under `run-rules/5`, and from 0.1.35 under `run-rules/8`. `/5` keeps all of `/4` and adds the [review gate](USAGE.en.md#review-gate-run-rules5) for `standard` and `strict` goals. `/4` preserves the `/3` result rules while adding [autonomy](USAGE.en.md#autonomy-run-rules4), including error recovery.
+Starting with Seal 0.1.16, Seal starts new goals under `run-rules/4`, from 0.1.21 under `run-rules/5` and from 0.1.26 under `run-rules/6`; Seal 0.1.36 in v0.1.9 starts them under `run-rules/8`. `/5` keeps all of `/4` and adds the [review gate](USAGE.en.md#review-gate-run-rules5) for `standard` and `strict` goals. `/4` preserves the `/3` result rules while adding [autonomy](USAGE.en.md#autonomy-run-rules4), including error recovery.
 
 Seal 0.1.26 starts under `run-rules/6`. `/6` changes only four judgments from `/5`.
 

@@ -209,7 +209,7 @@ spar run --stage candidate --base 1111111 --head 2222222 \
 
 ## 지적과 gate
 
-gate는 검토 기록이지 완료 근거가 아닙니다. Seal의 완료는 여전히 `ha done`에서만 나옵니다. `run-rules/5`로 시작한 `standard`·`strict` 목표에서는 Seal이 gate 파일을 `ha note <goal> review --gate <file>`로 기록하고, 기록된 gate가 지금 HEAD와 목표 문서를 덮어야 `ha done`이 완료를 기록합니다([검토 gate](USAGE.md#검토-gate-run-rules5)). 그래서 라운드에는 SPEC.md와 그것이 링크한 목표 문서를 모두 `--criteria`로 줍니다.
+gate는 검토 기록이지 완료 근거가 아닙니다. Seal의 완료는 여전히 `ha done`에서만 나옵니다. `run-rules/5` 이후로 시작한 `standard`·`strict` 목표에서는 Seal이 gate 파일을 `ha note <goal> review --gate <file>`로 기록하고, 기록된 gate가 지금 HEAD와 목표 문서를 덮어야 `ha done`이 완료를 기록합니다([검토 gate](USAGE.md#검토-gate-run-rules5)). 그래서 라운드에는 SPEC.md와 그것이 링크한 목표 문서를 모두 `--criteria`로 줍니다.
 
 ### 지적의 분류
 
