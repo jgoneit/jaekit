@@ -16,8 +16,8 @@ import (
 // The current release. The combination rows and sentences below also name
 // each component's version, so they spell the whole combination out.
 const (
-	rvTag     = "v0.1.8"
-	rvVersion = "0.1.8"
+	rvTag     = "v0.1.9"
+	rvVersion = "0.1.9"
 )
 
 // The marketplace names the current release, both executables carry its
@@ -211,11 +211,11 @@ func TestReleaseVersionCombination(t *testing.T) {
 		rows []string
 	}{
 		{"../guides/INSTALL.md", []string{
-			" `v0.1.8` | `ha 0.1.8`, `spar 0.1.8` | 0.1.13 | 0.1.23 | 0.1.4 |",
-			" | `ha 0.1.8-dev`, `spar 0.1.8-dev` |"}},
+			" `v0.1.9` | `ha 0.1.9`, `spar 0.1.9` | 0.1.16 | 0.1.35 | 0.1.9 |",
+			" | `ha 0.1.9-dev`, `spar 0.1.9-dev` |"}},
 		{"../guides/INSTALL.en.md", []string{
-			" `v0.1.8` | `ha 0.1.8`, `spar 0.1.8` | 0.1.13 | 0.1.23 | 0.1.4 |",
-			" | `ha 0.1.8-dev`, `spar 0.1.8-dev` |"}},
+			" `v0.1.9` | `ha 0.1.9`, `spar 0.1.9` | 0.1.16 | 0.1.35 | 0.1.9 |",
+			" | `ha 0.1.9-dev`, `spar 0.1.9-dev` |"}},
 	} {
 		lines := strings.Split(read(t, c.path), "\n")
 		for _, cells := range c.rows {
@@ -225,13 +225,13 @@ func TestReleaseVersionCombination(t *testing.T) {
 		}
 	}
 	for _, path := range []string{"../guides/USAGE.md", "../guides/USAGE.en.md", "../guides/OPERATIONS.md", "../guides/OPERATIONS.en.md"} {
-		rvLine(t, path, "v0.1.8", "ha 0.1.8", "spar 0.1.8", "spec 0.1.13", "seal 0.1.23", "0.1.4")
+		rvLine(t, path, "v0.1.9", "ha 0.1.9", "spar 0.1.9", "spec 0.1.16", "seal 0.1.35", "0.1.9")
 	}
 	// The Seal skill states the combination its commands describe on one
 	// line: the release, ha, spar and Seal versions in that order, with no
 	// other number between them. Only the numbers are read, which rewording
 	// and moving the sentence keep.
-	const seal = "0.1.23"
+	const seal = "0.1.35"
 	v := regexp.QuoteMeta(rvVersion)
 	combo := regexp.MustCompile(`(?:^|[^0-9.])` + v + `[^0-9]+` + v + `[^0-9]+` + v + `[^0-9]+` + regexp.QuoteMeta(seal) + `(?:[^0-9]|$)`)
 	stated := false

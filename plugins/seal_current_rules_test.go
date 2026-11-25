@@ -28,13 +28,13 @@ const (
 	scrEarlier = sealSkillDir + "/references/earlier-goals.md"
 
 	// scrH0 is ha.md's release sentence.
-	scrH0 = "The commands below describe release v0.1.8: ha 0.1.8, spar 0.1.8 and Seal 0.1.23."
+	scrH0 = "The commands below describe release v0.1.9: ha 0.1.9, spar 0.1.9 and Seal 0.1.35."
 )
 
 // scrRulesLinks are the exact URLs of the run record contract's sections for
 // the earlier rules that ha.md's `## run-rules/8` links.
 var scrRulesLinks = []string{
-	"https://github.com/jgoneit/jaekit/blob/v0.1.8/contracts/run-record.md#47-run-rules4",
+	"https://github.com/jgoneit/jaekit/blob/v0.1.9/contracts/run-record.md#47-run-rules4",
 	"https://github.com/jgoneit/jaekit/blob/main/contracts/run-record.md#48-run-rules5",
 	"https://github.com/jgoneit/jaekit/blob/main/contracts/run-record.md#49-run-rules6",
 	"https://github.com/jgoneit/jaekit/blob/main/contracts/run-record.md#410-run-rules7",

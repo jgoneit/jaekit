@@ -68,10 +68,10 @@ func requireOrder(t *testing.T, name, text string, ordered ...string) {
 func TestReleaseGuideReleaseFiles(t *testing.T) {
 	files := mdSection(t, "../guides/INSTALL.md", "## Release 파일로 설치")
 	requireIn(t, "INSTALL Release 파일로 설치", files,
-		"https://github.com/jgoneit/jaekit/releases/tag/v0.1.8",
-		"`ha_0.1.8_<os>_<arch>.tar.gz`",
-		`name="ha_0.1.8_${os}_${arch}"`,
-		`url="https://github.com/jgoneit/jaekit/releases/download/v0.1.8"`,
+		"https://github.com/jgoneit/jaekit/releases/tag/v0.1.9",
+		"`ha_0.1.9_<os>_<arch>.tar.gz`",
+		`name="ha_0.1.9_${os}_${arch}"`,
+		`url="https://github.com/jgoneit/jaekit/releases/download/v0.1.9"`,
 		`curl -fsSLO "$url/$name.tar.gz"`,
 		`tar -xzf "$name.tar.gz"`,
 		`mv -f "$binary_tmp" "$bin/ha"`,
@@ -93,7 +93,7 @@ func TestReleaseGuideReleaseFiles(t *testing.T) {
 func TestReleaseGuideVersionCheck(t *testing.T) {
 	requireIn(t, "INSTALL 버전 확인", mdSection(t, "../guides/INSTALL.md", "### 버전 확인"),
 		"ha --version\nwhich -a ha\n",
-		"`ha --version`", "`ha 0.1.8`", "`which -a ha`",
+		"`ha --version`", "`ha 0.1.9`", "`which -a ha`",
 		"PATH", "`go env GOBIN`", "`$(go env GOPATH)/bin`",
 	)
 }
@@ -108,12 +108,12 @@ func TestReleaseGuideLocalMigration(t *testing.T) {
 	move := mdSection(t, "../guides/INSTALL.md", "## 로컬 경로 등록에서 옮기기")
 	requireIn(t, "INSTALL 로컬 경로 등록에서 옮기기", move,
 		"claude plugin marketplace remove jaekit\n"+
-			"claude plugin marketplace add jgoneit/jaekit#v0.1.8\n"+
+			"claude plugin marketplace add jgoneit/jaekit#v0.1.9\n"+
 			"claude plugin install spec@jaekit\n"+
 			"claude plugin install seal@jaekit\n"+
 			"claude plugin install spar@jaekit\n",
 		"codex plugin marketplace remove jaekit\n"+
-			"codex plugin marketplace add jgoneit/jaekit@v0.1.8\n"+
+			"codex plugin marketplace add jgoneit/jaekit@v0.1.9\n"+
 			"codex plugin add spec@jaekit\n"+
 			"codex plugin add seal@jaekit\n"+
 			"codex plugin add spar@jaekit\n",
@@ -147,7 +147,7 @@ func TestReleaseGuideInstallOrder(t *testing.T) {
 	requireOrder(t, "INSTALL 기본 설치", mdSection(t, "../guides/INSTALL.md", "## 기본 설치"),
 		"brew install jgoneit/tap/jaekit",
 		"ha --version",
-		"codex plugin marketplace add jgoneit/jaekit@v0.1.8",
+		"codex plugin marketplace add jgoneit/jaekit@v0.1.9",
 		"codex plugin add spec@jaekit",
 		"codex plugin add seal@jaekit",
 		"codex plugin add spar@jaekit",
