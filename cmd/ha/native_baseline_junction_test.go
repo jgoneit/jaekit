@@ -140,9 +140,7 @@ func newBaselineJunctionScenario(t *testing.T, fixture string) *baselineJunction
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(shim, data, 0o700); err != nil {
-		t.Fatal(err)
-	}
+	writeExecutable(t, shim, string(data))
 	s := &baselineJunctionScenario{
 		preflightFixture: &preflightFixture{t: t, dir: filepath.Join(root, "프로젝트 space"), marker: filepath.Join(root, "producer.jsonl")},
 		binary:           binary, shim: bin, realGit: realGit, outside: filepath.Join(root, "외부 target"), ledger: filepath.Join(root, "worktrees.jsonl"),

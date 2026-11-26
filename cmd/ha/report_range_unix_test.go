@@ -28,9 +28,7 @@ func TestReportRangeFailureIsNotReadAgain(t *testing.T) {
 	bin, mark := t.TempDir(), filepath.Join(t.TempDir(), "failed-once")
 	wrapper := "#!/bin/sh\nif [ \"$1 $2\" = \"diff --name-status\" ] && [ ! -e '" + mark + "' ]; then\n" +
 		"  : > '" + mark + "'\n  echo 'synthetic transient failure' >&2\n  exit 128\nfi\nexec '" + real + "' \"$@\"\n"
-	if err := os.WriteFile(filepath.Join(bin, "git"), []byte(wrapper), 0o755); err != nil {
-		t.Fatal(err)
-	}
+	writeExecutable(t, filepath.Join(bin, "git"), wrapper)
 	t.Setenv("PATH", bin+string(os.PathListSeparator)+os.Getenv("PATH"))
 	var out, stderr bytes.Buffer
 	code := runMain([]string{"report", scenarioGoal}, &out, &stderr)
