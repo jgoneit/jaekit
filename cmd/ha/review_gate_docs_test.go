@@ -206,9 +206,7 @@ func TestHaReviewGateAC13_SealCheckerNeedsTheNewRules(t *testing.T) {
 		}
 		path := filepath.Join(t.TempDir(), "ha")
 		script := "#!/bin/sh\nif [ \"$*\" != 'capabilities --format json' ]; then exit 99; fi\nprintf '%s\\n' '" + string(data) + "'\n"
-		if err := os.WriteFile(path, []byte(script), 0o755); err != nil {
-			t.Fatalf("setup: %v", err)
-		}
+		writeExecutable(t, path, script)
 		return path
 	}
 	decide := func(path string, args ...string) (int, map[string]any) {

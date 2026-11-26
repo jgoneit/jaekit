@@ -120,6 +120,22 @@ func entryProblem(f Finding, findings []Finding, e LedgerEntry) string {
 	return quoteProblem(f, e, ledgerKeys)
 }
 
+// validEntries is the ledger without the entries entryProblem refuses and
+// those for no finding of the round: spar gate reads them as no entry.
+func validEntries(findings []Finding, ledger []LedgerEntry) []LedgerEntry {
+	byID := map[string]Finding{}
+	for _, f := range findings {
+		byID[f.ID] = f // the last one with the ID, as spar triage finds it
+	}
+	var out []LedgerEntry
+	for _, e := range ledger {
+		if f, ok := byID[e.Finding]; ok && entryProblem(f, findings, e) == "" {
+			out = append(out, e)
+		}
+	}
+	return out
+}
+
 // dispositionProblem says why a disposition does not fit a finding's class.
 func dispositionProblem(f Finding, findings []Finding, o TriageOptions, repo, head string) (string, string) {
 	e := LedgerEntry{Disposition: o.Disposition, Commit: o.Commit, FailedBefore: o.FailedBefore, PassedAfter: o.PassedAfter,

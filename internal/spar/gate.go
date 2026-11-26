@@ -335,7 +335,7 @@ func Gate(o GateOptions) (int, error) {
 	blocked = append(blocked, capProblems(rounds)...)
 	blocked = append(blocked, unlistedRounds(o.Rounds)...)
 	for _, lr := range rounds {
-		final := finalDispositions(lr.ledger)
+		final := finalDispositions(validEntries(lr.findings, lr.ledger))
 		// Folder names, never the path given: it may be absolute.
 		dir := realish(lr.path)
 		series, folder := filepath.Base(filepath.Dir(dir)), filepath.Base(dir)

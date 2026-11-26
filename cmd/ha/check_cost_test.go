@@ -106,10 +106,7 @@ func ccRunner(id string) string { return "src/" + ccStem(id) + "-run" }
 // working tree; the caller commits it.
 func (f *ccFixture) ccAddRunner(id string) {
 	f.t.Helper()
-	f.put(ccRunner(id), "#!/bin/sh\nexec sh "+ccScript(id)+"\n")
-	if err := os.Chmod(filepath.Join(f.dir, filepath.FromSlash(ccRunner(id))), 0o755); err != nil {
-		f.t.Fatalf("setup: %v", err)
-	}
+	writeExecutable(f.t, filepath.Join(f.dir, filepath.FromSlash(ccRunner(id))), "#!/bin/sh\nexec sh "+ccScript(id)+"\n")
 }
 
 func (c ccCond) checkPaths() []string {

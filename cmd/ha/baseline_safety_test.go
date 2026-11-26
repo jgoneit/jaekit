@@ -38,10 +38,7 @@ func safetyFixture(t *testing.T) *preflightFixture {
 	f.env = envWith(os.Environ(), append(gitFixtureEnv(os.DevNull, "synthetic", "synthetic@example.invalid"),
 		"HA_PREFLIGHT_MARKER="+f.marker)...)
 	f.put(".gitignore", "ignored/\n")
-	f.put("checks/producer.py", safetyProducer)
-	if err := os.Chmod(filepath.Join(f.dir, "checks/producer.py"), 0o755); err != nil {
-		t.Fatal(err)
-	}
+	writeExecutable(t, filepath.Join(f.dir, "checks", "producer.py"), safetyProducer)
 	f.put("checks/declaration.json", `{"schema":"check-declaration/v1","producer":"synthetic","producer_version":"1","producer_paths":["checks/producer.py"],"targets":[{"id":"greeting","violation":"missing-greeting"}]}`)
 	f.put("overlay/data.txt", "base overlay\n")
 	p := string(f.read(scenarioGoal + "/PLAN.md"))
@@ -181,9 +178,7 @@ func TestBaselineSafetyAC1_HeadSources(t *testing.T) {
 				f.put(p+"/child.txt", "regular child\n")
 			} else {
 				outside := filepath.Join(t.TempDir(), "source")
-				if err := os.WriteFile(outside, old, 0o755); err != nil {
-					t.Fatal(err)
-				}
+				writeExecutable(t, outside, string(old))
 				safetyLink(t, outside, filepath.Join(f.dir, p))
 			}
 			safetyCommit(f)
@@ -222,9 +217,7 @@ if code == 0 and a[:2] == ['worktree','add']:
   (tree/'overlay').symlink_to(tree/'untouched', target_is_directory=True)
 sys.exit(code)
 `
-	if err := os.WriteFile(filepath.Join(bin, "git"), []byte("#!"+python+"\n"+script), 0o755); err != nil {
-		t.Fatal(err)
-	}
+	writeExecutable(t, filepath.Join(bin, "git"), "#!"+python+"\n"+script)
 	f.env = envWith(f.env, "HA_SAFETY_REAL_GIT="+git, "HA_SAFETY_OBSERVATION="+observation, "HA_SAFETY_FAULT="+fault,
 		"PATH="+bin+string(os.PathListSeparator)+envValue(f.env, "PATH"))
 	return observation
