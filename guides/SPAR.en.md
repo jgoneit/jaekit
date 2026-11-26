@@ -209,7 +209,7 @@ Standpoints do not change angles, classification, dispositions, caps or the gate
 
 ## Findings and the gate
 
-The gate is a review record, not evidence of completion. Seal's completion still comes only from `ha done`. For a `standard` or `strict` goal started under `run-rules/5` or later, Seal records the gate file with `ha note <goal> review --gate <file>`, and `ha done` records completion only when the recorded gate covers the current HEAD and goal documents ([Review gate](USAGE.en.md#review-gate-run-rules5)). So the rounds get SPEC.md and every goal document it links as `--criteria`.
+The gate is a review record, not evidence of completion. Seal's completion still comes only from `ha done`. For a `standard` or `strict` goal started under `run-rules/5` or later, Seal records the gate file with `ha note <goal> review --gate <file>`, and `ha done` records completion only when the recorded gate covers the current HEAD and goal documents ([Review gate](USAGE.en.md#review-gate-run-rules5)). So the rounds get as `--criteria` SPEC.md and every Markdown document in the goal folder that it links, directly or through another linked document.
 
 ### How findings are classified
 
