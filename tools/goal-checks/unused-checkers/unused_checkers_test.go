@@ -325,6 +325,20 @@ var deletedNames = []string{
 	"current-files.declaration.json", "current-files.targets.json",
 }
 
+// trackedContent returns what Git tracks for a path: a symbolic link's
+// target text, or a file's bytes.
+func trackedContent(rel string) ([]byte, error) {
+	info, err := os.Lstat(at(rel))
+	if err != nil {
+		return nil, err
+	}
+	if info.Mode()&os.ModeSymlink != 0 {
+		target, err := os.Readlink(at(rel))
+		return []byte(target), err
+	}
+	return os.ReadFile(at(rel))
+}
+
 func TestUnusedCheckersAC7(t *testing.T) {
 	for _, rel := range tracked(t) {
 		// This goal's own checks name the deleted paths to observe them. SPEC
@@ -339,7 +353,7 @@ func TestUnusedCheckersAC7(t *testing.T) {
 				t.Errorf("jaekit:violation=deleted-path-named tracked path %s has the name %s", rel, name)
 			}
 		}
-		data, err := os.ReadFile(at(rel))
+		data, err := trackedContent(rel)
 		if err != nil {
 			t.Fatalf("cannot read tracked %s: %v", rel, err)
 		}
