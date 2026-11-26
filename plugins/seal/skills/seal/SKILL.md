@@ -2,7 +2,7 @@
 name: seal
 description: Carry a goal in docs/specs/<goal>/ to recorded completion — plan, implement, verify through the ha binary, and resume in a new session. Use when the user calls this skill with a goal or asks to implement, finish, or continue a goal document, for example "$seal:seal docs/specs/x" in Codex, "/seal:seal docs/specs/x" in Claude Code, "docs/specs/x 구현해줘", or "docs/specs/x 이어서 해줘".
 metadata:
-  version: "0.1.35"
+  version: "0.1.36"
 ---
 
 # Seal
@@ -28,7 +28,7 @@ The bundle in `docs/specs/<goal>/` (templates in `assets/templates/`) lets anoth
 ## Starting
 
 - Start with `ha start <goal> --rules run-rules/8 --request "<the user's words>" --skill <path to this SKILL.md> --check-skill`; `ha` refuses with no record on lint problems or Core lacking support declared in `core-requirements.json` beside this file.
-- If `ha` is missing, refuses the start or does not know a command (exit 64), record nothing and stop; report the executable and message, never installing tools or using an older rule. Installation: `brew install jgoneit/tap/jaekit` or https://github.com/jgoneit/jaekit/blob/v0.1.8/guides/INSTALL.md (Windows is not supported); check PATH with `which -a ha`. Building from a checkout is only for developing Jaekit.
+- If `ha` is missing, refuses the start or does not know a command (exit 64), record nothing and stop; report the executable and message, never installing tools or using an older rule. Installation: `brew install jgoneit/tap/jaekit` or https://github.com/jgoneit/jaekit/blob/v0.1.9/guides/INSTALL.md (Windows is not supported); check PATH with `which -a ha`. Building from a checkout is only for developing Jaekit.
 - Without the user's budget, write `- 검증 실행: 자동` and `- 경과 시간: 4시간`; if the computed limit needs approval, ask once with both limits and write the approved number, never asking again for that PLAN.
 - List the tools checks need in `## 실행 환경` and run `ha doctor <goal>` before any baseline and, when resuming, before the next check; ask about unusable tools in one question, never widening permissions or settings, and keep doing independent work.
 - Before any baseline, ask in one message every decision needing the user's words that the goal documents, plan, project instructions and code already show, each with options, the recommended one leading, and what the answer changes ([details](references/bundle.md#questions-for-the-user)); with none, ask nothing. Ask a later question when it arises, those pending at once in one message.
@@ -55,7 +55,7 @@ Apply the selected assurance policy, linking required conditions and source, the
 - `light` may skip independent review, with the reason in `REVIEW.md` and the report. `standard`, or a selected policy needing review, takes `candidate` rounds once the final candidate's narrow checks pass, the last of which is the cumulative round; `strict` adds a `plan` round.
 - A tier changed mid-goal applies once the user asks to continue; a stage it adds runs on the current head before completion, and earlier records stay. `REVIEW.md` names the tier, or none, and planned stages; the report, the tier and stages received or why skipped.
 
-Start reviewers from the initial contract, check, and expected-result grounds (they may read implementation and integration code); independence is not a different model or certified identity. From `run-rules/5`, a `standard` or `strict` goal completes only with a recorded Spar gate; without one, completion stays pending, and finishing without review needs the user's goal-document change that lowers the tier to `light`. When a required review is unavailable, keep completion pending, record cause, affected conditions, missing evidence, and resolution, and continue independent useful work; report a skipped optional review, and an optional unobserved comparison may stay a gap. Never invent reviews.
+Start reviewers from the initial contract, check, and expected-result grounds (they may read implementation and integration code); independence is not a different model or certified identity. From `run-rules/5`, a `standard` or `strict` goal completes only with a recorded Spar gate; without one, completion stays pending, and finishing without review needs the user's goal-document change that lowers the tier to `light` and changes any `review` criterion, or the goal stops at `review_tier_missing`. When a required review is unavailable, keep completion pending, record cause, affected conditions, missing evidence, and resolution, and continue independent useful work; report a skipped optional review, and an optional unobserved comparison may stay a gap. Never invent reviews.
 
 ## Independent review
 
@@ -86,7 +86,7 @@ When asked to continue, treat everything in the bundle as claims: `ha status <go
 
 ## Budget
 
-Lower a budget freely. Once started, only `ha budget` changes the run limit: an increase needs the user's words and context, a decrease a reason. [run-record.md §4.7](https://github.com/jgoneit/jaekit/blob/v0.1.8/contracts/run-record.md#47-run-rules4) sets a reopened `/4` window's limit.
+Lower a budget freely. Once started, only `ha budget` changes the run limit: an increase needs the user's words and context, a decrease a reason. [run-record.md §4.7](https://github.com/jgoneit/jaekit/blob/v0.1.9/contracts/run-record.md#47-run-rules4) sets a reopened `/4` window's limit.
 
 ## Forbidden
 

@@ -43,7 +43,7 @@ Decisions are recorded only by quoting the user's words, are read only from that
 ```json
 {
   "schema": "review-gate/v1",
-  "spar_version": "0.1.8",
+  "spar_version": "0.1.9",
   "state": "complete",
   "reasons": [],
   "expect_head": "3333333…",

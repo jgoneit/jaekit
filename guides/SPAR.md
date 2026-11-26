@@ -6,7 +6,7 @@
 
 자세히는, Spar는 두 커밋에 고정한 검토 패킷 하나를 여러 리뷰어에게 한꺼번에 보내고, 그들이 찾은 것과 그 처리를 기록합니다. 라운드는 `spar` 실행 파일이 돌리고, `spar` 플러그인은 에이전트에게 언제 라운드를 돌리고 지적을 어떻게 닫는지 알려 줍니다.
 
-v0.1.7부터 Seal은 새 목표를 `run-rules/5`로 시작하고, `run-rules/5`로 시작한 `standard`·`strict` 목표는 기록된 Spar gate가 있어야 완료됩니다. `light` 목표, `Assurance:` 줄이 없는 목표, `run-rules/4` 이하로 시작한 목표에는 Spar가 필요 없습니다. 검토 없이 끝내려면 등급을 `light`로 낮추는 목표 문서 수정을 사용자가 정합니다([검토 gate](USAGE.md#검토-gate-run-rules5)).
+v0.1.9의 Seal 0.1.36은 새 목표를 `run-rules/8`로 시작합니다. v0.1.7부터 `run-rules/5` 이후로 시작한 `standard`·`strict` 목표는 기록된 Spar gate가 있어야 완료됩니다. `light` 목표, `Assurance:` 줄이 없는 목표, `run-rules/4` 이하로 시작한 목표에는 Spar가 필요 없습니다. 검토 없이 끝내려면 등급을 `light`로 낮추는 목표 문서 수정을 사용자가 정합니다([검토 gate](USAGE.md#검토-gate-run-rules5)). `run-rules/8` 목표에 `review` 조건이 있으면 그 기준도 바꿔야 하며, 그렇지 않으면 `review_tier_missing`으로 완료되지 않습니다.
 
 `spar`는 v0.1.7부터 릴리스 파일과 Homebrew formula에 `ha`와 함께 들어 있습니다. v0.1.6 이하의 릴리스 파일과 formula에는 없습니다. [설치 안내](INSTALL.md)를 보세요.
 
@@ -148,7 +148,7 @@ docs/reviews/
 
 한 series는 plan 1회, 코드 라운드 2회까지입니다. 상한을 넘는 라운드는 리뷰어를 띄우기 전에 거부되고, `spar extend`로 기록한 사용자의 말이 있어야 더 돌릴 수 있습니다. 사용량 거절 등으로 같은 패킷을 끝내지 못한 리뷰어만 다시 돌리는 실행은 세지 않습니다. 기록된 series에 새 라운드를 더하면 그 라운드가 기록하는 상한으로 셉니다. 기록된 fixes 라운드도 코드 라운드로 세므로, 이미 그만큼 코드 라운드를 기록한 series에서 candidate를 더 돌리려면 연장이 필요합니다.
 
-코드 라운드 상한을 다 쓰면 `spar run`의 거부 메시지가 그 series의 상한 보고를 안내합니다. `spar cap-report`는 그 series의 기록과 Git만 읽어 상한 사용, 라운드, 열린 지적, 네 신호(수정 연쇄, 반복 기준, 변경 무관, 검사 비대)를 보이고, 아무것도 쓰지 않습니다. 수정 연쇄는 파일 단위, 반복 기준은 연결 단위로 세고, 변경 무관은 리뷰어의 판단을 그대로 씁니다.
+코드 라운드 상한을 다 쓰면 `spar run`의 거부 메시지가 그 series의 상한 보고를 안내합니다. `spar cap-report`는 그 series의 기록과 Git만 읽어 상한 사용, 라운드, 열린 지적, 네 신호(수정 연쇄, 반복 기준, 변경 무관, 검사 비대)를 보이고, 아무것도 쓰지 않습니다. 수정 연쇄는 파일 단위, 반복 기준은 연결 단위로 세고, 변경 무관은 리뷰어의 판단을 그대로 씁니다. 검사 비대는 fixes 라운드를 기록한 series에서만 재며, plan·candidate 라운드만 있는 series에서는 재지 않았다고 보입니다.
 
 ```bash
 spar cap-report docs/reviews/example
@@ -209,7 +209,7 @@ spar run --stage candidate --base 1111111 --head 2222222 \
 
 ## 지적과 gate
 
-gate는 검토 기록이지 완료 근거가 아닙니다. Seal의 완료는 여전히 `ha done`에서만 나옵니다. `run-rules/5`로 시작한 `standard`·`strict` 목표에서는 Seal이 gate 파일을 `ha note <goal> review --gate <file>`로 기록하고, 기록된 gate가 지금 HEAD와 목표 문서를 덮어야 `ha done`이 완료를 기록합니다([검토 gate](USAGE.md#검토-gate-run-rules5)). 그래서 라운드에는 SPEC.md와 그것이 링크한 목표 문서를 모두 `--criteria`로 줍니다.
+gate는 검토 기록이지 완료 근거가 아닙니다. Seal의 완료는 여전히 `ha done`에서만 나옵니다. `run-rules/5` 이후로 시작한 `standard`·`strict` 목표에서는 Seal이 gate 파일을 `ha note <goal> review --gate <file>`로 기록하고, 기록된 gate가 지금 HEAD와 목표 문서를 덮어야 `ha done`이 완료를 기록합니다([검토 gate](USAGE.md#검토-gate-run-rules5)). 그래서 라운드에는 SPEC.md와 그것이 링크한 목표 문서를 모두 `--criteria`로 줍니다.
 
 ### 지적의 분류
 

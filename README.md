@@ -17,7 +17,7 @@ Jaekit lets you **check from records whether work you delegate to Claude Code or
 - Say what you want, and **Spec** writes down the goal and its completion conditions first.
 - Review it and answer yes, and your agent follows **Seal** to plan, build and check toward that goal, then leaves a completion report based on the check records.
 
-The current release is **v0.1.8**, an early version being refined through real work.
+The current release is **v0.1.9**, an early version being refined through real work.
 
 ## Why use it
 
@@ -30,7 +30,7 @@ Jaekit holds on to three things and leaves the rest to the agent you already use
 - **The agent does the work.**<br>
   It plans, implements, and checks on its own, and asks only when a decision affects the outcome or a check needs your confirmation. You do not approve every step.
 - **Completion is judged from records.**<br>
-  Completion is recorded only when the required completion conditions are met by recorded checks or necessary user confirmations. The goal and progress records stay in the project folder, so you can continue the same goal in a new conversation.
+  Completion is recorded only when the required completion conditions are met by recorded checks, necessary user confirmations or, for a `review` condition, the review gate. The goal and progress records stay in the project folder, so you can continue the same goal in a new conversation.
 
 [Understanding Jaekit](guides/OVERVIEW.en.md) explains from the start why it is shaped this way and how one goal goes through.
 
@@ -153,7 +153,7 @@ spar --version
 which -a spar
 ```
 
-It should print `ha 0.1.8`. The first line of `which -a ha` is the file that actually runs. If the command is missing or the version differs, see [Check the version](guides/INSTALL.en.md#check-the-version).
+It should print `ha 0.1.9`. The first line of `which -a ha` is the file that actually runs. If the command is missing or the version differs, see [Check the version](guides/INSTALL.en.md#check-the-version).
 
 To install without Homebrew, paste the block under [Install from a Release file](guides/INSTALL.en.md#install-from-a-release-file) instead of this step. It downloads the file for your OS and CPU, checks its checksum, and puts `ha` and `spar` at `~/.local/bin/ha` and `~/.local/bin/spar`. Other methods and details are in the [install guide](guides/INSTALL.en.md).
 
@@ -166,7 +166,7 @@ If you already installed Jaekit, follow [Update](#update) below. If you register
 **Claude Code**
 
 ```bash
-claude plugin marketplace add jgoneit/jaekit#v0.1.8
+claude plugin marketplace add jgoneit/jaekit#v0.1.9
 claude plugin install spec@jaekit
 claude plugin install seal@jaekit
 claude plugin install spar@jaekit
@@ -174,22 +174,22 @@ claude plugin list
 ```
 
 > [!TIP]
-> **Reopen Claude Code after installation.** The final list should show `spec@jaekit`, `seal@jaekit` and `spar@jaekit` as enabled. `#v0.1.8` pins the release to use. For details, see [Claude Code installation](guides/INSTALL.en.md#claude-code).
+> **Reopen Claude Code after installation.** The final list should show `spec@jaekit`, `seal@jaekit` and `spar@jaekit` as enabled. `#v0.1.9` pins the release to use. For details, see [Claude Code installation](guides/INSTALL.en.md#claude-code).
 
 **Codex**
 
 ```bash
-codex plugin marketplace add jgoneit/jaekit@v0.1.8
+codex plugin marketplace add jgoneit/jaekit@v0.1.9
 codex plugin add spec@jaekit
 codex plugin add seal@jaekit
 codex plugin add spar@jaekit
 ```
 
 > [!TIP]
-> **Reopen Codex after installation.** `@v0.1.8` pins the release to use.
+> **Reopen Codex after installation.** `@v0.1.9` pins the release to use.
 
 > [!NOTE]
-> **Spar for `standard` and `strict` goals.** From v0.1.7, `standard` and `strict` goals need the Spar executable and the Spar plugin, which the commands above install, with reviewers set to the CLIs you have: see [Spar](guides/INSTALL.en.md#spar). The v0.1.7 Seal starts new goals under `run-rules/5`, and a `standard` or `strict` goal started under `run-rules/5` completes only with a recorded Spar gate. `light` goals, goals without an `Assurance:` line and goals started under `run-rules/4` or earlier do not need Spar. To finish without review, you decide a goal-document change that lowers the tier to `light` ([Review gate](guides/USAGE.en.md#review-gate-run-rules5)).
+> **Spar for `standard` and `strict` goals.** From v0.1.7, `standard` and `strict` goals need the Spar executable and the Spar plugin, which the commands above install, with reviewers set to the CLIs you have: see [Spar](guides/INSTALL.en.md#spar). The v0.1.7 Seal started new goals under `run-rules/5`; Seal 0.1.36 in v0.1.9 starts them under `run-rules/8`. A `standard` or `strict` goal started under `run-rules/5` or later completes only with a recorded Spar gate. `light` goals, goals without an `Assurance:` line and goals started under `run-rules/4` or earlier do not need Spar. To finish without review, you decide a goal-document change that lowers the tier to `light` ([Review gate](guides/USAGE.en.md#review-gate-run-rules5)). A `run-rules/8` goal with a `review` condition also needs that criterion changed, or it stops at `review_tier_missing`.
 
 ### Before your first `standard` goal
 
@@ -310,7 +310,7 @@ Removing the marketplace also removes its spec, seal and spar, so install them a
 
 ```bash
 claude plugin marketplace remove jaekit
-claude plugin marketplace add jgoneit/jaekit#v0.1.8
+claude plugin marketplace add jgoneit/jaekit#v0.1.9
 claude plugin install spec@jaekit
 claude plugin install seal@jaekit
 claude plugin install spar@jaekit
@@ -320,7 +320,7 @@ claude plugin install spar@jaekit
 
 ```bash
 codex plugin marketplace remove jaekit
-codex plugin marketplace add jgoneit/jaekit@v0.1.8
+codex plugin marketplace add jgoneit/jaekit@v0.1.9
 codex plugin add spec@jaekit
 codex plugin add seal@jaekit
 codex plugin add spar@jaekit
@@ -526,7 +526,7 @@ More on these files: [Reading the completion report](guides/USAGE.en.md#reading-
 <details>
 <summary><strong>What should I look for in the completion report?</strong></summary>
 
-Required completion conditions need recorded checks or necessary user confirmations.
+Required completion conditions need recorded checks, necessary user confirmations or, for a `review` condition, the review gate.
 
 The agent writes the automated checks, so completion is not a guarantee that the entire result is flawless or independently verified by a third party. Review the report's assumptions and remaining limitations alongside the actual result.
 

@@ -19,7 +19,7 @@ import unittest
 
 
 ROOT = Path(__file__).resolve().parents[2]
-NAME = "ha_0.1.8_linux_amd64"
+NAME = "ha_0.1.9_linux_amd64"
 OLD = b"existing executable\n"
 NEW = b"synthetic replacement executable\n"
 NEW_SPAR = b"synthetic spar executable\n"
@@ -70,7 +70,7 @@ if name == "uname":
     sys.exit(0)
 if name == "curl":
     filename = args[-1].rsplit("/", 1)[-1]
-    if filename not in {"ha_0.1.8_linux_amd64.tar.gz", "checksums.txt"}:
+    if filename not in {"ha_0.1.9_linux_amd64.tar.gz", "checksums.txt"}:
         sys.exit(9)
     shutil.copyfile(Path(os.environ["INSTALL_TEST_DIST"]) / filename, filename)
     sys.exit(0)
@@ -133,7 +133,7 @@ class InstallChecks(unittest.TestCase):
             script.write_text("#!/bin/sh\nexec " + shlex.quote(sys.executable) + " " + shlex.quote(str(wrapper)) + " " + command + ' "$@"\n')
             script.chmod(0o755)
         env["PATH"] = str(commands) + os.pathsep + os.environ.get("PATH", "")
-        return env, binary, install_root / ".local/share/jaekit/0.1.8"
+        return env, binary, install_root / ".local/share/jaekit/0.1.9"
 
     def run_block(self, filename, heading, root, env):
         return subprocess.run(["/bin/bash", "-c", install_block(filename, heading)],

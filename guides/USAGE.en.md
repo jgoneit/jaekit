@@ -111,7 +111,7 @@ Start with what changed and what was verified. The report appears in the convers
 
 **Review summary.** In goals started with 0.1.24 or later, after completion, `## 검수 요약` right after `## 현재` is where you start reviewing. Its top lines give the completion record, the assurance tier, how many required conditions are satisfied, the review gate result, what the change does and where to start looking; below them come what changed, evidence, what to inspect and what was not observed, in that order. A heading with nothing to list says `없음`, and after a reopen the section is rewritten as of the new completion record. It is written in the user's language and says what each record is; each item is short, with seq numbers only as an aid; no check output or finding text is copied; a finding is its ID, one line and its ending. Seal's judgment is only there, and `## 완료 보고` holds the `ha report` output and one line pointing to it. For a finished goal, read `## 검수 요약` first. For a goal that stopped, or one started with an earlier Seal, read `## 완료 보고` as before.
 
-- Required completion conditions need recorded checks or necessary user confirmations.
+- Required completion conditions need recorded checks, necessary user confirmations or, for a `review` condition, the review gate.
 - Optional conditions do not block completion and are identified separately.
 - The agent writes the automated checks.
 
@@ -160,7 +160,7 @@ Find the goal and its records in `docs/specs/<goal>/`:
 | `SPEC.md` | Spec | Goal, scope, and completion conditions |
 | `PLAN.md` | Seal | Plan |
 | `REVIEW.md` | Seal | Plan review |
-| `PROGRESS.md` | Seal | Progress and completion report |
+| `PROGRESS.md` | Seal | Progress, review summary (`## 검수 요약`) and completion report |
 | `runs.jsonl` | `ha` | Run record |
 | `tasks/` files, when needed | Seal | Individual task descriptions |
 
@@ -215,7 +215,7 @@ CPU that was not measured shows as unavailable or failed, never as 0. Checks rec
 | The start stops with `exceeds the pre-approved limit` | Decide whether to approve the computed count. If you do, write it as the plan's `검증 실행` number or raise `preapproved_runs` in `ha.json`. See [Automatic budget](#automatic-budget) |
 | The start stops with a `pre-approved run limit` error | Read the `ha.json` path and reason it shows, then fix the file to `{"preapproved_runs": <whole number>}` or remove it |
 | The budget ran out | Read what remains and decide whether to continue; see the budget details below |
-| Seal stopped for Core compatibility | Read the executable it checked and the missing support. Follow [Update](INSTALL.en.md#update) to install the v0.1.8 combination, then check the capabilities of the Core actually selected. Do not bypass the check by automatically installing tools or switching rules |
+| Seal stopped for Core compatibility | Read the executable it checked and the missing support. Follow [Update](INSTALL.en.md#update) to install the v0.1.9 combination, then check the capabilities of the Core actually selected. Do not bypass the check by automatically installing tools or switching rules |
 
 <details>
 <summary>Removing older installations</summary>
@@ -248,7 +248,7 @@ The [operations guide](OPERATIONS.en.md) describes the detailed reasons for user
 | Label | What it tells you |
 | --- | --- |
 | `Changed` | Files and commits changed outside the bundle documents since the start |
-| `Checked` | Required conditions satisfied (by check records and by user confirmation), and change conditions whose failure before the change was observed |
+| `Checked` | Required conditions satisfied (by check records, by user confirmation and by the review gate), and change conditions whose failure before the change was observed |
 | `To review` | Items for a person: decisions for the user, conditions confirmed by a quote, test changes exempted by the executor's reason alone, changed verification commands, review findings that were deferred or left without a disposition. A review finding shows its round, ID, class and deferral target |
 | `Remaining limits` | Assurance `local`, the check author, optional conditions not satisfied, an exceeded budget, and whether no completion record covers HEAD |
 | `Next step` | The one thing to do in the current state |
@@ -277,13 +277,13 @@ To check the tools your checks need beforehand, add a `## 실행 환경` section
 
 ## Review gate (run-rules/5)
 
-From v0.1.7, Seal (0.1.21 or later) starts new goals with `ha start --rules run-rules/5`. `run-rules/5` keeps all of `run-rules/4`'s autonomy and adds a recorded independent review as a completion condition for goals whose SPEC tier is `standard` or `strict`. So a `standard` or `strict` goal started under `run-rules/5` completes only with a recorded Spar gate. `light` goals, goals without an `Assurance:` line and goals started under `run-rules/4` or earlier do not need Spar. To finish without review, you decide a goal-document change that lowers the tier to `light` (see the list below).
+From v0.1.7, Seal (0.1.21 or later) started new goals with `ha start --rules run-rules/5`; Seal 0.1.36 in v0.1.9 starts them under `run-rules/8`. `run-rules/5` keeps all of `run-rules/4`'s autonomy and adds a recorded independent review as a completion condition for goals whose SPEC tier is `standard` or `strict`. So a `standard` or `strict` goal started under `run-rules/5` or later completes only with a recorded Spar gate. `light` goals, goals without an `Assurance:` line and goals started under `run-rules/4` or earlier do not need Spar. To finish without review, you decide a goal-document change that lowers the tier to `light` (see the list below).
 
 When the installed `ha` does not know `run-rules/5` or other support Seal requires, Seal stops without a record and does not fall back to older rules. What to do is install an `ha` that has that support.
 
 - Once the cumulative round ends with no open finding, Seal makes a gate with `spar gate` from that series' rounds for HEAD, records the gate file with `ha note <goal> review --gate <file>`, and then runs `ha done`. The record keeps the file digest and the summary the judgment needs, never the findings' text.
 - Without a gate the status shows `review_missing`; with a commit after the review, `review_head_stale`; when the goal documents changed after the review or a round did not receive them all, `review_docs_stale`. Completion is not recorded. A `blocked` or `degraded` gate, an open `defect` or `requirement-question`, a gate with no code round, and a `strict` goal with no plan round each have their own reason too. User confirmations and other notes do not stand in for a gate.
-- To finish without review when Spar cannot run, you decide a SPEC change that lowers the tier to `Assurance: light`. After `confirm spec` and fresh checks, the goal completes without a gate.
+- To finish without review when Spar cannot run, you decide a SPEC change that lowers the tier to `Assurance: light`. After `confirm spec` and fresh checks, the goal completes without a gate. A `run-rules/8` goal with a `review` condition also needs that criterion changed, or it stops at `review_tier_missing`.
 - A `light` goal, a goal without the tier line, and goals started under `run-rules/1` to `run-rules/4` are judged without a gate, as before.
 
 Seal 0.1.26 starts new goals with `ha start --rules run-rules/6 … --check-skill` instead of the start rule above. This needs a Core that supports `run-rules/6`; ha 0.1.8 does not. Without support, Seal stops without a record and does not fall back to earlier rules. `/6` changes only these four judgments from `/5`.
@@ -301,7 +301,7 @@ Current Seal starts new goals under `run-rules/8`, which keeps the baseline sele
 
 Only change conditions with `요구` in the condition table's optional `baseline` column require a baseline. An empty cell, `—`, or no column means none is required. Seal marks only two kinds: a bug fix or regression whose defect is already present at the base commit, and a prohibition such as "X does not happen". A condition that adds a new feature is not marked by default. REVIEW gives the reason for each marked condition before the plan round; an unmarked condition needs no reason. A goal already started keeps the marks it started with. Unmarked change conditions still need check paths and the structured result contract, but can link to tests of new functions without an entry point that also exists at base.
 
-The required minimum is marked required change × 2 + unmarked required change + required maintain (`표시한 필수 change × 2 + 표시하지 않은 필수 change + 필수 maintain`). Manual conditions count as 0 runs. One marked change, four unmarked changes and three maintains, all required, need at least 9 runs; the automatic limit is `max(50, ⌈9 × 1.5⌉) = 50`. Before starting, view this with `ha estimate <goal> --rules run-rules/8`. Started goals use their saved rules and refuse a different `--rules`.
+The required minimum is marked required change × 2 + unmarked required change + required maintain (`표시한 필수 change × 2 + 표시하지 않은 필수 change + 필수 maintain`). Manual and review conditions count as 0 runs. One marked change, four unmarked changes and three maintains, all required, need at least 9 runs; the automatic limit is `max(50, ⌈9 × 1.5⌉) = 50`. Before starting, view this with `ha estimate <goal> --rules run-rules/8`. Started goals use their saved rules and refuse a different `--rules`.
 
 With no target, `ha check <goal> --baseline` selects only marked change conditions, including marked optional conditions. With none marked, it refuses without a record. An explicitly named unmarked condition can also run a baseline, and actual runs count toward the budget. Fresh adverse results from that baseline still affect judgment. Seal records a marked condition's baseline once, after the last review round and right before the completion record. If that baseline passes or errs instead of showing the declared violation, Seal fixes the check, has the fixed check reviewed like fixed code, and records the baseline again. This reduces the habit of recording after every check fix; it does not make stale evidence fresh.
 
@@ -313,7 +313,7 @@ Under `/7` and `/8`, the "before any baseline" questions, `ha doctor` and the `s
 
 Read the baseline requirement under the goal's rules: all change conditions require it up to `run-rules/6`, and only marked conditions do under `/7` and `/8`. Runner adapters classify input failures themselves; the classifications and input-failure table of the [result contract](../contracts/check-result.md) stay unchanged.
 
-The check freeze uses the earliest `plan` round for `strict` or the earliest `candidate` round for `standard`, in gate order among the last recorded gate's non-dry-run rounds. It covers declarations, producers, tests, helpers and settings in the condition table's check paths, from every row that lists any. Right after the freeze round, Seal records the gate and current condition table's check paths with `ha note <goal> review --gate <file>`. Without a gate note ending at that round, removed check paths are unobserved and status and report show `freeze-time condition table was not recorded`.
+Under `run-rules/7`, the check freeze uses the earliest `plan` round for `strict` or the earliest `candidate` round for `standard`, in gate order among the last recorded gate's non-dry-run rounds. It covers declarations, producers, tests, helpers and settings in the condition table's check paths, from every row that lists any. Right after the freeze round, Seal records the gate and current condition table's check paths with `ha note <goal> review --gate <file>`. Without a gate note ending at that round, removed check paths are unobserved and status and report show `freeze-time condition table was not recorded`.
 
 After changing a check file following the freeze, commit it and record `ha note <goal> check-change checks:<path> --reason "<finding ID, or condition and reason>"`. A review fix names its finding ID. The reason binds to the current blob, so another edit needs a reason for that edit. Give the next candidate round the changed checks and reasons together, and that round reviews the changed checks. No such reason is needed before the freeze; check defects may still be fixed afterward. The freeze display itself does not block completion.
 
@@ -384,13 +384,13 @@ The reporting format introduced in Seal 0.1.10 separates these four things in th
 - Methods and substitutes.
 - Unobserved scope.
 
-Condition groups may share an explanation; a plan is not an observation. The current release v0.1.8 includes this format in Seal 0.1.23; existing goal formats stay unchanged.
+Condition groups may share an explanation; a plan is not an observation. The current release v0.1.9 includes this format in Seal 0.1.36; existing goal formats stay unchanged.
 
 See the [synthetic reporting example](../examples/verification-reporting.md); it is not an actual execution record.
 
 ## Release and rules
 
-The current release v0.1.8 combines ha 0.1.8, spar 0.1.8, spec 0.1.13, seal 0.1.23 and the spar plugin 0.1.4. The default rules are `/3`; Seal starts new goals under `run-rules/4` from 0.1.16 and under `run-rules/5` from 0.1.21. Preflight refusal, run estimation, `/3` result classification and budget policy apply to this release. Existing goals keep their saved rules. See [Release and development combinations](INSTALL.en.md#release-and-development-combinations).
+The current release v0.1.9 combines ha 0.1.9, spar 0.1.9, spec 0.1.16, seal 0.1.36 and the spar plugin 0.1.9. The default rules are `/3`; Seal starts new goals under `run-rules/4` from 0.1.16, under `run-rules/5` from 0.1.21 and under `run-rules/6` from 0.1.26; Seal 0.1.36 in v0.1.9 starts them under `run-rules/8`. Preflight refusal, run estimation, `/3` result classification and budget policy apply to this release. Existing goals keep their saved rules. See [Release and development combinations](INSTALL.en.md#release-and-development-combinations).
 
 Rules (`run-rules/N`) are the version of how `ha` computes a goal's records. A goal is computed under the rules it started with until it ends, so a new `ha` does not change the meaning of a goal in progress.
 

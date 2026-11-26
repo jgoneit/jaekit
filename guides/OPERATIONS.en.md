@@ -4,7 +4,7 @@
 
 Read this when you want to know why work stopped, or to check in detail what a completion report rests on. It covers pre-start checks, what a failure before the change means, the evidence behind the report, the state that needs your confirmation (`needs_user`), blocks and budgets, and the assurance policy. For first-time users, invocation, resuming, and troubleshooting are in the [usage guide](USAGE.en.md). For installation and checking versions, see the [install guide](INSTALL.en.md).
 
-This document describes preflight diagnostics, capability checks, `nested/1`, `/3` results, and total run-limit changes in v0.1.8 (ha 0.1.8, spar 0.1.8, spec 0.1.13, seal 0.1.23, spar plugin 0.1.4). Existing goals keep their saved rules and formats. The difference between release distributions and source builds is in [Release and development combinations](INSTALL.en.md#release-and-development-combinations).
+This document describes preflight diagnostics, capability checks, `nested/1`, `/3` results, and total run-limit changes in v0.1.9 (ha 0.1.9, spar 0.1.9, spec 0.1.16, seal 0.1.36, spar plugin 0.1.9). Existing goals keep their saved rules and formats. The difference between release distributions and source builds is in [Release and development combinations](INSTALL.en.md#release-and-development-combinations).
 
 ## Handing over a goal
 
@@ -30,7 +30,7 @@ From Seal 0.1.20, Seal no longer compares Core support by hand. It declares the 
 - When the installed `ha` does not know `run-rules/5` or other support Seal requires, Seal stops without a record and does not fall back to older rules. What to do is install an `ha` that has that support.
 - For a goal already started, each command computes its saved rules or refuses them with exit 66.
 
-Seal 0.1.26 requires `run-rules/6` for new goals and starts with `ha start --rules run-rules/6 … --check-skill`. Its format and feature requirements are the same as 0.1.21; only the rule changes. ha 0.1.8 does not support `/6` and refuses this start. Without `/6` or any other required support, Seal stops without a record and does not fall back to earlier rules. An `ha` with that support is needed; goals already started under `/1` through `/5` keep their saved rules.
+Seal 0.1.36 in v0.1.9 requires `run-rules/8` for new goals, so it needs ha 0.1.9, which supports `/8`. Seal 0.1.26 required `run-rules/6` for new goals and started with `ha start --rules run-rules/6 … --check-skill`. Its format and feature requirements are the same as 0.1.21; only the rule changes. ha 0.1.8 does not support `/6` and refuses this start. Without `/6` or any other required support, Seal stops without a record and does not fall back to earlier rules. An `ha` with that support is needed; goals already started under `/1` through `/5` keep their saved rules.
 
 When the skill folder that Seal names with `--skill` has a `core-requirements.json`, `start` compares the Core support that skill needs with the actual executable and refuses without a record when any support is missing. With `--check-skill`, the declaration is required, and an `ha` from before this feature does not accept that start ([Core capabilities contract](../contracts/core-capabilities.md) §8).
 
@@ -124,7 +124,7 @@ Look at the reason in the status and the corresponding `ha log` to decide what m
 <details>
 <summary>Differences between rule versions (run-rules)</summary>
 
-Starting with Seal 0.1.16, Seal starts new goals under `run-rules/4`, and from 0.1.21 under `run-rules/5`, which keeps all of `/4` and adds the [review gate](USAGE.en.md#review-gate-run-rules5) for `standard` and `strict` goals. `/4` preserves the `/3` result rules while adding [autonomy](USAGE.en.md#autonomy-run-rules4), including error recovery.
+Starting with Seal 0.1.16, Seal starts new goals under `run-rules/4`, from 0.1.21 under `run-rules/5` and from 0.1.26 under `run-rules/6`; Seal 0.1.36 in v0.1.9 starts them under `run-rules/8`. `/5` keeps all of `/4` and adds the [review gate](USAGE.en.md#review-gate-run-rules5) for `standard` and `strict` goals. `/4` preserves the `/3` result rules while adding [autonomy](USAGE.en.md#autonomy-run-rules4), including error recovery.
 
 Seal 0.1.26 starts under `run-rules/6`. `/6` changes only four judgments from `/5`.
 
@@ -155,7 +155,7 @@ Under `/7` and `/8`, the "before any baseline" questions, `ha doctor` and the `s
 
 Read the baseline requirement under the goal's rules: all change conditions require it up to `run-rules/6`, and only marked conditions do under `/7` and `/8`. Runner adapters classify input failures themselves; the classifications and input-failure table of the [result contract](../contracts/check-result.md) stay unchanged.
 
-The check freeze uses the earliest `plan` round for `strict` or the earliest `candidate` round for `standard`, in gate order among the last recorded gate's non-dry-run rounds. It covers declarations, producers, tests, helpers and settings in the condition table's check paths, from every row that lists any. Right after the freeze round, Seal records the gate and current condition table's check paths with `ha note <goal> review --gate <file>`. Without a gate note ending at that round, removed check paths are unobserved and status and report show `freeze-time condition table was not recorded`.
+Under `run-rules/7`, the check freeze uses the earliest `plan` round for `strict` or the earliest `candidate` round for `standard`, in gate order among the last recorded gate's non-dry-run rounds. It covers declarations, producers, tests, helpers and settings in the condition table's check paths, from every row that lists any. Right after the freeze round, Seal records the gate and current condition table's check paths with `ha note <goal> review --gate <file>`. Without a gate note ending at that round, removed check paths are unobserved and status and report show `freeze-time condition table was not recorded`.
 
 After changing a check file following the freeze, commit it and record `ha note <goal> check-change checks:<path> --reason "<finding ID, or condition and reason>"`. A review fix names its finding ID. The reason binds to the current blob, so another edit needs a reason for that edit. Give the next candidate round the changed checks and reasons together, and that round reviews the changed checks. No such reason is needed before the freeze; check defects may still be fixed afterward. The freeze display itself does not block completion.
 
@@ -231,7 +231,7 @@ Open a new conversation in the same project folder and send `docs/specs/<goal> �
 
 The reporting format introduced in Seal 0.1.10 distinguishes grounds for expected results, actual observation boundaries, test methods, and alternative environments. Condition groups can reference the same grounds. Reviews record planned items; completion and discontinuation reports record actual results, unobserved scope, and remaining risks. Actual execution is not in itself grounds for correctness, and fake results do not turn into real model observations. Time sources and new facts that altered judgments are also distinguished.
 
-Existing goals keep their starting formats, and omitted new items remain unrecorded. Past completions are never overwritten, nor are past observations backfilled. This reporting format is included starting with Seal 0.1.12 and is present in the current release v0.1.8. See the [synthetic reporting example](../examples/verification-reporting.md) (Korean).
+Existing goals keep their starting formats, and omitted new items remain unrecorded. Past completions are never overwritten, nor are past observations backfilled. This reporting format is included starting with Seal 0.1.12 and is present in the current release v0.1.9. See the [synthetic reporting example](../examples/verification-reporting.md) (Korean).
 
 ## Assurance policy
 

@@ -38,9 +38,9 @@ const (
 // READMEs gives.
 const (
 	icBrew         = "brew install jgoneit/tap/jaekit\n"
-	icCodexInstall = "codex plugin marketplace add jgoneit/jaekit@v0.1.8\n" +
+	icCodexInstall = "codex plugin marketplace add jgoneit/jaekit@v0.1.9\n" +
 		"codex plugin add spec@jaekit\ncodex plugin add seal@jaekit\ncodex plugin add spar@jaekit\n"
-	icClaudeAdd = "claude plugin marketplace add jgoneit/jaekit#v0.1.8\n" +
+	icClaudeAdd = "claude plugin marketplace add jgoneit/jaekit#v0.1.9\n" +
 		"claude plugin install spec@jaekit\nclaude plugin install seal@jaekit\nclaude plugin install spar@jaekit\n"
 	icClaudeInstall = icClaudeAdd + "claude plugin list\n"
 	icCodexUpdate   = "codex plugin marketplace remove jaekit\n" + icCodexInstall
@@ -277,13 +277,13 @@ func TestReadmeAndGuidesGiveInstallCommands(t *testing.T) {
 			}
 		}
 		icFoldRequire(t, l.readme+" and its linked guides", text,
-			"brew install jgoneit/tap/jaekit", "ha --version", "ha 0.1.8", "which -a ha",
-			"claude plugin marketplace add jgoneit/jaekit#v0.1.8", "claude plugin install spec@jaekit", "claude plugin install seal@jaekit", "claude plugin install spar@jaekit",
-			"codex plugin marketplace add jgoneit/jaekit@v0.1.8", "codex plugin add spec@jaekit", "codex plugin add seal@jaekit", "codex plugin add spar@jaekit",
+			"brew install jgoneit/tap/jaekit", "ha --version", "ha 0.1.9", "which -a ha",
+			"claude plugin marketplace add jgoneit/jaekit#v0.1.9", "claude plugin install spec@jaekit", "claude plugin install seal@jaekit", "claude plugin install spar@jaekit",
+			"codex plugin marketplace add jgoneit/jaekit@v0.1.9", "codex plugin add spec@jaekit", "codex plugin add seal@jaekit", "codex plugin add spar@jaekit",
 			"brew upgrade jgoneit/tap/jaekit", "brew uninstall jgoneit/tap/jaekit", "marketplace remove jaekit")
 		if strings.Contains(readme, strings.TrimPrefix(l.install, "../")+"#codex") {
 			icFoldRequire(t, l.install+" section "+l.haHeading, icHeadingSection(t, l.install, l.haHeading), "brew install jgoneit/tap/jaekit")
-			icFoldRequire(t, l.install+" section "+l.versionHeading, icHeadingSection(t, l.install, l.versionHeading), "ha --version", "which -a ha", "ha 0.1.8")
+			icFoldRequire(t, l.install+" section "+l.versionHeading, icHeadingSection(t, l.install, l.versionHeading), "ha --version", "which -a ha", "ha 0.1.9")
 		}
 	}
 }
@@ -793,8 +793,8 @@ func onboardSlug(heading string) string {
 }
 
 const (
-	rel011Tag     = "v0.1.8"
-	rel011Version = "0.1.8"
+	rel011Tag     = "v0.1.9"
+	rel011Version = "0.1.9"
 )
 
 type rel011Lang struct {
@@ -809,7 +809,7 @@ var rel011Ko = rel011Lang{
 	readme: "../README.ko.md", install: "../guides/INSTALL.md", installLink: "guides/INSTALL.md",
 	quick: "## 시작하기", installSec: "### 설치",
 	release: "## Release 파일로 설치", update: "## 업데이트", uninstall: "## 제거",
-	updateProse: []string{"(#release-파일로-설치)", "`ha 0.1.8`"},
+	updateProse: []string{"(#release-파일로-설치)", "`ha 0.1.9`"},
 	removeProse: []string{"`runs.jsonl`", "`.git/ha/`", "`git rev-parse --absolute-git-dir`", "`git rm -r docs/specs/<goal>`"},
 }
 
@@ -817,7 +817,7 @@ var rel011En = rel011Lang{
 	readme: "../README.md", install: "../guides/INSTALL.en.md", installLink: "guides/INSTALL.en.md",
 	quick: "## Get started", installSec: "### Install",
 	release: "## Install from a Release file", update: "## Update", uninstall: "## Uninstall",
-	updateProse: []string{"(#install-from-a-release-file)", "`ha 0.1.8`"},
+	updateProse: []string{"(#install-from-a-release-file)", "`ha 0.1.9`"},
 	removeProse: []string{"`runs.jsonl`", "`.git/ha/`", "`git rev-parse --absolute-git-dir`", "`git rm -r docs/specs/<goal>`"},
 }
 
@@ -915,7 +915,7 @@ func TestRelease013ReferenceGuidance(t *testing.T) {
 		section := mdSection(t, guide.path, guide.heading)
 		requireIn(t, guide.path, section,
 			`package_root="$(brew --prefix jaekit)/share/jaekit"`,
-			`package_root="$HOME/.local/share/jaekit/0.1.8"`,
+			`package_root="$HOME/.local/share/jaekit/0.1.9"`,
 			`cp "$package_root/tools/check-result-reference.py" tools/`,
 			`cp "$package_root/examples/check-result/declaration.json" checks/`,
 			`cp "$package_root/examples/check-result/reference.json" checks/`,

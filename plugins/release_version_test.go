@@ -16,8 +16,8 @@ import (
 // The current release. The combination rows and sentences below also name
 // each component's version, so they spell the whole combination out.
 const (
-	rvTag     = "v0.1.8"
-	rvVersion = "0.1.8"
+	rvTag     = "v0.1.9"
+	rvVersion = "0.1.9"
 )
 
 // The marketplace names the current release, both executables carry its
@@ -93,8 +93,26 @@ func TestReleaseVersionWindowsGuides(t *testing.T) {
 		if seen == 0 {
 			t.Errorf("%s names no release tag in a code span, want %s", path, rvTag)
 		}
+		// The first release with Windows files is planned after the current
+		// one, and every block of the guide already carries that version.
+		requireAll(t, path, "`"+rvWindowsPlanned+"`")
+		blocks := rvWindowsVersion.FindAllStringSubmatch(read(t, path), -1)
+		if len(blocks) < 2 {
+			t.Errorf("%s has %d $version lines, want the install and remove blocks' two", path, len(blocks))
+		}
+		for _, m := range blocks {
+			if m[1] != rvWindowsPlanned {
+				t.Errorf("%s has %q, want $version = '%s'", path, m[0], rvWindowsPlanned)
+			}
+		}
 	}
 }
+
+// rvWindowsVersion is a Windows block's release version assignment.
+var rvWindowsVersion = regexp.MustCompile(`\$version = '([^']*)'`)
+
+// rvWindowsPlanned is the planned first release with Windows files.
+const rvWindowsPlanned = "0.1.10"
 
 // rvFixedForms are the ways the READMEs and guides write a version that can
 // only mean the current release: marketplace pins, release pages and
@@ -199,11 +217,30 @@ func TestReleaseVersionSkillLinks(t *testing.T) {
 		t.Errorf("%s does not name %s", sealSkillDir, install)
 	}
 	requireAll(t, "../contracts/core-capabilities.md",
-		"[check_core.py](https://github.com/jgoneit/jaekit/blob/"+rvTag+"/plugins/seal/skills/seal/scripts/check_core.py)")
+		"[check_core.py](https://github.com/jgoneit/jaekit/blob/"+rvTag+"/plugins/seal/skills/seal/scripts/check_core.py)",
+		`"ha_version": "`+rvVersion+`"`)
+	// The core capabilities contract names the Core, Seal and release versions
+	// it applies to on one line, in that order; only the numbers are read.
+	applies := regexp.MustCompile(`(?:^|[^0-9.])` + regexp.QuoteMeta(rvVersion) + `[^0-9]+` + regexp.QuoteMeta(rvSeal) + `[^0-9]+` + regexp.QuoteMeta(rvVersion) + `(?:[^0-9]|$)`)
+	if !slices.ContainsFunc(strings.Split(read(t, "../contracts/core-capabilities.md"), "\n"), applies.MatchString) {
+		t.Errorf("../contracts/core-capabilities.md has no line naming Core %s, Seal %s and release %s in that order", rvVersion, rvSeal, rvTag)
+	}
+	// The contracts link the published skills and show the current release's
+	// versions in their examples.
+	requireAll(t, "../contracts/role-card.md",
+		"https://github.com/jgoneit/jaekit/blob/"+rvTag+"/plugins/seal/skills/seal/SKILL.md")
+	requireAll(t, "../contracts/goal-docs.md",
+		"https://github.com/jgoneit/jaekit/blob/"+rvTag+"/plugins/spec/skills/spec/SKILL.md",
+		"https://github.com/jgoneit/jaekit/blob/"+rvTag+"/plugins/spec/skills/spec/references/goal-docs.md")
+	requireAll(t, "../contracts/review-gate.md", `"spar_version": "`+rvVersion+`"`)
 }
 
-// The install guides' combination table has the current release's versions
-// and the source build's versions in table rows, and the usage and
+// rvSeal is the Seal plugin version of the current release.
+const rvSeal = "0.1.36"
+
+// The install guides' combination table has the current and the previous
+// release's version cells and the source build's versions, read without the
+// rows' labels; the usage and
 // operations guides state the current combination.
 func TestReleaseVersionCombination(t *testing.T) {
 	for _, c := range []struct {
@@ -211,11 +248,13 @@ func TestReleaseVersionCombination(t *testing.T) {
 		rows []string
 	}{
 		{"../guides/INSTALL.md", []string{
+			" `v0.1.9` | `ha 0.1.9`, `spar 0.1.9` | 0.1.16 | 0.1.36 | 0.1.9 |",
 			" `v0.1.8` | `ha 0.1.8`, `spar 0.1.8` | 0.1.13 | 0.1.23 | 0.1.4 |",
-			" | `ha 0.1.8-dev`, `spar 0.1.8-dev` |"}},
+			" | `ha 0.1.9-dev`, `spar 0.1.9-dev` |"}},
 		{"../guides/INSTALL.en.md", []string{
+			" `v0.1.9` | `ha 0.1.9`, `spar 0.1.9` | 0.1.16 | 0.1.36 | 0.1.9 |",
 			" `v0.1.8` | `ha 0.1.8`, `spar 0.1.8` | 0.1.13 | 0.1.23 | 0.1.4 |",
-			" | `ha 0.1.8-dev`, `spar 0.1.8-dev` |"}},
+			" | `ha 0.1.9-dev`, `spar 0.1.9-dev` |"}},
 	} {
 		lines := strings.Split(read(t, c.path), "\n")
 		for _, cells := range c.rows {
@@ -224,14 +263,21 @@ func TestReleaseVersionCombination(t *testing.T) {
 			}
 		}
 	}
-	for _, path := range []string{"../guides/USAGE.md", "../guides/USAGE.en.md", "../guides/OPERATIONS.md", "../guides/OPERATIONS.en.md"} {
-		rvLine(t, path, "v0.1.8", "ha 0.1.8", "spar 0.1.8", "spec 0.1.13", "seal 0.1.23", "0.1.4")
+	// The Spar plugin version is read with its label, since a bare number
+	// can also be part of the release tag or the executables' versions.
+	for _, c := range []struct{ path, plugin string }{
+		{"../guides/USAGE.md", "플러그인 0.1.9"},
+		{"../guides/USAGE.en.md", "plugin 0.1.9"},
+		{"../guides/OPERATIONS.md", "플러그인 0.1.9"},
+		{"../guides/OPERATIONS.en.md", "plugin 0.1.9"},
+	} {
+		rvLine(t, c.path, "v0.1.9", "ha 0.1.9", "spar 0.1.9", "spec 0.1.16", "seal "+rvSeal, c.plugin)
 	}
 	// The Seal skill states the combination its commands describe on one
 	// line: the release, ha, spar and Seal versions in that order, with no
 	// other number between them. Only the numbers are read, which rewording
 	// and moving the sentence keep.
-	const seal = "0.1.23"
+	seal := rvSeal
 	v := regexp.QuoteMeta(rvVersion)
 	combo := regexp.MustCompile(`(?:^|[^0-9.])` + v + `[^0-9]+` + v + `[^0-9]+` + v + `[^0-9]+` + regexp.QuoteMeta(seal) + `(?:[^0-9]|$)`)
 	stated := false

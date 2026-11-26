@@ -1,6 +1,6 @@
 # Contract: Core capabilities and the Seal compatibility check
 
-This contract applies to Core `0.1.8` and Seal `0.1.23` of v0.1.8. The capability example below is from that release, with the lines of one optional extension removed in later source left out; §10 covers Seal 0.1.26 and `run-rules/6`, §11 covers `run-rules/7`, and §12 covers current Seal and `run-rules/8`. The capability query was introduced in v0.1.3, and the earlier release `v0.1.2` does not have this command. Even after an update, the capabilities of the actual executable are checked, and compatibility is never judged from version numbers alone. Spec writes documents without a Core installation or this query.
+This contract applies to Core `0.1.9` and Seal `0.1.36` of v0.1.9. The capability example below is from that release; §10 covers Seal 0.1.26 and `run-rules/6`, §11 covers `run-rules/7`, and §12 covers current Seal and `run-rules/8`. The capability query was introduced in v0.1.3, and the earlier release `v0.1.2` does not have this command. Even after an update, the capabilities of the actual executable are checked, and compatibility is never judged from version numbers alone. Spec writes documents without a Core installation or this query.
 
 ## 1. Query without a goal
 
@@ -15,8 +15,9 @@ Exit codes are `0` for success, `64` for invalid arguments and `70` for an outpu
 ```json
 {
   "schema": "ha-capabilities/v1",
-  "ha_version": "0.1.8",
-  "supported_rules": ["run-rules/1", "run-rules/2", "run-rules/3", "run-rules/4", "run-rules/5"],
+  "ha_version": "0.1.9",
+  "supported_rules": ["run-rules/1", "run-rules/2", "run-rules/3", "run-rules/4", "run-rules/5",
+    "run-rules/6", "run-rules/7", "run-rules/8"],
   "default_rules": "run-rules/3",
   "formats": {
     "criteria": ["legacy", "nested/1"],
@@ -80,7 +81,7 @@ Every field above is required except `formats.timing`, `formats.assurance_tier`,
 
 A Core that supports the timing view provides `timing/v1` in `formats.timing` and `run-timing/v1` in `features` ([Run record](run-record.md) §1.2, §2.2). Measurements are not used for judgments or budgets, so this extension is not added to the requirements of a new start or of resume, check, budget and finding operations on existing goals. On a Core without this support, ordinary runs stay the same; only the timing view cannot be used.
 
-A Core that reads and validates the `Assurance:` line of goal documents ([Goal documents](goal-docs.md) §2.5) provides `light`, `standard` and `strict` in `formats.assurance_tier`. Releases from v0.1.7 on (the example above is v0.1.8) have this item, and releases v0.1.6 and earlier do not. The tier sets the scope of the review the implementer receives. For goals started under `run-rules/4` or earlier, judgments, the output of `ha status` and `ha done`, and budgets do not change because of the tier; for `standard` and `strict` goals started under `run-rules/5`, a recorded review gate becomes a condition of completion (§9). The line is part of SPEC.md, so it is included in the goal digest; when a valid line is present, an `assurance tier: <tier>` line is added to the success output of `ha lint`, and a malformed line blocks `ha start` and `ha check` like other lint errors ([Goal documents](goal-docs.md) §2.5, [Execution bundle](bundle.md) §8). So this item is not added to the requirements of a new start or of resume, check, budget and finding operations on existing goals. A Core without this item only does not validate the line, and ordinary runs stay the same. The name of this item was chosen separately so that it is not confused with the `assurance` field of `ha status` (the evidence display, always `local`).
+A Core that reads and validates the `Assurance:` line of goal documents ([Goal documents](goal-docs.md) §2.5) provides `light`, `standard` and `strict` in `formats.assurance_tier`. Releases from v0.1.7 on (the example above is v0.1.9) have this item, and releases v0.1.6 and earlier do not. The tier sets the scope of the review the implementer receives. For goals started under `run-rules/4` or earlier, judgments, the output of `ha status` and `ha done`, and budgets do not change because of the tier; for `standard` and `strict` goals started under `run-rules/5` or later, a recorded review gate becomes a condition of completion (§9). The line is part of SPEC.md, so it is included in the goal digest; when a valid line is present, an `assurance tier: <tier>` line is added to the success output of `ha lint`, and a malformed line blocks `ha start` and `ha check` like other lint errors ([Goal documents](goal-docs.md) §2.5, [Execution bundle](bundle.md) §8). So this item is not added to the requirements of a new start or of resume, check, budget and finding operations on existing goals. A Core without this item only does not validate the line, and ordinary runs stay the same. The name of this item was chosen separately so that it is not confused with the `assurance` field of `ha status` (the evidence display, always `local`).
 
 The detailed meaning of the features follows [Run record](run-record.md), [Result contract](check-result.md) and [Goal documents](goal-docs.md). Capabilities are not independent certification or proof of code integrity.
 
@@ -106,7 +107,7 @@ The compatibility check does not replace input lint, the integrity of stored rec
 
 ## 3. Optional deterministic consumer tool
 
-If Python 3 is already present, the same contract can be checked with [check_core.py](https://github.com/jgoneit/jaekit/blob/v0.1.8/plugins/seal/skills/seal/scripts/check_core.py), included in Seal. Without the tool, or without Python, the contract above can be consumed directly.
+If Python 3 is already present, the same contract can be checked with [check_core.py](https://github.com/jgoneit/jaekit/blob/v0.1.9/plugins/seal/skills/seal/scripts/check_core.py), included in Seal. Without the tool, or without Python, the contract above can be consumed directly.
 
 ```text
 python3 <seal-skill>/scripts/check_core.py --ha <실제 Core 경로> --operation start
@@ -129,7 +130,7 @@ The query is stopped after 5 seconds and is not retried automatically. This tool
 
 ## 4. Optional post-completion findings extension
 
-From Core 0.1.4, Core includes [post-completion findings](findings.md) and provides `run-finding/v1` in `formats.finding` and `post-completion-findings/v1` in `features`. The v0.1.8 release example above also has both items. The v0.1.3 Core does not have this extension, so the actual capabilities are checked, and features are never inferred from version numbers alone. The requirements of the existing start, check and budget operations stay. For finding input and queries, the two additional supports of the actual executable and support for the stored rules and the current condition format are checked. Run features or `/3` declaration support are not required for finding operations alone.
+From Core 0.1.4, Core includes [post-completion findings](findings.md) and provides `run-finding/v1` in `formats.finding` and `post-completion-findings/v1` in `features`. The v0.1.9 release example above also has both items. The v0.1.3 Core does not have this extension, so the actual capabilities are checked, and features are never inferred from version numbers alone. The requirements of the existing start, check and budget operations stay. For finding input and queries, the two additional supports of the actual executable and support for the stored rules and the current condition format are checked. Run features or `/3` declaration support are not required for finding operations alone.
 
 The optional tool included in Seal 0.1.12 supports `--operation finding --goal <기존 목표>`. When an existing goal has `run-finding/v1` lines, resume, check and budget also require the two additional supports. The tool reads the presence of known line schemas, and Core verifies the integrity of hashes and history. Unknown schemas are refused. It is not assumed that the tool of an earlier installation has the new argument, and checking the actual capabilities directly is also valid. When the support cannot be confirmed, no new finding record is written.
 
@@ -186,7 +187,7 @@ Seal 0.1.21 declares `run-rules/5`, the `review-gate/v1` feature and `review-gat
 
 A Core that supports `run-rules/6` adds `run-rules/6` to `supported_rules`. It adds no format or feature identifier and retains the formats and features of `/5` and the five features of §6. `default_rules` stays `run-rules/3`; a direct start selects the rule with `ha start --rules run-rules/6`. This rule changes only four judgments from `/5`: the start of the review range, review notes after completion, unjudged done lines, and time after completion ([Run record](run-record.md) §4.9).
 
-Seal 0.1.26 changes `rules` in `core-requirements.json` to `["run-rules/6"]` and keeps Seal 0.1.21's format and feature requirements. It starts new goals with `ha start <goal> --rules run-rules/6 … --check-skill`. The check tool's `--operation start` also requires this declaration, so missing `/6` or any other required support causes refusal without a record and without falling back to earlier rules. The ha 0.1.8 in the v0.1.8 example above does not support `/6`.
+Seal 0.1.26 changes `rules` in `core-requirements.json` to `["run-rules/6"]` and keeps Seal 0.1.21's format and feature requirements. It starts new goals with `ha start <goal> --rules run-rules/6 … --check-skill`. The check tool's `--operation start` also requires this declaration, so missing `/6` or any other required support causes refusal without a record and without falling back to earlier rules. The ha 0.1.8 of v0.1.8 does not support `/6`; the ha 0.1.9 in the v0.1.9 example above does.
 
 Resuming, checking or changing the run limit of an existing goal follows its stored rules. When the stored rules are `/6`, support for those rules and for the formats and features required under `/5` is needed; the requirements and judgments of `/1` through `/5` goals do not change. A Core without `/6` support neither computes nor records that goal and exits 66. Installation or an update does not migrate existing goals to new rules.
 
@@ -194,7 +195,7 @@ Resuming, checking or changing the run limit of an existing goal follows its sto
 
 A Core that supports `run-rules/7` lists it in `supported_rules` alongside `run-rules/1` through `run-rules/6`. It adds no format or feature identifier and retains the formats and features of `/6`. `default_rules` stays `run-rules/3`; a direct start selects the rule with `ha start --rules run-rules/7`. `/7` requires baselines only for change conditions marked in PLAN and changes default baseline selection, the minimum, status and report output, and check freeze display ([Run record](run-record.md) §4.10).
 
-The ha 0.1.8 in the v0.1.8 example above does not support `/7`. Already-started goals keep their stored rules, and adding supported rules does not convert earlier records.
+The ha 0.1.8 of v0.1.8 does not support `/7`; the ha 0.1.9 in the v0.1.9 example above does. Already-started goals keep their stored rules, and adding supported rules does not convert earlier records.
 
 Resuming, checking or changing the run limit of a `/7` goal also follows its stored rules and the format and feature requirements of `/6`. A Core without `/7` support neither computes nor records that goal and exits 66.
 

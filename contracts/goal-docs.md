@@ -200,7 +200,7 @@ Whether goal documents are useful without Seal is confirmed by a test. Give only
 
 ## 5. Plugin and templates
 
-Spec's [usage rules](https://github.com/jgoneit/jaekit/blob/v0.1.8/plugins/spec/skills/spec/SKILL.md) and [document format guide](https://github.com/jgoneit/jaekit/blob/v0.1.8/plugins/spec/skills/spec/references/goal-docs.md) ship together with the plugin. The depth of a document fits the risk of the change, and unneeded empty sections are not created.
+Spec's [usage rules](https://github.com/jgoneit/jaekit/blob/v0.1.9/plugins/spec/skills/spec/SKILL.md) and [document format guide](https://github.com/jgoneit/jaekit/blob/v0.1.9/plugins/spec/skills/spec/references/goal-docs.md) ship together with the plugin. The depth of a document fits the risk of the change, and unneeded empty sections are not created.
 
 ## 6. Writing process
 

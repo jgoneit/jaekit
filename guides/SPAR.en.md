@@ -6,7 +6,7 @@ Read this before your first `standard` or `strict` goal, or when you change revi
 
 In detail, Spar sends one review packet, pinned to two commits, to several reviewers at once and keeps what they found and what was done about it. The `spar` binary runs the rounds; the `spar` plugin tells your agent when to run them and how findings may be closed.
 
-From v0.1.7, Seal starts new goals under `run-rules/5`, and a `standard` or `strict` goal started under `run-rules/5` completes only with a recorded Spar gate. `light` goals, goals without an `Assurance:` line and goals started under `run-rules/4` or earlier do not need Spar. To finish without review, you decide a goal-document change that lowers the tier to `light` ([Review gate](USAGE.en.md#review-gate-run-rules5)).
+Seal 0.1.36 in v0.1.9 starts new goals under `run-rules/8`. From v0.1.7, a `standard` or `strict` goal started under `run-rules/5` or later completes only with a recorded Spar gate. `light` goals, goals without an `Assurance:` line and goals started under `run-rules/4` or earlier do not need Spar. To finish without review, you decide a goal-document change that lowers the tier to `light` ([Review gate](USAGE.en.md#review-gate-run-rules5)). A `run-rules/8` goal with a `review` condition also needs that criterion changed, or it stops at `review_tier_missing`.
 
 `spar` ships next to `ha` in the release files and the Homebrew formula from v0.1.7; release files and formulas of v0.1.6 and earlier do not contain it. See the [install guide](INSTALL.en.md).
 
@@ -148,7 +148,7 @@ New rounds start only with these two stages. `--stage plan-delta` and `--stage f
 
 One series allows one plan round and two code rounds. A round past its cap is refused before any reviewer starts; only your words, recorded with `spar extend`, allow more. Rerunning reviewers that did not finish the same packet, for example after a quota refusal, does not count. A new round in a recorded series is counted against the caps it records. Recorded fixes rounds count as code rounds, so a series that already recorded that many code rounds needs an extension for another candidate round.
 
-When the code rounds run out, the `spar run` refusal points to that series' cap report. `spar cap-report` reads only the series' records and Git, shows the cap use, the rounds, the open findings and four signals (churn, recurring links, unrelated defects, check growth), and writes nothing. Churn is counted by file and recurring links by link, and unrelated defects use each reviewer's judgment as given.
+When the code rounds run out, the `spar run` refusal points to that series' cap report. `spar cap-report` reads only the series' records and Git, shows the cap use, the rounds, the open findings and four signals (churn, recurring links, unrelated defects, check growth), and writes nothing. Churn is counted by file and recurring links by link, and unrelated defects use each reviewer's judgment as given. Check growth is measured only in a series with recorded fixes rounds; for a series of plan and candidate rounds the report says it was not measured.
 
 ```bash
 spar cap-report docs/reviews/example
@@ -209,7 +209,7 @@ Standpoints do not change angles, classification, dispositions, caps or the gate
 
 ## Findings and the gate
 
-The gate is a review record, not evidence of completion. Seal's completion still comes only from `ha done`. For a `standard` or `strict` goal started under `run-rules/5`, Seal records the gate file with `ha note <goal> review --gate <file>`, and `ha done` records completion only when the recorded gate covers the current HEAD and goal documents ([Review gate](USAGE.en.md#review-gate-run-rules5)). So the rounds get SPEC.md and every goal document it links as `--criteria`.
+The gate is a review record, not evidence of completion. Seal's completion still comes only from `ha done`. For a `standard` or `strict` goal started under `run-rules/5` or later, Seal records the gate file with `ha note <goal> review --gate <file>`, and `ha done` records completion only when the recorded gate covers the current HEAD and goal documents ([Review gate](USAGE.en.md#review-gate-run-rules5)). So the rounds get SPEC.md and every goal document it links as `--criteria`.
 
 ### How findings are classified
 
