@@ -15,7 +15,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -326,42 +325,15 @@ var deletedNames = []string{
 	"current-files.declaration.json", "current-files.targets.json",
 }
 
-// githubLink matches a link to one of this repository's issues, pull requests
-// or commits, with an optional fragment. Links to files (blob, tree) never
-// match, whatever their ref, so a file path in a link is always read.
-var githubLink = regexp.MustCompile(`https://github\.com/jgoneit/jaekit/(?:(?:issues|pull)/[0-9]+|commit/[0-9a-f]{7,40})(?:#[A-Za-z0-9_-]*)?`)
-
-// releasedText returns a release note's text at the tag of the release it
-// describes (tools/release/notes/<tag>.md), or nil for any other file and for
-// a note whose release has no tag.
-func releasedText(t *testing.T, rel string) []byte {
-	t.Helper()
-	const notes = "tools/release/notes/"
-	if !strings.HasPrefix(rel, notes) || strings.Contains(rel[len(notes):], "/") {
-		return nil
-	}
-	tag := strings.TrimSuffix(rel[len(notes):], ".md")
-	out, err := exec.Command("git", "-C", root, "show", "refs/tags/"+tag+":"+rel).Output()
-	var exit *exec.ExitError
-	switch {
-	case err == nil:
-		return out
-	case errors.As(err, &exit):
-		return nil
-	default:
-		t.Fatalf("cannot run git: %v", err)
-		return nil
-	}
-}
-
 func TestUnusedCheckersAC7(t *testing.T) {
 	for _, rel := range tracked(t) {
-		// This goal's own checks name the deleted paths to observe them.
+		// This goal's own checks name the deleted paths to observe them. SPEC
+		// AC-7's exceptions (issue and commit links, what published release
+		// notes already said) are not applied: no tracked file needed them, so
+		// the scan can only be stricter than the criterion.
 		if strings.HasPrefix(rel, self) {
 			continue
 		}
-		// A published release's notes keep what they said at the release tag.
-		released := releasedText(t, rel)
 		for _, name := range deletedNames {
 			if strings.Contains(rel, name) {
 				t.Errorf("jaekit:violation=deleted-path-named tracked path %s has the name %s", rel, name)
@@ -371,10 +343,8 @@ func TestUnusedCheckersAC7(t *testing.T) {
 		if err != nil {
 			t.Fatalf("cannot read tracked %s: %v", rel, err)
 		}
-		// Issue and commit links may still name deleted paths (SPEC AC-7).
-		data = githubLink.ReplaceAll(data, nil)
 		for _, name := range deletedNames {
-			if bytes.Contains(data, []byte(name)) && !bytes.Contains(released, []byte(name)) {
+			if bytes.Contains(data, []byte(name)) {
 				t.Errorf("jaekit:violation=deleted-path-named %s names %s", rel, name)
 			}
 		}
