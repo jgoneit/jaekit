@@ -281,3 +281,25 @@ func TestExtendOutsideEveryRepository(t *testing.T) {
 		t.Fatalf("no extension was recorded: %v", err)
 	}
 }
+
+// A native subagent that reads the round's schema.json, which prompt.md
+// names, does not read outside the native workspace; one that reads another
+// file of the round folder does (G15).
+func TestTranscriptReadsTheRoundSchema(t *testing.T) {
+	out := t.TempDir()
+	native := filepath.Join(out, "native")
+	read := func(path string) string {
+		data, _ := json.Marshal(map[string]any{"type": "assistant", "cwd": filepath.Join(native, "workspace"), "message": map[string]any{
+			"content": []any{map[string]any{"type": "tool_use", "name": "Read", "input": map[string]any{"file_path": path}}}}})
+		return string(data) + "\n"
+	}
+	for name, outside := range map[string]bool{"schema.json": false, "round.json": true} {
+		transcript := filepath.Join(t.TempDir(), "transcript.jsonl")
+		if err := os.WriteFile(transcript, []byte(read(filepath.Join(native, "prompt.md"))+read(filepath.Join(out, name))), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		if info, err := readTranscript(transcript, native); err != nil || info.outside["Read"] != outside {
+			t.Errorf("reading %s: outside %v, want %v (%v)", name, info.outside, outside, err)
+		}
+	}
+}

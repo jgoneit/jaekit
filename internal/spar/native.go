@@ -52,6 +52,7 @@ func readTranscript(path, nativeDir string) (transcriptInfo, error) {
 		return info, err
 	}
 	prompt := filepath.Join(nativeDir, "prompt.md")
+	schema := filepath.Join(filepath.Dir(nativeDir), "schema.json") // prompt.md names it
 	workspace := realish(filepath.Join(nativeDir, "workspace"))
 	for _, e := range jsonLines(data) {
 		switch e["type"] {
@@ -83,9 +84,10 @@ func readTranscript(path, nativeDir string) (transcriptInfo, error) {
 						info.readPrompt = true
 					}
 					// G15: what Read, Grep and Glob read, resolved against the
-					// entry's cwd, stays in the workspace or is prompt.md.
+					// entry's cwd, stays in the workspace or is prompt.md or
+					// the round's schema.json.
 					field := map[string]string{"Read": "file_path", "Grep": "path", "Glob": "path"}[name]
-					if field != "" && !readsInside(str(input[field]), str(e["cwd"]), workspace, prompt) {
+					if field != "" && !readsInside(str(input[field]), str(e["cwd"]), workspace, prompt, schema) {
 						info.outside[name] = true
 					}
 				case "text":
@@ -119,9 +121,9 @@ func readTranscript(path, nativeDir string) (transcriptInfo, error) {
 
 // readsInside reports whether a path a tool read, relative to cwd when it
 // is relative and cwd itself when it is empty, lies in the native workspace
-// or is the round's prompt.md. Without a cwd a relative or empty path
-// counts as outside.
-func readsInside(target, cwd, workspace, prompt string) bool {
+// or is one of files. Without a cwd a relative or empty path counts as
+// outside.
+func readsInside(target, cwd, workspace string, files ...string) bool {
 	if target == "" {
 		target = cwd
 	}
@@ -132,7 +134,12 @@ func readsInside(target, cwd, workspace, prompt string) bool {
 		target = filepath.Join(cwd, target)
 	}
 	target = realish(filepath.Clean(target))
-	return target == realish(prompt) || insideRepo(workspace, target) != ""
+	for _, f := range files {
+		if target == realish(f) {
+			return true
+		}
+	}
+	return insideRepo(workspace, target) != ""
 }
 
 func transcriptWarnings(info transcriptInfo, name string) []string {
