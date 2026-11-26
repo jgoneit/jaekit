@@ -1,8 +1,8 @@
 """Bounded, read-only reader shared by every release archive consumer.
 
-The release acceptance checker, the standalone archive validator and its
-native smoke read archives only through this module. It inspects one gzip
-compressed tar held in memory, never extracts paths and never seeks back.
+The standalone archive validator and its native smoke read archives only
+through this module. It inspects one gzip compressed tar held in memory,
+never extracts paths and never seeks back.
 """
 import gzip
 import io
@@ -10,7 +10,7 @@ import re
 import tarfile
 import zlib
 
-# Published limits; see tools/release-checks/README.md (Archive resource limits).
+# Published limits; see tools/release/README.md (Archive resource limits).
 MAX_COMPRESSED_BYTES = 64 * 1024 * 1024
 MAX_BYTES = 256 * 1024 * 1024
 MAX_ENTRIES = 10000

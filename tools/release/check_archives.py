@@ -12,7 +12,7 @@ No download, installation, upload, tag changes, or writes to the source tree.
 Native smoke files live in a temporary directory and use only packaged inputs.
 The tar.gz archives are read only through the shared bounded reader
 (archive_reader.py), whose limits are published in
-tools/release-checks/README.md. The Windows ZIP has its own bounded in-memory
+tools/release/README.md. The Windows ZIP has its own bounded in-memory
 structural check (windows_files). The installer's own package check
 (tools/windows/common.ps1) judges that exact archive in the release
 workflow's Windows job; this check does not reproduce it.
@@ -106,7 +106,7 @@ windows_package = load_windows_package()
 # package.public_path() bounds everything else.
 WINDOWS_REQUIRED = {"ha.exe", "package.json", "guides/WINDOWS.md", "guides/WINDOWS.en.md",
                     *windows_package.PUBLIC_FILES}
-# The same published limits as the acceptance checker; see archive_reader.py.
+# The published limits of the shared reader; see archive_reader.py.
 ARCHIVE_MAX_COMPRESSED_BYTES = archive_reader.MAX_COMPRESSED_BYTES
 ARCHIVE_MAX_BYTES = archive_reader.MAX_BYTES
 ARCHIVE_MAX_ENTRIES = archive_reader.MAX_ENTRIES
