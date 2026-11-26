@@ -285,6 +285,7 @@ var deletedNames = []string{
 	"test_import_provenance.py", "test_loader_invocations.py", "test_observation.py",
 	"test_observed_invocations.py", "test_private_independence.py", "test_windows_assets.py",
 	"authoring_check", "test_private_independence",
+	"current-files.declaration.json", "current-files.targets.json",
 }
 
 // githubLink matches a link into this repository's issues, pull requests,
@@ -301,9 +302,6 @@ func TestUnusedCheckersAC7(t *testing.T) {
 		data, err := os.ReadFile(at(rel))
 		if err != nil {
 			t.Fatalf("cannot read tracked %s: %v", rel, err)
-		}
-		if bytes.IndexByte(data[:min(len(data), 8000)], 0) >= 0 {
-			continue
 		}
 		// Issue and commit links may still name deleted paths (SPEC AC-7).
 		data = githubLink.ReplaceAll(data, nil)
