@@ -1,8 +1,8 @@
 # Review evidence regressions
 
-These synthetic checks cover unsupported execution, command extraction, history
-range completeness, unittest result classification and development prerequisites.
-They do not run a native model or replay historical user commands.
+These synthetic checks cover unittest result classification, release-claim
+wording and development prerequisites. They do not run a native model or replay
+historical user commands.
 
 `produce.py AC-N` selects a declared class once. Only ordinary assertion failures
 become declared violations. Runtime errors, expected-failure decorators and

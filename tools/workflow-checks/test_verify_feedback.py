@@ -28,8 +28,7 @@ GROUP_PASS = re.compile(r"^PASS: (?P<group>all|go|docs) verification \(total (?P
 NOT_STARTED = re.compile(r"^FAIL: verification stopped before any check started \(total \d+\.\ds\)$", re.M)
 DOCS_LABELS = ["Public file boundary", "Public documentation", "Public checker regressions",
                "Workflow regressions", "Native CI checker regressions", "Release archive regressions",
-               "Windows candidate packaging regressions", "Goal check regressions",
-               "Release acceptance checker regressions"]
+               "Windows candidate packaging regressions", "Goal check regressions"]
 
 
 class Observed(unittest.TestCase):

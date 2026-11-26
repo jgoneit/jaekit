@@ -70,7 +70,7 @@ class Fixture(unittest.TestCase):
                 f"NAME = {name!r}\n" + recorder +
                 "if os.environ.get('VERIFY_TEST_FAIL') == NAME: sys.exit(29)\n"
             )
-        for group in ("public-checks", "workflow-checks", "ci", "release", "windows", "goal-checks", "release-checks"):
+        for group in ("public-checks", "workflow-checks", "ci", "release", "windows", "goal-checks"):
             directory = self.repo / "tools" / group
             directory.mkdir()
             (directory / "test_fixture.py").write_text(
@@ -81,10 +81,9 @@ class Fixture(unittest.TestCase):
                 "        self.assertNotEqual(os.environ.get('VERIFY_TEST_FAIL'), NAME)\n"
             )
         for group, filenames in (
-                ("review", ("test_observation.py", "test_installation.py", "test_producers.py")),
-                ("gap", ("test_observation.py", "test_history_results.py", "test_docs_environment.py")),
+                ("review", ("test_installation.py", "test_producers.py")),
+                ("gap", ("test_history_results.py", "test_docs_environment.py")),
                 ("producer", ("test_semantics.py",)),
-                ("release", ("integration_evidence_boundaries.py", "integration_core_observation.py", "integration_direct_install.py", "integration_product_source.py", "integration_install_destination.py", "integration_install_imports.py", "integration_observe_imports.py", "integration_child_imports.py")),
                 ("regression", ("test_merge_blockers.py", "integration_go_filters.py", "integration_observer_core.py", "test_observer_attribution.py"))):
             directory = self.repo / "tools" / (group + "-checks")
             directory.mkdir(exist_ok=True)
@@ -121,14 +120,12 @@ class InvocationCases(Fixture):
         commands = self.commands()
         # The read-only input listing precedes every check.
         self.assertEqual([item["name"] for item in commands],
-                         ["git", "gofmt", "go", "go", "go", "review:test_observation.py", "review:test_installation.py",
-                          "review:test_producers.py", "gap:test_observation.py", "gap:test_history_results.py",
-                          "gap:test_docs_environment.py", "producer:test_semantics.py", "release:integration_evidence_boundaries.py",
-                          "release:integration_core_observation.py", "release:integration_direct_install.py",
-                          "release:integration_product_source.py", "release:integration_install_destination.py", "release:integration_install_imports.py", "release:integration_observe_imports.py", "release:integration_child_imports.py",
+                         ["git", "gofmt", "go", "go", "go", "review:test_installation.py",
+                          "review:test_producers.py", "gap:test_history_results.py",
+                          "gap:test_docs_environment.py", "producer:test_semantics.py",
                           "regression:test_merge_blockers.py", "regression:integration_go_filters.py", "regression:integration_observer_core.py", "regression:test_observer_attribution.py",
                           "go", "go", "go", "go", "go", "go", "ha", "ha",
-                          "check_public_tree.py", "check_public_docs.py", "public-checks", "workflow-checks", "ci", "release", "windows", "goal-checks", "release-checks"])
+                          "check_public_tree.py", "check_public_docs.py", "public-checks", "workflow-checks", "ci", "release", "windows", "goal-checks"])
         builds = [item for item in commands if item["name"] == "go" and item["args"][0] == "build"]
         self.assertEqual([(item["goos"], item["goarch"]) for item in builds],
                          [("linux", "amd64"), ("linux", "arm64"), ("darwin", "amd64"), ("darwin", "arm64"), ("windows", "amd64"), (None, None)])
@@ -150,7 +147,7 @@ class InvocationCases(Fixture):
         result = self.run_verify("docs")
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertEqual([item["name"] for item in self.commands()],
-                         ["git", "check_public_tree.py", "check_public_docs.py", "public-checks", "workflow-checks", "ci", "release", "windows", "goal-checks", "release-checks"])
+                         ["git", "check_public_tree.py", "check_public_docs.py", "public-checks", "workflow-checks", "ci", "release", "windows", "goal-checks"])
 
     def test_go_group_uses_native_smoke_despite_cross_environment(self):
         result = self.run_verify("go", GOOS="other", GOARCH="other", GOTOOLCHAIN="auto")
@@ -171,21 +168,11 @@ class FailureCases(Fixture):
 
     def test_required_command_failures_are_identified_and_stop_execution(self):
         cases = (("gofmt", "Go formatting"), ("vet", "Go vet"), ("env", "Go tests"), ("test", "Go tests"),
-                 ("review:test_observation.py", "Review boundaries (test_observation.py)"),
                  ("review:test_installation.py", "Review boundaries (test_installation.py)"),
                  ("review:test_producers.py", "Review boundaries (test_producers.py)"),
-                 ("gap:test_observation.py", "Review gap regressions (test_observation.py)"),
                  ("gap:test_history_results.py", "Review gap regressions (test_history_results.py)"),
                  ("gap:test_docs_environment.py", "Review gap regressions (test_docs_environment.py)"),
                  ("producer:test_semantics.py", "Producer semantic regressions (test_semantics.py)"),
-                 ("release:integration_evidence_boundaries.py", "Release evidence boundaries (integration_evidence_boundaries.py)"),
-                 ("release:integration_core_observation.py", "Release evidence boundaries (integration_core_observation.py)"),
-                 ("release:integration_direct_install.py", "Release evidence boundaries (integration_direct_install.py)"),
-                 ("release:integration_product_source.py", "Release evidence boundaries (integration_product_source.py)"),
-                 ("release:integration_install_destination.py", "Release evidence boundaries (integration_install_destination.py)"),
-                 ("release:integration_install_imports.py", "Release evidence boundaries (integration_install_imports.py)"),
-                 ("release:integration_observe_imports.py", "Release evidence boundaries (integration_observe_imports.py)"),
-                 ("release:integration_child_imports.py", "Release evidence boundaries (integration_child_imports.py)"),
                  ("regression:test_merge_blockers.py", "Merge blocker regressions (test_merge_blockers.py)"),
                  ("regression:integration_go_filters.py", "Merge blocker regressions (integration_go_filters.py)"),
                  ("regression:integration_observer_core.py", "Merge blocker regressions (integration_observer_core.py)"),
@@ -200,8 +187,7 @@ class FailureCases(Fixture):
                  ("ci", "Native CI checker regressions"),
                  ("release", "Release archive regressions"),
                  ("windows", "Windows candidate packaging regressions"),
-                 ("goal-checks", "Goal check regressions"),
-                 ("release-checks", "Release acceptance checker regressions"))
+                 ("goal-checks", "Goal check regressions"))
         for failure, label in cases:
             with self.subTest(failure=failure):
                 self.log.unlink(missing_ok=True)
@@ -268,16 +254,11 @@ class ZeroCollectionCases(Fixture):
     # (group, label, directory, pattern, recorded name) in verify.py's order within each group.
     STEPS = (
         *[("go", f"Review boundaries ({name})", "review-checks", name, "review:" + name)
-          for name in ("test_observation.py", "test_installation.py", "test_producers.py")],
+          for name in ("test_installation.py", "test_producers.py")],
         *[("go", f"Review gap regressions ({name})", "gap-checks", name, "gap:" + name)
-          for name in ("test_observation.py", "test_history_results.py", "test_docs_environment.py")],
+          for name in ("test_history_results.py", "test_docs_environment.py")],
         ("go", "Producer semantic regressions (test_semantics.py)", "producer-checks", "test_semantics.py",
          "producer:test_semantics.py"),
-        *[("go", f"Release evidence boundaries ({name})", "release-checks", name, "release:" + name)
-          for name in ("integration_evidence_boundaries.py", "integration_core_observation.py",
-                       "integration_direct_install.py", "integration_product_source.py",
-                       "integration_install_destination.py", "integration_install_imports.py",
-                       "integration_observe_imports.py", "integration_child_imports.py")],
         *[("go", f"Merge blocker regressions ({name})", "regression-checks", name, "regression:" + name)
           for name in ("test_merge_blockers.py", "integration_go_filters.py", "integration_observer_core.py",
                        "test_observer_attribution.py")],
@@ -287,8 +268,7 @@ class ZeroCollectionCases(Fixture):
                                    ("Native CI checker regressions", "ci"),
                                    ("Release archive regressions", "release"),
                                    ("Windows candidate packaging regressions", "windows"),
-                                   ("Goal check regressions", "goal-checks"),
-                                   ("Release acceptance checker regressions", "release-checks"))],
+                                   ("Goal check regressions", "goal-checks"))],
     )
 
     def test_each_discover_step_without_tests_fails_and_stops(self):

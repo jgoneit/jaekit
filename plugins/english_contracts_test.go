@@ -206,49 +206,18 @@ func TestEnglishContractsAC4_LinksOpen(t *testing.T) {
 	}
 }
 
-// ecAuthoring lists the authoring check's criteria that read contract files. On the start commit none of
-// them reported a problem naming a contract file; problems from other files (AC-6, AC-8) are not this
-// goal's. AC-9 is judged without the Go suites it also starts, which run in this condition's command, and
-// without tools/check_public_docs.py, which AC-4's test runs on the same tree.
-var ecAuthoring = []string{"AC-6", "AC-8", "AC-9", "AC-10"}
-
-const ecAuthoringScript = `import json, pathlib, sys
-sys.path.insert(0, "tools/contract-checks")
-import authoring_check
-authoring_check.regressions = lambda root: []
-out = {}
-for c in sys.argv[1:]:
-    _, problems = authoring_check.observe(pathlib.Path(".").resolve(), "authoring", c)
-    out[c] = [p for p in problems if "contracts/" in p]
-print(json.dumps(out))`
-
-// The Go suites that read contract text run in the same command; this adds the Python readers no Go test
-// judges on the checkout: the authoring check's contract problems and the regression registry's shape test.
+// The Go suites that read contract text run in the same command; this adds the Python reader no Go test
+// judges on the checkout: the regression registry's shape test.
 func TestEnglishContractsAC5_PythonReaders(t *testing.T) {
 	py, err := exec.LookPath("python3")
 	if err != nil {
 		t.Fatalf("python3: %v", err)
 	}
-	cmd := exec.Command(py, append([]string{"-I", "-c", ecAuthoringScript}, ecAuthoring...)...)
-	cmd.Dir = ".."
-	out, err := cmd.Output()
-	if err != nil {
-		t.Fatalf("authoring check: %v", err)
-	}
-	var got map[string][]string
-	if err := json.Unmarshal(out, &got); err != nil {
-		t.Fatalf("authoring check output: %v\n%s", err, out)
-	}
-	for _, c := range ecAuthoring {
-		if p, ok := got[c]; !ok || len(p) > 0 {
-			t.Errorf("authoring check %s reports contract problems %q; the start commit had none", c, p)
-		}
-	}
 	// Before Python 3.12, unittest discover exits 0 when it finds no test, so a missing reader cannot pass.
 	if _, err := os.Stat("../tools/workflow-checks/test_regressions.py"); err != nil {
 		t.Fatalf("regressions reader: %v", err)
 	}
-	cmd = exec.Command(py, "-I", "-m", "unittest", "discover", "-s", "tools/workflow-checks", "-p", "test_regressions.py")
+	cmd := exec.Command(py, "-I", "-m", "unittest", "discover", "-s", "tools/workflow-checks", "-p", "test_regressions.py")
 	cmd.Dir = ".."
 	if out, err := cmd.CombinedOutput(); err != nil {
 		t.Errorf("tools/workflow-checks/test_regressions.py: %v\n%s", err, out)

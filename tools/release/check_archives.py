@@ -12,7 +12,7 @@ No download, installation, upload, tag changes, or writes to the source tree.
 Native smoke files live in a temporary directory and use only packaged inputs.
 The tar.gz archives are read only through the shared bounded reader
 (archive_reader.py), whose limits are published in
-tools/release-checks/README.md. The Windows ZIP has its own bounded in-memory
+tools/release/README.md. The Windows ZIP has its own bounded in-memory
 structural check (windows_files). The installer's own package check
 (tools/windows/common.ps1) judges that exact archive in the release
 workflow's Windows job; this check does not reproduce it.

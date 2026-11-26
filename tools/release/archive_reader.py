@@ -10,7 +10,7 @@ import re
 import tarfile
 import zlib
 
-# Published limits; see tools/release-checks/README.md (Archive resource limits).
+# Published limits; see tools/release/README.md (Archive resource limits).
 MAX_COMPRESSED_BYTES = 64 * 1024 * 1024
 MAX_BYTES = 256 * 1024 * 1024
 MAX_ENTRIES = 10000

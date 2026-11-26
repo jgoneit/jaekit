@@ -25,7 +25,7 @@ spec = importlib.util.spec_from_file_location("bounded_release_archives", HERE /
 release = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(release)
 VERSION = "0.1.4"
-# Published in tools/release-checks/README.md (Archive resource limits).
+# Published in tools/release/README.md (Archive resource limits).
 ENTRIES = 10000
 METADATA = 64 * 1024
 METADATA_TOTAL = 1024 * 1024
@@ -299,7 +299,7 @@ def validator_metadata():
                     accepted(lambda: validate(dist), code, f"metadata at the exact {name}")
                 with limits(**{name: size - 1}):
                     refused(lambda: validate(dist), "metadata limit", code, f"metadata over {name}")
-    text = (ROOT / "tools/release-checks/README.md").read_text(encoding="utf-8")
+    text = (ROOT / "tools/release/README.md").read_text(encoding="utf-8")
     require(getattr(release, "ARCHIVE_MAX_METADATA_BYTES", None) == METADATA
             and getattr(release, "ARCHIVE_MAX_METADATA_TOTAL_BYTES", None) == METADATA_TOTAL
             and "64 KiB" in text and "1 MiB" in text, code, "metadata limits are not published")
