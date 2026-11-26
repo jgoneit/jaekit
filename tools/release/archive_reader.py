@@ -1,8 +1,8 @@
 """Bounded, read-only reader shared by every release archive consumer.
 
-The release acceptance checker, the standalone archive validator and its
-native smoke read archives only through this module. It inspects one gzip
-compressed tar held in memory, never extracts paths and never seeks back.
+The standalone archive validator and its native smoke read archives only
+through this module. It inspects one gzip compressed tar held in memory,
+never extracts paths and never seeks back.
 """
 import gzip
 import io

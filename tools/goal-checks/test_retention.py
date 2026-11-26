@@ -210,3 +210,18 @@ class RetentionChecks(unittest.TestCase):
                 records.write_text(json.dumps({"output_path": value, "output_digest": "a" * 64}) + "\n")
                 config["documents"][str(records.relative_to(linked))] = hashlib.sha256(records.read_bytes()).hexdigest()
                 self.assertEqual(invoke(config), (2, "invalid_input"))
+
+
+class InternalError(unittest.TestCase):
+    """An internal failure exits 70, never the found-problem exit 1 (contracts/repository-producers.md)."""
+
+    def test_unexpected_exception_exits_70(self):
+        with tempfile.TemporaryDirectory(prefix="jaekit-retention-") as name:
+            retention = Path(name) / "retention.json"
+            retention.write_text("{}\n")
+            stderr = io.StringIO()
+            with patch.object(consumer, "audit_retention", side_effect=RuntimeError("synthetic internal failure")), \
+                    redirect_stderr(stderr), redirect_stdout(io.StringIO()):
+                code = consumer.main(["--retention", str(retention)])
+        self.assertEqual(code, 70)
+        self.assertIn("internal error", stderr.getvalue())

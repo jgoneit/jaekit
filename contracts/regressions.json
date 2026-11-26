@@ -21,10 +21,10 @@
     {
       "id": "I3",
       "basis": [
-        "tools/review-checks/README.md",
-        "tools/gap-checks/README.md"
+        "tools/release/README.md",
+        "contracts/goal-docs.md"
       ],
-      "property": "Request binding and uncertainty survive all supported observation consumers. Text existence is not actual execution."
+      "property": "Release archive consumers read their input within the published limits and without extraction, and the Windows archive meets its consumer contract before publication. Goal documents keep the boundaries of what a judgment can observe. Text existence is not actual execution."
     },
     {
       "id": "I4",
