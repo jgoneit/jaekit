@@ -185,6 +185,20 @@ var want = map[string]string{
 	"runner-adapter-classification":        "d96405dac32f1456cec0fae40d99d5705cb6e43af63bd0b8dfa6f76acb9dc1fa",
 }
 
+// testExists reports whether a Python test file defines the selected class
+// and, for Class.method, that method.
+func testExists(file, selector string) bool {
+	data, err := os.ReadFile(at(file))
+	if err != nil {
+		return false
+	}
+	class, method, hasMethod := strings.Cut(selector, ".")
+	if !regexp.MustCompile(`(?m)^class ` + regexp.QuoteMeta(class) + `\b`).Match(data) {
+		return false
+	}
+	return !hasMethod || regexp.MustCompile(`(?m)^\s+def `+regexp.QuoteMeta(method)+`\(`).Match(data)
+}
+
 func TestUnusedCheckersAC4(t *testing.T) {
 	var reg struct {
 		Routes []map[string]any `json:"routes"`
@@ -208,8 +222,11 @@ func TestUnusedCheckersAC4(t *testing.T) {
 			check, _ := c.(map[string]any)
 			file, _ := check["file"].(string)
 			selector, _ := check["selector"].(string)
-			if id != optionalRoute || !optionalChecks[file+"::"+selector] {
+			switch {
+			case id != optionalRoute || !optionalChecks[file+"::"+selector]:
 				kept = append(kept, c)
+			case !testExists(file, selector):
+				t.Errorf("jaekit:violation=registry-route-stale route %s keeps %s::%s, which names no test", id, file, selector)
 			}
 		}
 		route["checks"] = kept
@@ -289,8 +306,8 @@ var deletedNames = []string{
 }
 
 // githubLink matches a link into this repository's issues, pull requests,
-// commits or files at a commit.
-var githubLink = regexp.MustCompile(`https://github\.com/jgoneit/jaekit/(issues|pull|commit|blob|tree)/[^\s)>\]"'` + "`" + `]*`)
+// commits or files at a commit ID; links to a branch or tag do not match.
+var githubLink = regexp.MustCompile(`https://github\.com/jgoneit/jaekit/(?:(?:issues|pull)/[0-9]+|commit/[0-9a-f]{7,40}|(?:blob|tree)/[0-9a-f]{7,40}/)[^\s)>\]"'` + "`" + `]*`)
 
 func TestUnusedCheckersAC7(t *testing.T) {
 	for _, rel := range tracked(t) {
@@ -298,6 +315,11 @@ func TestUnusedCheckersAC7(t *testing.T) {
 		// published release notes keep their history.
 		if strings.HasPrefix(rel, self) || strings.HasPrefix(rel, "tools/release/notes/") {
 			continue
+		}
+		for _, name := range deletedNames {
+			if strings.Contains(rel, name) {
+				t.Errorf("jaekit:violation=deleted-path-named tracked path %s has the name %s", rel, name)
+			}
 		}
 		data, err := os.ReadFile(at(rel))
 		if err != nil {
