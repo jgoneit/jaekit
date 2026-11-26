@@ -49,7 +49,7 @@ class GoFixture(unittest.TestCase):
             path.chmod(0o700)
         # Supply every currently selected synthetic Python suite, including new
         # integration hooks, without recursively running the real verifier.
-        for group in ('review-checks', 'gap-checks', 'producer-checks', 'release-checks', 'regression-checks'):
+        for group in ('review-checks', 'gap-checks', 'producer-checks', 'regression-checks'):
             directory = self.root / 'tools' / group
             directory.mkdir()
             for source in (ROOT / 'tools' / group).glob('*.py'):

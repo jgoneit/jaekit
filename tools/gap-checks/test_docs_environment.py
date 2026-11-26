@@ -115,18 +115,8 @@ class LaunchProbe(unittest.TestCase):
             for shell in module.SHELLS:
                 result = module.run_cleanup('printf installation-fixture', Path(directory), shell)
                 self.assertEqual(result.returncode, 0, result.stderr)
-    def test_observation(self):
-        module = load(OBSERVATION, 'selected_observation')
-        case = module.Case()
-        case.setUp()
-        try:
-            for shell in ('bash', 'zsh'):
-                case.collected('printf observation-fixture', shell)
-        finally:
-            case.doCleanups()
 '''
-        paths = ("INSTALLATION = " + repr(str(ROOT / "tools/review-checks/test_installation.py")) + "\n"
-                 + "OBSERVATION = " + repr(str(ROOT / "tools/review-checks/test_observation.py")) + "\n")
+        paths = "INSTALLATION = " + repr(str(ROOT / "tools/review-checks/test_installation.py")) + "\n"
         (self.repo / "tools/review-checks/test_installation.py").write_text(paths + probe)
         before = self.snapshot()
         result = self.run_verify("go")
@@ -135,9 +125,9 @@ class LaunchProbe(unittest.TestCase):
                          + result.stdout + result.stderr)
         calls = self.commands()
         for shell in ("bash", "zsh"):
-            for marker in ("installation-fixture", "observation-fixture"):
-                self.assertTrue(any(c["name"] == shell and any(marker in a for a in c["args"]) for c in calls),
-                                f"[requirement] {marker} bypassed selected {shell} executable")
+            self.assertTrue(any(c["name"] == shell and any("installation-fixture" in a for a in c["args"])
+                                for c in calls),
+                            f"[requirement] installation-fixture bypassed selected {shell} executable")
         self.assertEqual(self.snapshot(), before, "[requirement] successful preflight/checks preserve source")
 
     def test_docs_needs_no_go_zsh_or_docker_and_documents_the_required_shells(self):

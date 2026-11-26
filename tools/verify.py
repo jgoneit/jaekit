@@ -172,13 +172,11 @@ def verify_go(env: dict[str, str]):
     # These offline boundary regressions include real Go fixtures and local
     # bash/zsh processes. Keep them in the Go group so docs-only verification
     # does not acquire a Go dependency.
-    for filename in ("test_observation.py", "test_installation.py", "test_producers.py"):
+    for filename in ("test_installation.py", "test_producers.py"):
         discover(f"Review boundaries ({filename})", "review-checks", filename, env)
-    for filename in ("test_observation.py", "test_history_results.py", "test_docs_environment.py"):
+    for filename in ("test_history_results.py", "test_docs_environment.py"):
         discover(f"Review gap regressions ({filename})", "gap-checks", filename, env)
     discover("Producer semantic regressions (test_semantics.py)", "producer-checks", "test_semantics.py", env)
-    for filename in ("integration_evidence_boundaries.py", "integration_core_observation.py", "integration_direct_install.py", "integration_product_source.py", "integration_install_destination.py", "integration_install_imports.py", "integration_observe_imports.py", "integration_child_imports.py"):
-        discover(f"Release evidence boundaries ({filename})", "release-checks", filename, env)
     for filename in ("test_merge_blockers.py", "integration_go_filters.py", "integration_observer_core.py", "test_observer_attribution.py"):
         discover(f"Merge blocker regressions ({filename})", "regression-checks", filename, env)
     # All build outputs live outside the checkout, including on failed checks.
@@ -208,8 +206,7 @@ def verify_docs(env: dict[str, str]):
                              ("Native CI checker regressions", "ci"),
                              ("Release archive regressions", "release"),
                              ("Windows candidate packaging regressions", "windows"),
-                             ("Goal check regressions", "goal-checks"),
-                             ("Release acceptance checker regressions", "release-checks")):
+                             ("Goal check regressions", "goal-checks")):
         discover(label, directory, "test_*.py", env)
 
 

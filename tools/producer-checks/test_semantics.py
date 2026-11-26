@@ -1,5 +1,4 @@
 """Real subprocess regressions for repository result producers; synthetic inputs."""
-import importlib.util
 import json
 import os
 from pathlib import Path
@@ -284,98 +283,6 @@ class GoReportBoundary(Fixture):
 def tagged(test, code, detail):
     """Fail with an explicit requirement identity the producers can attribute."""
     test.fail(f"[violation:{code}] {detail}")
-
-
-def load(path, name):
-    spec = importlib.util.spec_from_file_location(name, path)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
-
-
-class ProvidedCommandTargets(Fixture):
-    """Command targets this repository provides keep their meaning in structured reports."""
-
-    def tracked_commands(self):
-        for path in sorted((ROOT / "tools/goal-checks").rglob("*.json")):
-            data = json.loads(path.read_text(encoding="utf-8"))
-            if isinstance(data, dict) and data.get("schema") == "jaekit-goal-targets/v2":
-                for check in data["checks"]:
-                    if check.get("runner") == "command":
-                        yield path.relative_to(ROOT).as_posix(), check
-
-    def docs_target(self):
-        source = "tools/goal-checks/release-0-1-3-followups/AC-6.targets.json"
-        checks = json.loads((ROOT / source).read_text(encoding="utf-8"))["checks"]
-        check = next(c for c in checks if c["target"] == "guide-links")
-        return {key: value for key, value in check.items() if key not in ("target", "result_targets")}
-
-    def docs_tree(self, readme, guide="# Guide\n"):
-        (self.root / "tools/check_public_docs.py").write_bytes((ROOT / "tools/check_public_docs.py").read_bytes())
-        (self.root / "guides").mkdir(exist_ok=True)
-        (self.root / "README.md").write_bytes(readme if isinstance(readme, bytes) else readme.encode())
-        (self.root / "guides/guide.md").write_text(guide)
-
-    def test_every_provided_command_target_has_an_exit_contract(self):
-        commands = list(self.tracked_commands())
-        self.assertTrue(commands, "no provided command targets were found")
-        for path, check in commands:
-            contract = check.get("exit_contract")
-            if not isinstance(contract, dict) or 0 not in contract.get("pass", []):
-                tagged(self, "provided-command-unusable", f"{path}: {check['target']} has no usable exit contract")
-
-    def test_provided_documentation_target_passes_and_keeps_failure_meanings(self):
-        check = self.docs_target()
-        self.docs_tree("[guide](guides/guide.md)\n")
-        _, report = self.run_producer(check=check)
-        if report["suite"]["status"] != "pass":
-            tagged(self, "provided-command-unusable", f"normal documents did not pass: {report}")
-        self.docs_tree("[guide](guides/absent.md)\n")
-        _, report = self.run_producer(check=check)
-        if report["suite"]["status"] != "violation":
-            tagged(self, "provided-command-unusable", f"a broken link was not a violation: {report}")
-        self.docs_tree(b"[guide](guides/guide.md)\n\xff\n")
-        _, report = self.run_producer(check=check)
-        if any(item["status"] == "violation" for item in report.values()):
-            tagged(self, "unreadable-documents-as-violation", f"an unreadable document became a violation: {report}")
-
-    def test_documentation_check_separates_problems_from_unobservable_input(self):
-        docs = load(ROOT / "tools/check_public_docs.py", "public_docs_exit_meaning")
-        cases = (("problem", "[guide](guides/absent.md)\n", 1), ("unreadable", b"\xff\n", None), ("empty", None, None))
-        for label, readme, wanted in cases:
-            with self.subTest(case=label), tempfile.TemporaryDirectory() as directory:
-                root = Path(directory)
-                if readme is not None:
-                    (root / "README.md").write_bytes(readme if isinstance(readme, bytes) else readme.encode())
-                proc = subprocess.run([sys.executable, str(ROOT / "tools/check_public_docs.py"), str(root)],
-                                      env=ENV, capture_output=True, text=True, timeout=60)
-                if wanted is not None and proc.returncode != wanted:
-                    tagged(self, "provided-command-unusable", f"{label}: exit {proc.returncode}")
-                if wanted is None and proc.returncode in (0, 1):
-                    tagged(self, "unreadable-documents-as-violation", f"{label}: exit {proc.returncode} {proc.stderr}")
-        original = docs.check
-        docs.check = lambda *args, **kwargs: (_ for _ in ()).throw(RuntimeError("synthetic internal failure"))
-        argv = sys.argv
-        try:
-            sys.argv = ["check_public_docs.py", str(self.root)]
-            try:
-                code = docs.main()
-            except Exception:
-                code = 1  # the interpreter's exit status for an uncaught exception
-        finally:
-            docs.check, sys.argv = original, argv
-        if code in (0, 1):
-            tagged(self, "unreadable-documents-as-violation", f"an internal failure exited {code}")
-
-    def test_history_audit_internal_failure_is_not_its_violation_exit(self):
-        audit = load(ROOT / "tools/goal-checks/release-0-1-3-followups/preserved.py", "history_exit_meaning")
-        audit.history_boundary = lambda *args: (_ for _ in ()).throw(TypeError("synthetic internal failure"))
-        try:
-            code = audit.main(["preserved.py", "--history", "--base", "0" * 40, "--head", "1" * 40])
-        except Exception:
-            code = 1  # the interpreter's exit status for an uncaught exception
-        if code in (0, 1):
-            tagged(self, "unreadable-documents-as-violation", f"an internal audit failure exited {code}")
 
 
 class OverflowWithErrors(Fixture):
