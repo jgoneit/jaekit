@@ -111,7 +111,7 @@ Start with what changed and what was verified. The report appears in the convers
 
 **Review summary.** In goals started with 0.1.24 or later, after completion, `## 검수 요약` right after `## 현재` is where you start reviewing. Its top lines give the completion record, the assurance tier, how many required conditions are satisfied, the review gate result, what the change does and where to start looking; below them come what changed, evidence, what to inspect and what was not observed, in that order. A heading with nothing to list says `없음`, and after a reopen the section is rewritten as of the new completion record. It is written in the user's language and says what each record is; each item is short, with seq numbers only as an aid; no check output or finding text is copied; a finding is its ID, one line and its ending. Seal's judgment is only there, and `## 완료 보고` holds the `ha report` output and one line pointing to it. For a finished goal, read `## 검수 요약` first. For a goal that stopped, or one started with an earlier Seal, read `## 완료 보고` as before.
 
-- Required completion conditions need recorded checks or necessary user confirmations.
+- Required completion conditions need recorded checks, necessary user confirmations or, for a `review` condition, the review gate.
 - Optional conditions do not block completion and are identified separately.
 - The agent writes the automated checks.
 
@@ -160,7 +160,7 @@ Find the goal and its records in `docs/specs/<goal>/`:
 | `SPEC.md` | Spec | Goal, scope, and completion conditions |
 | `PLAN.md` | Seal | Plan |
 | `REVIEW.md` | Seal | Plan review |
-| `PROGRESS.md` | Seal | Progress and completion report |
+| `PROGRESS.md` | Seal | Progress, review summary (`## 검수 요약`) and completion report |
 | `runs.jsonl` | `ha` | Run record |
 | `tasks/` files, when needed | Seal | Individual task descriptions |
 
@@ -248,7 +248,7 @@ The [operations guide](OPERATIONS.en.md) describes the detailed reasons for user
 | Label | What it tells you |
 | --- | --- |
 | `Changed` | Files and commits changed outside the bundle documents since the start |
-| `Checked` | Required conditions satisfied (by check records and by user confirmation), and change conditions whose failure before the change was observed |
+| `Checked` | Required conditions satisfied (by check records, by user confirmation and by the review gate), and change conditions whose failure before the change was observed |
 | `To review` | Items for a person: decisions for the user, conditions confirmed by a quote, test changes exempted by the executor's reason alone, changed verification commands, review findings that were deferred or left without a disposition. A review finding shows its round, ID, class and deferral target |
 | `Remaining limits` | Assurance `local`, the check author, optional conditions not satisfied, an exceeded budget, and whether no completion record covers HEAD |
 | `Next step` | The one thing to do in the current state |
@@ -313,7 +313,7 @@ Under `/7` and `/8`, the "before any baseline" questions, `ha doctor` and the `s
 
 Read the baseline requirement under the goal's rules: all change conditions require it up to `run-rules/6`, and only marked conditions do under `/7` and `/8`. Runner adapters classify input failures themselves; the classifications and input-failure table of the [result contract](../contracts/check-result.md) stay unchanged.
 
-The check freeze uses the earliest `plan` round for `strict` or the earliest `candidate` round for `standard`, in gate order among the last recorded gate's non-dry-run rounds. It covers declarations, producers, tests, helpers and settings in the condition table's check paths, from every row that lists any. Right after the freeze round, Seal records the gate and current condition table's check paths with `ha note <goal> review --gate <file>`. Without a gate note ending at that round, removed check paths are unobserved and status and report show `freeze-time condition table was not recorded`.
+Under `run-rules/7`, the check freeze uses the earliest `plan` round for `strict` or the earliest `candidate` round for `standard`, in gate order among the last recorded gate's non-dry-run rounds. It covers declarations, producers, tests, helpers and settings in the condition table's check paths, from every row that lists any. Right after the freeze round, Seal records the gate and current condition table's check paths with `ha note <goal> review --gate <file>`. Without a gate note ending at that round, removed check paths are unobserved and status and report show `freeze-time condition table was not recorded`.
 
 After changing a check file following the freeze, commit it and record `ha note <goal> check-change checks:<path> --reason "<finding ID, or condition and reason>"`. A review fix names its finding ID. The reason binds to the current blob, so another edit needs a reason for that edit. Give the next candidate round the changed checks and reasons together, and that round reviews the changed checks. No such reason is needed before the freeze; check defects may still be fixed afterward. The freeze display itself does not block completion.
 

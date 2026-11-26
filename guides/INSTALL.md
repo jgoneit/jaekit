@@ -205,7 +205,7 @@ brew 대신 [v0.1.9 Release](https://github.com/jgoneit/jaekit/releases/tag/v0.1
 
 배포판마다 들어 있는 기능은 다음과 같습니다.
 
-- **현재 배포판 `v0.1.9`**: v0.1.8의 범위에 더해 Seal의 새 목표는 `/8`(`run-rules/6`~`/8`: 표시한 change 조건만 baseline, 검사 동결 없음, 참고값인 경과 시간, 검토 gate로 충족하는 `review` 조건), `PROGRESS.md`의 `## 검수 요약`, `ha report`의 검토 지적, Spar 상한 보고(`spar cap-report`, 연장 원인을 남기는 `spar extend --cause`와 그 원인을 보이는 `ha cost`), 사용자 설정이 비워 둔 리뷰어의 모델·강도를 에이전트가 고르고 사용자가 허용 목록으로 그 범위를 묶는 것, Spar 리뷰어 관점과 candidate 라운드가 받는 이전 처리; `ha history` 제거
+- **현재 배포판 `v0.1.9`**: v0.1.8의 범위에 더해 Seal의 새 목표는 `/8`(`run-rules/6`~`/8`: 표시한 change 조건만 baseline, 검사 동결 없음, 참고값인 경과 시간, 검토 gate로 충족하는 `review` 조건), `PROGRESS.md`의 `## 검수 요약`, `ha report`의 검토 지적, Spar 상한 보고(`spar cap-report`, 연장 원인을 남기는 `spar extend --cause`와 그 원인을 보이는 `ha cost`), 사용자 설정이 비워 둔 리뷰어의 모델·강도를 에이전트가 고르고 사용자가 허용 목록으로 그 범위를 묶는 것, Spar 리뷰어 관점과 candidate 라운드가 받는 이전 처리, 리뷰어마다의 패킷 크기 한도(`max_packet_bytes`); `ha history` 제거, `spar run --stage plan-delta`·`fixes`는 사용 오류(64), 기본 code 라운드 상한은 3에서 2로
 - **소스 빌드**: 개발용 식별자이며 배포 파일의 설치 근거가 아님
 
 <details>

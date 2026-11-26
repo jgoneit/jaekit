@@ -32,7 +32,7 @@ Jaekit holds on to three things and leaves the rest to the agent.
 
 1. **You set the goal.** What finished means, the completion conditions, is written down before the work starts. While implementing, the agent does not edit that document.
 2. **The agent does the work.** Planning, order and tools are the agent's choice. You do not approve each step; it asks only when a decision would change the outcome.
-3. **Completion is judged from records.** A goal is recorded as complete only when each required completion condition has a record of its check. A condition that cannot be checked automatically is met by recording your confirmation. From `run-rules/7`, only change conditions marked `요구` also need a record of their check failing on the code before the change. Seal marks two kinds: a bug fix or regression whose defect is already present at the base commit, and a prohibition such as "X does not happen". For these, a check that already passes before the change cannot tell whether the fix or the prohibition works. Other checks, such as one for a new feature or one that guards existing behavior, count with a passing record.
+3. **Completion is judged from records.** A goal is recorded as complete only when each required completion condition has a record of its check. A condition that cannot be checked automatically is met by recording your confirmation. From `run-rules/8`, a `review` condition about document content is met by the review gate of a `standard` or `strict` goal. From `run-rules/7`, only change conditions marked `요구` also need a record of their check failing on the code before the change. Seal marks two kinds: a bug fix or regression whose defect is already present at the base commit, and a prohibition such as "X does not happen". For these, a check that already passes before the change cannot tell whether the fix or the prohibition works. Other checks, such as one for a new feature or one that guards existing behavior, count with a passing record.
 
 ## What changes when you use it
 
@@ -121,7 +121,7 @@ The goal document's `Assurance:` line sets how much independent review the goal 
 
 A completion record means:
 
-- Each required completion condition has a check record or a necessary user confirmation.
+- Each required completion condition has a check record, a necessary user confirmation or, for a `review` condition, the review gate.
 - For a newly started goal, each required change condition marked `요구` has records of its check failing on the code before the change and passing after it. An unmarked change condition can be met by a passing record, with no record of a failure before the change.
 - For newly started `standard` and `strict` goals, there is a Spar record (the review gate) that reviewed the code and goal documents as they were when completion was recorded.
 

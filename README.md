@@ -30,7 +30,7 @@ Jaekit holds on to three things and leaves the rest to the agent you already use
 - **The agent does the work.**<br>
   It plans, implements, and checks on its own, and asks only when a decision affects the outcome or a check needs your confirmation. You do not approve every step.
 - **Completion is judged from records.**<br>
-  Completion is recorded only when the required completion conditions are met by recorded checks or necessary user confirmations. The goal and progress records stay in the project folder, so you can continue the same goal in a new conversation.
+  Completion is recorded only when the required completion conditions are met by recorded checks, necessary user confirmations or, for a `review` condition, the review gate. The goal and progress records stay in the project folder, so you can continue the same goal in a new conversation.
 
 [Understanding Jaekit](guides/OVERVIEW.en.md) explains from the start why it is shaped this way and how one goal goes through.
 
@@ -526,7 +526,7 @@ More on these files: [Reading the completion report](guides/USAGE.en.md#reading-
 <details>
 <summary><strong>What should I look for in the completion report?</strong></summary>
 
-Required completion conditions need recorded checks or necessary user confirmations.
+Required completion conditions need recorded checks, necessary user confirmations or, for a `review` condition, the review gate.
 
 The agent writes the automated checks, so completion is not a guarantee that the entire result is flawless or independently verified by a third party. Review the report's assumptions and remaining limitations alongside the actual result.
 
