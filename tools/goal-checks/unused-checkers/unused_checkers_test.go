@@ -185,18 +185,39 @@ var want = map[string]string{
 	"runner-adapter-classification":        "d96405dac32f1456cec0fae40d99d5705cb6e43af63bd0b8dfa6f76acb9dc1fa",
 }
 
-// testExists reports whether a Python test file defines the selected class
-// and, for Class.method, that method.
-func testExists(file, selector string) bool {
-	data, err := os.ReadFile(at(file))
-	if err != nil {
+// collects is a Python program that exits 0 only when unittest loads at least
+// one test from argv[2] in the module file argv[1], as the registry's checks
+// are run. The loader turns a missing name or a failed import into a
+// placeholder test and an entry in its errors, so both are read.
+const collects = `import os, sys, unittest
+path, selector = sys.argv[1], sys.argv[2]
+sys.path.insert(0, os.path.dirname(path))
+name = os.path.splitext(os.path.basename(path))[0] + "." + selector
+loader = unittest.TestLoader()
+try:
+    count = loader.loadTestsFromName(name).countTestCases()
+except Exception:
+    sys.exit(1)
+sys.exit(0 if count > 0 and not loader.errors else 1)
+`
+
+// testExists reports whether unittest collects a test for the selector in the
+// file. Only a Python that cannot start is an error.
+func testExists(t *testing.T, file, selector string) bool {
+	t.Helper()
+	cmd := exec.Command("python3", "-I", "-c", collects, at(file), selector)
+	cmd.Env = append(os.Environ(), "PYTHONDONTWRITEBYTECODE=1")
+	err := cmd.Run()
+	var exit *exec.ExitError
+	switch {
+	case err == nil:
+		return true
+	case errors.As(err, &exit):
+		return false
+	default:
+		t.Fatalf("cannot run python3: %v", err)
 		return false
 	}
-	class, method, hasMethod := strings.Cut(selector, ".")
-	if !regexp.MustCompile(`(?m)^class ` + regexp.QuoteMeta(class) + `\b`).Match(data) {
-		return false
-	}
-	return !hasMethod || regexp.MustCompile(`(?m)^\s+def `+regexp.QuoteMeta(method)+`\(`).Match(data)
 }
 
 func TestUnusedCheckersAC4(t *testing.T) {
@@ -225,7 +246,7 @@ func TestUnusedCheckersAC4(t *testing.T) {
 			switch {
 			case id != optionalRoute || !optionalChecks[file+"::"+selector]:
 				kept = append(kept, c)
-			case !testExists(file, selector):
+			case !testExists(t, file, selector):
 				t.Errorf("jaekit:violation=registry-route-stale route %s keeps %s::%s, which names no test", id, file, selector)
 			}
 		}
