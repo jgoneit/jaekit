@@ -4,8 +4,11 @@ import (
 	"bytes"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime"
 	"strings"
+	"syscall"
+	"testing"
 
 	"github.com/jgoneit/jaekit/internal/run"
 )
@@ -87,4 +90,23 @@ func gitFixtureEnv(config, name, email string) []string {
 	return []string{"GIT_CONFIG_GLOBAL=" + config, "GIT_CONFIG_NOSYSTEM=1",
 		"GIT_AUTHOR_NAME=" + name, "GIT_COMMITTER_NAME=" + name,
 		"GIT_AUTHOR_EMAIL=" + email, "GIT_COMMITTER_EMAIL=" + email}
+}
+
+// writeExecutable writes a program that the test runs later. A child that a
+// parallel test forks while the file is open for writing keeps that
+// descriptor until its own exec, and Linux refuses to run a file open for
+// writing ("text file busy"). Every fork holds syscall.ForkLock for writing,
+// so holding it for reading while the file is open keeps forks of this
+// process out of that window.
+func writeExecutable(t *testing.T, path, body string) {
+	t.Helper()
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		t.Fatalf("setup: %v", err)
+	}
+	syscall.ForkLock.RLock()
+	err := os.WriteFile(path, []byte(body), 0o755)
+	syscall.ForkLock.RUnlock()
+	if err != nil {
+		t.Fatalf("setup: %v", err)
+	}
 }

@@ -2,7 +2,7 @@
 name: spar
 description: Run independent review rounds on a plan or a change with the spar binary — the same packet to every configured reviewer, classified findings, limited dispositions, stage caps and a review gate file. Use when the user asks for an independent or adversarial review of a plan or an implementation, for example "$spar:spar" in Codex, "/spar:spar" in Claude Code, or "이 변경을 spar로 리뷰해줘".
 metadata:
-  version: "0.1.9"
+  version: "0.1.10"
 ---
 
 # Spar
@@ -34,7 +34,7 @@ spar run --stage candidate --base <base commit> --head <candidate commit> \
   --rules AGENTS.md --check-path <check file> --out docs/reviews/<goal>/02-candidate
 ```
 
-Give every goal document as `--criteria`: SPEC.md and each goal document it links, one flag per file. Give each check file the change adds or changes, such as result declarations, producers and tests, as `--check-path`, so that findings in them follow the check-path rules below. Give a check that only reads fixed text in a file, such as a document token test, as `--text-check` instead: it is a check path too, and the packet asks reviewers to judge whether it reads the right fixed text in the right file.
+Give every goal document as `--criteria`: SPEC.md and every Markdown document in the goal folder that it links, directly or through another linked document, one flag per file. Give each check file the change adds or changes, such as result declarations, producers and tests, as `--check-path`, so that findings in them follow the check-path rules below. Give a check that only reads fixed text in a file, such as a document token test, as `--text-check` instead: it is a check path too, and the packet asks reviewers to judge whether it reads the right fixed text in the right file.
 
 - Caps: one plan round and two code rounds per series, unless the project configuration says otherwise. `spar run` refuses a round past its cap before any reviewer starts. A new round in a recorded series is counted against the caps it records, and recorded fixes rounds count as code rounds.
 - After review fixes, run one `candidate` round from the goal's base commit to the new head; it receives the earlier code rounds' findings with their last dispositions and counts toward the code-round cap like the first candidate round. The last such round that ends with no open `defect` or `requirement-question` is the cumulative round, so when no fixes followed the first candidate round, that round is the cumulative round. When the cap leaves no room for it, extending the cap follows the rule below.

@@ -339,6 +339,11 @@ func (w *arWorld) calls(name string) []string {
 	return strings.Split(strings.TrimSuffix(string(data), "\x00"), "\x00")
 }
 
+// amQuote is s as one POSIX shell word.
+func amQuote(s string) string {
+	return "'" + strings.ReplaceAll(s, "'", `'\''`) + "'"
+}
+
 // arAgyFake writes an agy CLI and returns a user configuration naming it.
 // The CLI records its arguments, prints its init event and a run_command
 // step for each line, waits for seconds as a reviewer still at work would,

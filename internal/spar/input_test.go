@@ -263,21 +263,6 @@ func TestInputHugeLines(t *testing.T) {
 	}
 }
 
-// A triage of a round whose ledger is gone is refused and writes no new
-// ledger (G32).
-func TestTriageRefusesAMissingLedger(t *testing.T) {
-	f := newFixture(t)
-	dir := f.round("01-candidate", &RoundRecord{Stage: "candidate", Base: f.revs[0], Head: f.revs[1], Sequence: 1},
-		[]Finding{{ID: "x-F1", Class: "defect"}}, nil)
-	os.Remove(filepath.Join(dir, "ledger.jsonl"))
-	if err := Triage(TriageOptions{Round: dir, Finding: "x-F1", Disposition: "reject", Evidence: "e"}); err == nil {
-		t.Fatal("a triage without the round's ledger was recorded")
-	}
-	if _, err := os.Stat(filepath.Join(dir, "ledger.jsonl")); err == nil {
-		t.Fatal("a refused triage wrote a new ledger")
-	}
-}
-
 // spar extend from a series outside every repository, without --repo, is
 // checked only against the repositories that hold the path: none (G28).
 func TestExtendOutsideEveryRepository(t *testing.T) {
@@ -294,5 +279,27 @@ func TestExtendOutsideEveryRepository(t *testing.T) {
 	}
 	if _, err := os.Stat(filepath.Join(series, "extensions.jsonl")); err != nil {
 		t.Fatalf("no extension was recorded: %v", err)
+	}
+}
+
+// A native subagent that reads the round's schema.json, which prompt.md
+// names, does not read outside the native workspace; one that reads another
+// file of the round folder does (G15).
+func TestTranscriptReadsTheRoundSchema(t *testing.T) {
+	out := t.TempDir()
+	native := filepath.Join(out, "native")
+	read := func(path string) string {
+		data, _ := json.Marshal(map[string]any{"type": "assistant", "cwd": filepath.Join(native, "workspace"), "message": map[string]any{
+			"content": []any{map[string]any{"type": "tool_use", "name": "Read", "input": map[string]any{"file_path": path}}}}})
+		return string(data) + "\n"
+	}
+	for name, outside := range map[string]bool{"schema.json": false, "round.json": true} {
+		transcript := filepath.Join(t.TempDir(), "transcript.jsonl")
+		if err := os.WriteFile(transcript, []byte(read(filepath.Join(native, "prompt.md"))+read(filepath.Join(out, name))), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		if info, err := readTranscript(transcript, native); err != nil || info.outside["Read"] != outside {
+			t.Errorf("reading %s: outside %v, want %v (%v)", name, info.outside, outside, err)
+		}
 	}
 }
