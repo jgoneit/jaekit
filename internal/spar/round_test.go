@@ -635,3 +635,18 @@ func TestRecordRefusesAnUnreadableLedgerBeforeWriting(t *testing.T) {
 		t.Fatalf("the retry after repairing the ledger: %d %v", code, err)
 	}
 }
+
+// A triage of a round whose ledger is gone is refused and writes no new
+// ledger (G32).
+func TestTriageRefusesAMissingLedger(t *testing.T) {
+	f := newFixture(t)
+	dir := f.round("01-candidate", &RoundRecord{Stage: "candidate", Base: f.revs[0], Head: f.revs[1], Sequence: 1},
+		[]Finding{{ID: "x-F1", Class: "defect"}}, nil)
+	os.Remove(filepath.Join(dir, "ledger.jsonl"))
+	if err := Triage(TriageOptions{Round: dir, Finding: "x-F1", Disposition: "reject", Evidence: "e"}); err == nil {
+		t.Fatal("a triage without the round's ledger was recorded")
+	}
+	if _, err := os.Stat(filepath.Join(dir, "ledger.jsonl")); err == nil {
+		t.Fatal("a refused triage wrote a new ledger")
+	}
+}
