@@ -1,4 +1,5 @@
 """Real subprocess regressions for repository result producers; synthetic inputs."""
+import importlib.util
 import json
 import os
 from pathlib import Path
@@ -283,6 +284,45 @@ class GoReportBoundary(Fixture):
 def tagged(test, code, detail):
     """Fail with an explicit requirement identity the producers can attribute."""
     test.fail(f"[violation:{code}] {detail}")
+
+
+def load(path, name):
+    spec = importlib.util.spec_from_file_location(name, path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+class DocumentationCheckExits(Fixture):
+    """The documentation check keeps a found problem apart from input it cannot observe."""
+
+    def test_documentation_check_separates_problems_from_unobservable_input(self):
+        docs = load(ROOT / "tools/check_public_docs.py", "public_docs_exit_meaning")
+        cases = (("problem", "[guide](guides/absent.md)\n", 1), ("unreadable", b"\xff\n", None), ("empty", None, None))
+        for label, readme, wanted in cases:
+            with self.subTest(case=label), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                if readme is not None:
+                    (root / "README.md").write_bytes(readme if isinstance(readme, bytes) else readme.encode())
+                proc = subprocess.run([sys.executable, str(ROOT / "tools/check_public_docs.py"), str(root)],
+                                      env=ENV, capture_output=True, text=True, timeout=60)
+                if wanted is not None and proc.returncode != wanted:
+                    tagged(self, "provided-command-unusable", f"{label}: exit {proc.returncode}")
+                if wanted is None and proc.returncode in (0, 1):
+                    tagged(self, "unreadable-documents-as-violation", f"{label}: exit {proc.returncode} {proc.stderr}")
+        original = docs.check
+        docs.check = lambda *args, **kwargs: (_ for _ in ()).throw(RuntimeError("synthetic internal failure"))
+        argv = sys.argv
+        try:
+            sys.argv = ["check_public_docs.py", str(self.root)]
+            try:
+                code = docs.main()
+            except Exception:
+                code = 1  # the interpreter's exit status for an uncaught exception
+        finally:
+            docs.check, sys.argv = original, argv
+        if code in (0, 1):
+            tagged(self, "unreadable-documents-as-violation", f"an internal failure exited {code}")
 
 
 class OverflowWithErrors(Fixture):
