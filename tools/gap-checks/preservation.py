@@ -110,6 +110,10 @@ def main(argv=None):
     except RetentionProblem as error:
         print(f"FAIL: retention {error.kind}: {error}", file=sys.stderr)
         return error.status
+    except Exception as error:
+        # An internal failure is not a problem the audit found (exit 1).
+        print(f"ERROR: retention audit internal error: {type(error).__name__}: {error}", file=sys.stderr)
+        return 70
     print(f"PASS: retained local documents {documents}, recorded outputs {logs}; selected checkout only")
     return 0
 
