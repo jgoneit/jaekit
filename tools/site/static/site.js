@@ -289,9 +289,19 @@
     var rules = RULES[code.className.slice("language-".length)];
     if (rules) paintCode(code, rules);
   });
-  // A command or name short enough for a phone's line stays on one line.
+  // The language switch line under the title is small; the paragraph after it leads.
+  Array.prototype.forEach.call(document.querySelectorAll(".markdown > h1"), function (h1) {
+    var next = h1.nextElementSibling;
+    if (next && next.tagName === "P" && /^(한국어|English) · (English|한국어)$/.test(next.textContent.trim())) {
+      next.classList.add("lang-line");
+      next = next.nextElementSibling;
+    }
+    if (next && next.tagName === "P") next.classList.add("lead");
+  });
+  // A command or name short enough for a phone's line stays on one line:
+  // 28 characters of inline code fit a list item at 360px.
   Array.prototype.forEach.call(document.querySelectorAll(".markdown :not(pre) > code"), function (code) {
-    if (code.textContent.length <= 36) code.classList.add("whole");
+    if (code.textContent.length <= 28) code.classList.add("whole");
   });
 
   /* ---------- Small marks beside states, so they read at a glance ---------- */

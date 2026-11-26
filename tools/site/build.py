@@ -50,8 +50,8 @@ SECTIONS = ("guides", "contracts")
 # page being read is in it.
 GROUPS = (
     ("start", False, ("guides/OVERVIEW", "guides/INSTALL", "guides/WSL")),
-    ("use", False, ("guides/USAGE", "guides/OPERATIONS", "guides/SPAR")),
-    ("formats", True, ("contracts/README", "contracts/goal-docs", "contracts/bundle", "contracts/run-record",
+    ("use", False, ("guides/USAGE", "guides/OPERATIONS", "guides/SPAR", "guides/RULES")),
+    ("formats", True, ("guides/FORMATS", "contracts/README", "contracts/goal-docs", "contracts/bundle", "contracts/run-record",
                        "contracts/check-result", "contracts/role-card", "contracts/review-round",
                        "contracts/review-gate", "contracts/spar-config", "contracts/spar-input",
                        "contracts/core-capabilities", "contracts/findings")),
@@ -979,7 +979,7 @@ def doc_page(build: Build, doc: Doc, lang: str) -> str:
     section_label = t["group_" + group]
     only = f'<span class="only">{t["only"]}</span>' if pair is None else ""
     note = ""
-    if "note_" + group in t:
+    if "note_" + group in t and not doc.path.startswith("guides/"):
         overview = relative(doc.url, f"{lang}/guides/overview/")
         note = '<p class="doc-note">' + t["note_" + group].replace("{overview}", overview) + "</p>\n"
     return (head(lang, f"{doc.title} · Jaekit", doc.summary or doc.title, root, build) +

@@ -737,7 +737,7 @@ func TestPagesSiteAC4_Links(t *testing.T) {
 		}
 	}
 	for rel, want := range map[string]string{
-		"en/guides/spar/index.html":    `href="../usage/#review-gate-run-rules5"`,
+		"en/guides/spar/index.html":    `href="../rules/#review-gate-run-rules5"`,
 		"en/guides/install/index.html": `href="#install-from-a-release-file"`,
 	} {
 		if !strings.Contains(page(t, dir, rel, v), want) {
