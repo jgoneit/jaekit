@@ -326,9 +326,10 @@ var deletedNames = []string{
 	"current-files.declaration.json", "current-files.targets.json",
 }
 
-// githubLink matches a link into this repository's issues, pull requests,
-// commits or files at a commit ID; links to a branch or tag do not match.
-var githubLink = regexp.MustCompile(`https://github\.com/jgoneit/jaekit/(?:(?:issues|pull)/[0-9]+|commit/[0-9a-f]{7,40}|(?:blob|tree)/[0-9a-f]{7,40}/)[^\s)>\]"'` + "`" + `]*`)
+// githubLink matches a link to one of this repository's issues, pull requests
+// or commits, with an optional fragment. Links to files (blob, tree) never
+// match, whatever their ref, so a file path in a link is always read.
+var githubLink = regexp.MustCompile(`https://github\.com/jgoneit/jaekit/(?:(?:issues|pull)/[0-9]+|commit/[0-9a-f]{7,40})(?:#[A-Za-z0-9_-]*)?`)
 
 func TestUnusedCheckersAC7(t *testing.T) {
 	for _, rel := range tracked(t) {
