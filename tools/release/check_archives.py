@@ -106,7 +106,7 @@ windows_package = load_windows_package()
 # package.public_path() bounds everything else.
 WINDOWS_REQUIRED = {"ha.exe", "package.json", "guides/WINDOWS.md", "guides/WINDOWS.en.md",
                     *windows_package.PUBLIC_FILES}
-# The published limits of the shared reader; see archive_reader.py.
+# The same published limits as the acceptance checker; see archive_reader.py.
 ARCHIVE_MAX_COMPRESSED_BYTES = archive_reader.MAX_COMPRESSED_BYTES
 ARCHIVE_MAX_BYTES = archive_reader.MAX_BYTES
 ARCHIVE_MAX_ENTRIES = archive_reader.MAX_ENTRIES
