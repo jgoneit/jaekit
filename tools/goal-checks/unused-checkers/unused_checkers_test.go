@@ -15,6 +15,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -108,10 +109,36 @@ func TestUnusedCheckersAC3(t *testing.T) {
 	requireAbsent(t, "authoring-producer-present",
 		"tools/contract-checks/authoring_check.py", "tools/goal-checks/test_authoring_check.py")
 	// The plugins Go tests that run the remaining contract producers' suites,
-	// and the English-contracts tests that loaded the deleted producer.
-	run(t, "authoring-producer-present", "go", "test", "-count=1", "-run",
-		"^(TestEnglishContracts|TestVerificationReportingContracts|TestVerificationDesignContracts|TestVerificationFindingDocumentContracts|TestSpecBoundaryContractExamples)",
-		"./plugins/")
+	// and the English-contracts tests that loaded the deleted producer: each
+	// must run and pass.
+	required := []string{
+		"TestEnglishContractsAC1_OneEnglishFile", "TestEnglishContractsAC4_LinksOpen",
+		"TestEnglishContractsAC5_PythonReaders", "TestEnglishContractsAC7_SiteEnglishOnly",
+		"TestSpecBoundaryContractExamples", "TestVerificationDesignContracts",
+		"TestVerificationFindingDocumentContracts", "TestVerificationReportingContracts",
+	}
+	cmd := exec.Command("go", "test", "-count=1", "-json", "-run", "^("+strings.Join(required, "|")+")$", "./plugins/")
+	cmd.Dir = root
+	out, err := cmd.Output()
+	var exit *exec.ExitError
+	if err != nil && !errors.As(err, &exit) {
+		t.Fatalf("cannot run go test: %v", err)
+	}
+	passed := map[string]bool{}
+	for _, line := range bytes.Split(out, []byte("\n")) {
+		var event struct{ Action, Test string }
+		if json.Unmarshal(line, &event) == nil && event.Action == "pass" && event.Test != "" {
+			passed[event.Test] = true
+		}
+	}
+	for _, name := range required {
+		if !passed[name] {
+			t.Errorf("jaekit:violation=authoring-producer-present plugins test %s did not run and pass", name)
+		}
+	}
+	if exit != nil && !t.Failed() {
+		t.Fatalf("go test exited %d although every required test passed\n%s", exit.ExitCode(), out)
+	}
 }
 
 var removedRoutes = []string{
@@ -120,8 +147,11 @@ var removedRoutes = []string{
 	"authoring-check-current-tree", "authoring-check-result-meaning", "public-scanner-path-gap",
 }
 
-// optionalChecks may stay in their route once rewritten to run without the
-// deleted audits (SPEC AC-4); they are left out before a route is compared.
+// optionalChecks may stay in current-file-independence once rewritten to run
+// without the deleted audits (SPEC AC-4); they are left out of that route
+// only before it is compared.
+const optionalRoute = "current-file-independence"
+
 var optionalChecks = map[string]bool{
 	"tools/review-checks/test_producers.py::AC9": true,
 	"tools/review-checks/test_producers.py::AC10.test_both_audits_require_an_explicit_range_and_do_not_fetch_missing_history": true,
@@ -178,7 +208,7 @@ func TestUnusedCheckersAC4(t *testing.T) {
 			check, _ := c.(map[string]any)
 			file, _ := check["file"].(string)
 			selector, _ := check["selector"].(string)
-			if !optionalChecks[file+"::"+selector] {
+			if id != optionalRoute || !optionalChecks[file+"::"+selector] {
 				kept = append(kept, c)
 			}
 		}
@@ -228,10 +258,14 @@ func TestUnusedCheckersAC4(t *testing.T) {
 func TestUnusedCheckersAC5(t *testing.T) {
 	const doc = "tools/release/README.md"
 	read(t, doc)
-	for _, rel := range []string{"tools/release/archive_reader.py", "tools/release/check_archives.py", "tools/release/test_archive_bounds.py"} {
+	for _, rel := range []string{"tools/release/archive_reader.py", "tools/release/check_archives.py"} {
 		if !strings.Contains(read(t, rel), doc) {
 			t.Errorf("jaekit:violation=archive-limits-unpublished %s does not point to %s", rel, doc)
 		}
+	}
+	// The publication check reads the document itself.
+	if !strings.Contains(read(t, "tools/release/test_archive_bounds.py"), `(ROOT / "`+doc+`").read_text(`) {
+		t.Errorf("jaekit:violation=archive-limits-unpublished tools/release/test_archive_bounds.py does not read %s", doc)
 	}
 	run(t, "archive-limits-unpublished", "python3", "tools/release/test_archive_bounds.py")
 }
@@ -253,6 +287,10 @@ var deletedNames = []string{
 	"authoring_check", "test_private_independence",
 }
 
+// githubLink matches a link into this repository's issues, pull requests,
+// commits or files at a commit.
+var githubLink = regexp.MustCompile(`https://github\.com/jgoneit/jaekit/(issues|pull|commit|blob|tree)/[^\s)>\]"'` + "`" + `]*`)
+
 func TestUnusedCheckersAC7(t *testing.T) {
 	for _, rel := range tracked(t) {
 		// This goal's own checks name the deleted paths to observe them, and
@@ -267,6 +305,8 @@ func TestUnusedCheckersAC7(t *testing.T) {
 		if bytes.IndexByte(data[:min(len(data), 8000)], 0) >= 0 {
 			continue
 		}
+		// Issue and commit links may still name deleted paths (SPEC AC-7).
+		data = githubLink.ReplaceAll(data, nil)
 		for _, name := range deletedNames {
 			if bytes.Contains(data, []byte(name)) {
 				t.Errorf("jaekit:violation=deleted-path-named %s names %s", rel, name)
