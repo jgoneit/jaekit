@@ -8,7 +8,7 @@
         "tools/review-checks/README.md",
         "tools/gap-checks/README.md"
       ],
-      "property": "Current-file checks do not need private goals, raw logs, or missing history. Explicit history audits report their required range separately."
+      "property": "Current-file checks do not need private goals, raw logs, or missing history."
     },
     {
       "id": "I2",
