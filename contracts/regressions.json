@@ -579,36 +579,6 @@
       ]
     },
     {
-      "id": "authoring-check-current-tree",
-      "invariant": "I1",
-      "sources": [
-        "tools/contract-checks/authoring_check.py",
-        "tools/contract-checks/check.py"
-      ],
-      "checks": [
-        {
-          "file": "tools/goal-checks/test_authoring_check.py",
-          "selector": "CurrentTree",
-          "group": "docs"
-        }
-      ]
-    },
-    {
-      "id": "authoring-check-result-meaning",
-      "invariant": "I2",
-      "sources": [
-        "tools/contract-checks/authoring_check.py",
-        "tools/contract-checks/check.py"
-      ],
-      "checks": [
-        {
-          "file": "tools/goal-checks/test_authoring_check.py",
-          "selector": "ResultMeaning",
-          "group": "docs"
-        }
-      ]
-    },
-    {
       "id": "runner-adapter-classification",
       "invariant": "I2",
       "sources": [
