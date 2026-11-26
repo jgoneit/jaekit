@@ -5,9 +5,9 @@
 
 The documents are rendered from the files of the commit checked out in --root
 (its HEAD), read from Git as committed: files that are only staged, changed or
-untracked are not used. Nothing is copied into this directory. Pinned third-party files (the Markdown parser,
-fonts and the mermaid renderer) are downloaded once into --cache and verified
-by their recorded digests before use.
+untracked are not used. Nothing is copied into this directory. Pinned third-party files (the Markdown parser
+and fonts) are downloaded once into --cache and verified by their recorded
+digests before use.
 
 Exit 0: built. 1: a problem in the commit's documents or metadata, named on
 stderr; nothing is written. 2: usage, including an --out folder that is not an
@@ -531,10 +531,6 @@ def vendor_assets(vendor: dict, cache: Path) -> tuple[dict[str, bytes], str]:
         css.append(f"/* {entry['name']} {entry['version']} ({entry['package']}) */\n" +
                    re.sub(r"url\((\./files/[^)]+\.woff2)\)", swap, text).strip() + "\n")
         notice += notice_entry(entry, member(archive, entry["license"]))
-    for entry in vendor["scripts"]:
-        archive = fetch(entry, cache)
-        files[posixpath.basename(entry["file"])] = member(archive, entry["file"])
-        notice += notice_entry(entry, member(archive, entry["license"]))
     files["fonts.css"] = "\n".join(css).encode("utf-8")
     return files, "\n".join(notice)
 
@@ -559,7 +555,6 @@ class Doc:
     headings: list = field(default_factory=list)
     body: str = ""
     summary: str = ""
-    mermaid: bool = False
 
     @property
     def slug(self) -> str:
@@ -782,8 +777,6 @@ def render(doc: Doc, md, links: Links) -> None:
                     child.content = links.rewrite_html(doc, child.content)
         elif token.type == "html_block":
             token.content = links.rewrite_html(doc, token.content)
-        elif token.type == "fence" and token.info.strip().split()[:1] == ["mermaid"]:
-            doc.mermaid = True
     doc.body = md.renderer.render(doc.tokens, md.options, {"doc": doc})
     doc.summary = summary_of(doc)
 
@@ -807,8 +800,6 @@ def install_rules(md) -> None:
         info = token.info.strip().split()
         lang = info[0] if info else ""
         code = html.escape(token.content)
-        if lang == "mermaid":
-            return f'<pre class="mermaid" data-source="{html.escape(token.content, quote=True)}">{code}</pre>\n'
         label = f'<span class="code-lang">{html.escape(lang)}</span>' if lang else "<span></span>"
         attr = f' class="language-{html.escape(lang, quote=True)}"' if lang else ""
         return (f'<div class="codeblock"><div class="codeblock-head">{label}'
@@ -934,10 +925,8 @@ def footer(lang: str, root: str, build: Build) -> str:
 """
 
 
-def scripts(root: str, mermaid: bool, home: bool) -> str:
+def scripts(root: str, home: bool) -> str:
     out = f'<script src="{root}assets/site.js" defer></script>\n'
-    if mermaid:
-        out += f'<script src="{root}assets/mermaid.min.js" defer></script>\n'
     if home:
         out += f'<script src="{root}assets/home.js" defer></script>\n'
     return out
@@ -1007,7 +996,7 @@ def doc_page(build: Build, doc: Doc, lang: str) -> str:
             f'</article>\n<aside class="toc" aria-label="{esc(t["on_page"])}"><h5>{t["on_page"]}</h5><ul id="toc-list">{toc_items}</ul></aside>\n'
             f'</div>\n' + footer(lang, root, build) + palette(lang, root) +
             f'<script type="application/json" id="page-source">{source}</script>\n' +
-            scripts(root, doc.mermaid, False) + "</body>\n</html>\n")
+            scripts(root, False) + "</body>\n</html>\n")
 
 
 def docs_index(build: Build, lang: str) -> str:
@@ -1038,7 +1027,7 @@ def docs_index(build: Build, lang: str) -> str:
             f'\n</article>\n<aside class="toc" aria-label="{esc(t["on_page"])}"><h5>{t["on_page"]}</h5><ul id="toc-list">'
             + "".join(f'<li class="l2"><a href="#{g}">{t["group_" + g]}</a></li>' for g in shown) +
             '</ul></aside>\n</div>\n' + footer(lang, root, build) + palette(lang, root) +
-            scripts(root, False, False) + "</body>\n</html>\n")
+            scripts(root, False) + "</body>\n</html>\n")
 
 
 class LangFilter(HTMLParser):
@@ -1112,7 +1101,7 @@ def home_page(build: Build, lang: str) -> str:
     title = "Jaekit — 맡긴 작업이 정말 끝났는지, 기록으로 확인합니다" if lang == "ko" else "Jaekit — Is the work really done? Check the record"
     return (head(lang, title, description, root, build) + '<body class="page-home">\n' +
             nav(lang, root, f"{root}{other}/", "home", False) + body + footer(lang, root, build) +
-            palette(lang, root) + scripts(root, False, True) + "</body>\n</html>\n")
+            palette(lang, root) + scripts(root, True) + "</body>\n</html>\n")
 
 
 def root_page(build: Build) -> str:

@@ -32,7 +32,7 @@ Jaekit holds on to three things and leaves the rest to the agent.
 
 1. **You set the goal.** What finished means, the completion conditions, is written down before the work starts. While implementing, the agent does not edit that document.
 2. **The agent does the work.** Planning, order and tools are the agent's choice. You do not approve each step; it asks only when a decision would change the outcome.
-3. **Completion is judged from records.** A goal is recorded as complete only when each required completion condition has a record of its check. A condition that cannot be checked automatically is met by recording your confirmation. From `run-rules/8`, a `review` condition about document content is met by the review gate of a `standard` or `strict` goal. From `run-rules/7`, only change conditions marked `요구` also need a record of their check failing on the code before the change. Seal marks two kinds: a bug fix or regression whose defect is already present at the base commit, and a prohibition such as "X does not happen". For these, a check that already passes before the change cannot tell whether the fix or the prohibition works. Other checks, such as one for a new feature or one that guards existing behavior, count with a passing record.
+3. **Completion is judged from records.** A goal is recorded as complete only when each required completion condition has a record of its check. A condition that cannot be checked automatically is met by recording your confirmation. Goals newly started with the current Seal add two more. A `review` condition about document content is met by the result of the independent review (the review gate) of a `standard` or `strict` goal. A condition that fixes a bug already in the code, and a prohibition such as "X does not happen", also need a record of their check failing on the code before the change: a check that already passes before the change cannot tell whether the fix or the prohibition works. Other conditions count with a passing record. The exact scope is in [What completion means](#what-completion-means-and-what-it-does-not).
 
 ## What changes when you use it
 
@@ -74,11 +74,11 @@ Follow a **fictional example** of adding a "Forgot password" link to a login scr
 4. **Seal plans.** It writes in `PLAN.md` how each condition is checked. `AC-1` is new behavior; `AC-2` is behavior that must keep working.
 5. **`ha` checks and records.** The agent first runs the `AC-1` check on the code before the change and records it failing, because the link is not there yet. Then it implements and runs it again to record a pass. `AC-2` gets a passing record. Every run is appended to `runs.jsonl`, one line each.
 
-   The example keeps `AC-1`'s failure record before the change to show the record's shape; it follows an earlier rule under which every change condition needed one. Under `run-rules/7` and `run-rules/8`, a condition that adds a new feature, like this link, is usually not marked `요구`, and its passing record alone meets it.
+   To show the record's shape, the example also keeps a failure record before the change for `AC-1`, a new feature. Under the current Seal (`run-rules/8`), a condition that adds a feature is met by its passing record alone; a failure record before the change is required only for bug fixes and prohibitions.
 
-6. **Spar reviews independently.** This goal's tier is `standard`, so reviewers in another context review the change before completion. The agent fixes the findings that need it, and the finished review is recorded as a gate.
+6. **Spar reviews independently.** This goal's [review tier](#review-tiers) is `standard`, so reviewers outside the working conversation review the change before completion. The agent fixes the findings that need it, and the result of the finished review is recorded as the review gate.
 7. **`ha done` records completion.** When every required condition is met and the other requirements, such as the review record, are in place, a completion record is written and the report is added to `PROGRESS.md`.
-8. **You read the report.** Read its five lines, what changed, what was checked, what to look at, remaining limits and the next action, with the evidence per condition, and look at the actual result too. In a finished goal started with 0.1.24 or later, the judgment is in `## 검수 요약`.
+8. **You read the report.** Start with `## 검수 요약` in `PROGRESS.md`: it gathers what changed, what it rests on and what you should look at yourself. Below it, in the completion report, read the five lines `ha` computes (what changed, what was checked, what to look at, remaining limits and the next action) with the evidence per condition, and look at the actual result too.
 
 If the conversation ends midway, open a new conversation in the same project and send `continue docs/specs/password-link`. The agent there reads the goal folder and the status `ha` computes, and continues the remaining work.
 
@@ -94,7 +94,7 @@ Each goal gets one folder in your project. They are all ordinary files.
 | `PROGRESS.md` | Seal | Progress, the review summary and the completion report |
 | `runs.jsonl` | `ha` | The append-only run record |
 
-**Review summary.** In goals started with 0.1.24 or later, after completion, `## 검수 요약` right after `## 현재` is where you start reviewing. Its top lines give the completion record, the assurance tier, how many required conditions are satisfied, the review gate result, what the change does and where to start looking; below them come what changed, evidence, what to inspect and what was not observed, in that order. A heading with nothing to list says `없음`, and after a reopen the section is rewritten as of the new completion record. It is written in the user's language and says what each record is; each item is short, with seq numbers only as an aid; no check output or finding text is copied; a finding is its ID, one line and its ending. Seal's judgment is only there, and `## 완료 보고` holds the `ha report` output and one line pointing to it. For a finished goal, read `## 검수 요약` first. For a goal that stopped, or one started with an earlier Seal, read `## 완료 보고` as before.
+**Review summary.** In goals started with Seal 0.1.24 or later, after completion, `## 검수 요약` right after `## 현재` is where you start reviewing. Its top lines give the completion record, the assurance tier, how many required conditions are satisfied, the review gate result, what the change does and where to start looking; below them come what changed, evidence, what to inspect and what was not observed, in that order. How it is written, and what to read for a goal that stopped or one started with an earlier Seal, is in the [usage guide](USAGE.en.md#reading-the-completion-report).
 
 For a newly started goal, the first five lines of the completion report are computed by `ha` from the run record, Git and the goal documents. The agent does not rewrite them. Read the words in the report like this:
 
@@ -115,7 +115,7 @@ The goal document's `Assurance:` line sets how much independent review the goal 
 | `standard` | Ordinary changes | Spar review rounds before completion |
 | `strict` | Goals that change a public contract, stored data, permissions, or a boundary between components | Also a plan review before work |
 
-`standard` and `strict` goals newly started with the current Seal complete only with a Spar review record. Goals started with an earlier version keep the rules they started with. Before you use Spar the first time, a project needs one setup step: see [Before your first `standard` goal](../README.md#before-your-first-standard-goal) in the README. What is sent to reviewers is in the [Spar guide](SPAR.en.md#what-leaves-your-computer).
+Newly started `standard` and `strict` goals complete only with a Spar review record (goals started with an earlier version keep the rules they started with). Before you use Spar the first time, a project needs one setup step: see [Before your first `standard` goal](../README.md#before-your-first-standard-goal) in the README. What is sent to reviewers is in the [Spar guide](SPAR.en.md#what-leaves-your-computer).
 
 ## What completion means, and what it does not
 
@@ -128,7 +128,7 @@ A completion record means:
 It does not mean:
 
 - **That the whole result is free of defects.** Whether the checks cover the goal well enough is not something a program can decide. Independent review and your confirmation fill that gap.
-- **Independent third-party verification.** The assurance level is `local`. The agent writes the checks, and an agent with the same user permissions can change the checks and the record files. The links between record lines can reveal an edited or deleted earlier record, but not a change to the last line, and they do not stop deliberate forgery.
+- **Independent third-party verification.** The assurance level is `local`. The agent writes the checks, and an agent with the same user permissions can change the checks and the record files. Each record line holds the hash of the line before it, which can reveal an edited or deleted earlier record, but not a change to the last line, and it does not stop deliberate forgery.
 - **Deployment or installation.** The default result is local changes and commits. Push, pull requests and deployment are yours to do, or a separate request to an ordinary agent.
 
 Jaekit is not a security tool that polices the agent. It shows what was actually checked and what was not.

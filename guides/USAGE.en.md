@@ -109,7 +109,7 @@ Seal 0.1.20 declares the Core support it needs in `core-requirements.json` in it
 
 Start with what changed and what was verified. The report appears in the conversation and in `PROGRESS.md` in the goal folder.
 
-**Review summary.** In goals started with 0.1.24 or later, after completion, `## 검수 요약` right after `## 현재` is where you start reviewing. Its top lines give the completion record, the assurance tier, how many required conditions are satisfied, the review gate result, what the change does and where to start looking; below them come what changed, evidence, what to inspect and what was not observed, in that order. A heading with nothing to list says `없음`, and after a reopen the section is rewritten as of the new completion record. It is written in the user's language and says what each record is; each item is short, with seq numbers only as an aid; no check output or finding text is copied; a finding is its ID, one line and its ending. Seal's judgment is only there, and `## 완료 보고` holds the `ha report` output and one line pointing to it. For a finished goal, read `## 검수 요약` first. For a goal that stopped, or one started with an earlier Seal, read `## 완료 보고` as before.
+**Review summary.** In goals started with Seal 0.1.24 or later, after completion, `## 검수 요약` right after `## 현재` is where you start reviewing. Its top lines give the completion record, the assurance tier, how many required conditions are satisfied, the review gate result, what the change does and where to start looking; below them come what changed, evidence, what to inspect and what was not observed, in that order. A heading with nothing to list says `없음`, and after a reopen the section is rewritten as of the new completion record. It is written in the user's language and says what each record is; each item is short, with seq numbers only as an aid; no check output or finding text is copied; a finding is its ID, one line and its ending. Seal's judgment is only there, and `## 완료 보고` holds the `ha report` output and one line pointing to it. For a finished goal, read `## 검수 요약` first. For a goal that stopped, or one started with an earlier Seal, read `## 완료 보고` as before.
 
 - Required completion conditions need recorded checks, necessary user confirmations or, for a `review` condition, the review gate.
 - Optional conditions do not block completion and are identified separately.
@@ -119,23 +119,15 @@ Start with what changed and what was verified. The report appears in the convers
 
 Use the `ha status` / `ha done` result to find your next step. The numbers are exit codes. A `complete` from `ha status` alone is not a completion: until the output names a completion record, Seal records one with `ha done`.
 
-```mermaid
-flowchart LR
-    S["ha status / ha done"] -->|complete · 0| R{"Completion record?"}
-    R -->|"none yet"| D["Seal runs ha done"]
-    R -->|"seq N"| C["Review the result"]
-    S -->|incomplete · 1| I["Let Seal keep working"]
-    S -->|needs_user · 2| U["Answer the question"]
-    S -->|blocked · 3| B["Fix the cause, then send<br/>continue docs/specs/#lt;goal#gt;"]
-    S -->|budget_exhausted · 4| E["Decide on the budget"]
-    S -->|"error · 64+"| X["Read the error message,<br/>then see Troubleshooting"]
-    classDef you fill:#EEF1FE,stroke:#4F6CF7,color:#1B2559
-    classDef sealStep fill:#FFF3E3,stroke:#C9761F,color:#4A2A06
-    classDef record fill:#F1F3F5,stroke:#596579,color:#1F2328
-    class S record
-    class C,U,B,E,R,X you
-    class I,D sealStep
-```
+| `ha status` result (exit code) | Who | Next step |
+| --- | --- | --- |
+| `complete` (0), no completion record yet | Seal | Records completion with `ha done`. |
+| `complete` (0), completion record `seq N` | You | Review the result. |
+| `incomplete` (1) | Seal | Keeps working. You wait. |
+| `needs_user` (2) | You | Answer the question. |
+| `blocked` (3) | You | Fix the cause, then send `continue docs/specs/<goal>`. |
+| `budget_exhausted` (4) | You | Decide on the budget. |
+| error (64 and above) | You | Read the error message, then see [Troubleshooting](#troubleshooting). |
 
 Exit codes 64 and above are errors, not work statuses: 64 for a usage error, 65 for a refusal such as a goal that has not started or a broken record, 66 for a rule version the Core does not support, and 70 for an internal error. Read the message, then see [Troubleshooting](#troubleshooting).
 
@@ -225,7 +217,7 @@ CPU that was not measured shows as unavailable or failed, never as 0. Checks rec
 | Codex | `codex plugin list` | `codex plugin remove <plugin>` |
 | Claude Code | `claude plugin list` | `claude plugin uninstall <plugin>` |
 
-Replace `<plugin>` with the old installation's ID; keep `spec@jaekit` and `seal@jaekit`. If you also copied standalone skills manually, remove their installation folders separately, then reopen the agent.
+Replace `<plugin>` with the old installation's ID; keep `spec@jaekit`, `seal@jaekit` and `spar@jaekit`. If you also copied standalone skills manually, remove their installation folders separately, then reopen the agent.
 
 </details>
 
@@ -259,7 +251,7 @@ After the summary come a stamp to copy into `## 현재` in `PROGRESS.md` (the re
 
 ```text
 Changed: 2 files and 2 commits outside the bundle documents since base 3c1f0a9e7b25
-Checked: 2 of 2 required conditions satisfied (2 by check records, 0 by user confirmation); 1 of 1 change conditions have a fresh baseline
+Checked: 2 of 2 required conditions satisfied (2 by check records, 0 by user confirmation); 1 of 1 change conditions require a baseline; 1 of them have a fresh baseline
 To review: none
 Remaining limits: assurance local; check author: executor
 Next step: none; completion record seq 5 holds and nothing is left to do

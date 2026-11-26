@@ -72,7 +72,7 @@ claude plugin list
 
 `#v0.1.9` pins the marketplace to that tag. Check that `spec@jaekit`, `seal@jaekit` and `spar@jaekit` are enabled in the list. If you confuse them with another plugin, see [troubleshooting](USAGE.en.md#troubleshooting).
 
-Reopen Claude Code and use `/spec:spec <request>` in the conversation to define the goal, then `/seal:seal docs/specs/<goal>` in a separate message to start implementation. Plugin skills use `/plugin-name:skill-name`. The [usage guide](USAGE.en.md#sending-commands) explains how to review the goal and continue a task.
+Reopen Claude Code and use `/spec:spec <request>` in the conversation to define the goal. Answering yes when Spec asks whether to implement now starts implementation; you can also start later with `/seal:seal docs/specs/<goal>` in a separate message. Plugin skills use `/plugin-name:skill-name`. The [usage guide](USAGE.en.md#sending-commands) explains how to review the goal and continue a task.
 
 ### Spar
 
@@ -187,7 +187,7 @@ Paste the commands below as they are. The block picks the file for your OS and C
 
 The commands prepare both executables next to their destinations before replacing either, so a failed download, copy or permission change leaves both as they were. The two replacements are still separate steps: if the commands stop between them (for example after a crash or a power loss), `ha` can be new while `spar` is old. Run the same commands again to bring them together.
 
-If `~/.local/bin` is not on your PATH, add `export PATH="$HOME/.local/bin:$PATH"` to your shell config (such as `~/.zshrc`). If macOS blocks a file you downloaded with a browser, clear it with `xattr -d com.apple.quarantine ~/.local/bin/ha`. Then [check the version](#check-the-version) and install the plugins for [Codex](#codex) or [Claude Code](#claude-code).
+If `~/.local/bin` is not on your PATH, add `export PATH="$HOME/.local/bin:$PATH"` to your shell config (such as `~/.zshrc`). If macOS blocks a file you downloaded with a browser, clear it with `xattr -d com.apple.quarantine ~/.local/bin/ha ~/.local/bin/spar`. Then [check the version](#check-the-version) and install the plugins for [Codex](#codex) or [Claude Code](#claude-code).
 
 ## Release and development combinations
 

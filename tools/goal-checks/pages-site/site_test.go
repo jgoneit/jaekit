@@ -469,16 +469,9 @@ func TestPagesSiteAC3_Rendering(t *testing.T) {
 		for _, m := range preRE.FindAllStringSubmatch(body, -1) {
 			text := html.UnescapeString(tagRE.ReplaceAllString(m[2], ""))
 			shown[strings.TrimSuffix(text, "\n")] = true
-			if strings.Contains(m[1], `class="mermaid"`) {
-				shown["mermaid:"+strings.TrimSuffix(text, "\n")] = true
-			}
 		}
 		for _, b := range blocks {
-			key := strings.TrimSuffix(b.body, "\n")
-			if b.lang == "mermaid" {
-				key = "mermaid:" + key
-			}
-			if !shown[key] {
+			if !shown[strings.TrimSuffix(b.body, "\n")] {
 				fail(t, v, "%s drops or changes a %q code block starting %q", d.URL, b.lang, firstLine(b.body))
 			}
 		}
@@ -496,13 +489,6 @@ func TestPagesSiteAC3_Rendering(t *testing.T) {
 			fail(t, v, "%s shows %d <details>, its source has %d", d.URL, got, details)
 		}
 	}
-	for _, rel := range []string{"ko/guides/usage/index.html", "en/guides/usage/index.html"} {
-		text := page(t, dir, rel, v)
-		if !strings.Contains(text, `assets/mermaid.min.js"`) || !strings.Contains(text, `<pre class="mermaid"`) {
-			fail(t, v, "%s does not load the mermaid renderer", rel)
-		}
-	}
-	page(t, dir, "assets/mermaid.min.js", v)
 	if !strings.Contains(page(t, dir, "en/guides/usage/index.html", v), "continue docs/specs/&lt;goal&gt;") {
 		fail(t, v, "the <goal> placeholder in a code block is not shown as text")
 	}
@@ -514,62 +500,26 @@ func TestPagesSiteAC3_Rendering(t *testing.T) {
 	if res.err != nil || res.code != 0 {
 		fail(t, v, "a guide with further Markdown forms does not build (exit %d): %v %s", res.code, res.err, res.stderr)
 	}
-	// Collapsed <details>, and the diagram drawn readably in both themes: the
-	// page opens in the dark theme and is switched to the light one.
+	// Collapsed <details> that open when clicked.
 	for _, rel := range []string{"/en/guides/usage/", "/ko/guides/usage/"} {
 		got := browse(t, dir, `
-function rgba(s) { var m = String(s).match(/rgba?\(([^)]+)\)/); if (!m) return null; var p = m[1].split(/[\s,\/]+/).filter(Boolean).map(Number); return [p[0], p[1], p[2], p.length > 3 ? p[3] : 1]; }
-function lum(c) { var a = c.slice(0, 3).map(function (v) { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }); return 0.2126 * a[0] + 0.7152 * a[1] + 0.0722 * a[2]; }
-function contrast(a, b) { var x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); }
-function diagram(w) {
-  function backdrop(el) { for (var e = el; e && e.nodeType === 1; e = e.parentElement || e.parentNode) { var c = rgba(w.getComputedStyle(e).backgroundColor); if (c && c[3] > 0.5) return c; } return [255, 255, 255, 1]; }
-  var svg = w.document.querySelector("pre.mermaid svg");
-  if (!svg) return {svg: false};
-  var bg = backdrop(svg.parentElement), out = {svg: true, theme: w.jaekit.theme(), height: svg.getBoundingClientRect().height, text: 99, lines: 99, count: 0};
-  Array.prototype.forEach.call(svg.querySelectorAll(".flowchart-link"), function (e) { out.lines = Math.min(out.lines, contrast(rgba(w.getComputedStyle(e).stroke), bg)); });
-  Array.prototype.forEach.call(svg.querySelectorAll(".node"), function (n) {
-    var l = n.querySelector(".nodeLabel"), s = n.querySelector("rect, polygon, path");
-    if (l && s) { out.count++; out.text = Math.min(out.text, contrast(rgba(w.getComputedStyle(l).color), rgba(w.getComputedStyle(s).fill))); }
-  });
-  Array.prototype.forEach.call(svg.querySelectorAll(".edgeLabel span, .edgeLabel p"), function (e) {
-    if (e.textContent.trim()) { out.count++; out.text = Math.min(out.text, contrast(rgba(w.getComputedStyle(e).color), backdrop(e))); }
-  });
-  return out;
-}
-localStorage.setItem("jaekit-theme", "dark");
 var w = await load(`+fmt.Sprintf("%q", rel)+`, 1280, 900);
-await wait(4000);
+await wait(1000);
 var d = w.document.querySelectorAll(".markdown details");
 var closed = Array.prototype.every.call(d, function (x) { return !x.open; });
 var s = d.length ? d[0].querySelector("summary") : null;
 if (s) s.click();
-var opened = d.length ? d[0].open : false;
-var dark = diagram(w);
-w.document.getElementById("theme-btn").click();
-await wait(2500);
-var light = diagram(w);
-localStorage.clear();
-report({details: d.length, closed: closed, opened: opened, dark: dark, light: light});`)
+report({details: d.length, closed: closed, opened: d.length ? d[0].open : false});`)
 		if got["details"].(float64) == 0 || got["closed"] != true || got["opened"] != true {
 			fail(t, v, "%s: <details> blocks are not collapsed and expandable: %v", rel, got)
-		}
-		for _, theme := range []string{"dark", "light"} {
-			d, _ := got[theme].(map[string]any)
-			if d["svg"] != true || d["theme"] != theme || d["height"].(float64) < 50 || d["count"].(float64) < 2 {
-				fail(t, v, "%s: the flowchart is not drawn as a diagram in the %s theme: %v", rel, theme, d)
-			}
-			// WCAG AA: 4.5:1 for the labels, 3:1 for the lines.
-			if d["text"].(float64) < 4.5 || d["lines"].(float64) < 3 {
-				fail(t, v, "%s: the flowchart is not readable in the %s theme (text %.2f:1, lines %.2f:1)", rel, theme, d["text"], d["lines"])
-			}
 		}
 	}
 	// As GitHub shows the file: each page's structure (headings, paragraphs,
 	// nested lists, tables and their cells, line breaks, code, <details>, and
 	// inline bold, emphasis, strikethrough, code and links with their web
 	// addresses), its text and its heading ids in order equal GitHub's own
-	// rendering of the same file. Diagrams are observed above; the code
-	// blocks' copy buttons and heading # marks are the site's own.
+	// rendering of the same file. The code blocks' copy buttons and heading #
+	// marks are the site's own.
 	type rendered struct{ dir, path, url, source string }
 	all := []rendered{{res.out, "guides/FORMS.md", "ko/guides/forms/", formsDocument}}
 	for _, d := range docs {
@@ -591,8 +541,8 @@ report({details: d.length, closed: closed, opened: opened, dark: dark, light: li
 		if strings.Join(siteIDs, " ") != strings.Join(ghIDs, " ") {
 			fail(t, v, "%s: heading ids %q differ from GitHub's %q for %s", r.url, siteIDs, ghIDs, r.path)
 		}
-		gs, gt := shape(ghMermaidRE.ReplaceAllString(ghAnchorRE.ReplaceAllString(gh, ""), "<pre>MERMAID</pre>"))
-		ss, st := shape(siteMermaidRE.ReplaceAllString(siteOnlyRE.ReplaceAllString(body, ""), "<pre>MERMAID</pre>"))
+		gs, gt := shape(ghAnchorRE.ReplaceAllString(gh, ""))
+		ss, st := shape(siteOnlyRE.ReplaceAllString(body, ""))
 		if ss != gs {
 			fail(t, v, "%s: the structure differs from GitHub's rendering of %s: %s", r.url, r.path, firstDiff(ss, gs))
 		}
@@ -627,8 +577,6 @@ var (
 	ghHeadingIDRE   = regexp.MustCompile(`<a id="user-content-([^"]*)" class="anchor"`)
 	siteHeadingIDRE = regexp.MustCompile(`<h[1-6] id="([^"]*)"`)
 	siteOnlyRE      = regexp.MustCompile(`(?s)<div class="codeblock-head">.*?</div>|<a class="anchor"[^>]*>#</a>`)
-	siteMermaidRE   = regexp.MustCompile(`(?s)<pre class="mermaid"[^>]*>.*?</pre>`)
-	ghMermaidRE     = regexp.MustCompile(`(?s)<div class="highlight highlight-source-mermaid[^"]*"><pre>.*?</pre></div>`)
 	ghAnchorRE      = regexp.MustCompile(`(?s)<a [^>]*class="anchor"[^>]*>.*?</a>`)
 )
 
@@ -931,14 +879,14 @@ func TestPagesSiteAC5_DocsView(t *testing.T) {
 	// than the screen scrolls in its own box.
 	for _, p := range widePages {
 		fmt.Fprintf(&script, `var w = await load(%q, 375, 812); await wait(600); narrow[%q] = [w.document.documentElement.scrollWidth, w.document.documentElement.clientWidth];
-Array.prototype.forEach.call(w.document.querySelectorAll(".markdown table, .markdown pre:not(.mermaid)"), function (e) {
+Array.prototype.forEach.call(w.document.querySelectorAll(".markdown table, .markdown pre"), function (e) {
   var box = e;
   while (box && !/^(auto|scroll)$/.test(w.getComputedStyle(box).overflowX)) box = box.parentElement;
   if (!box || box.scrollWidth <= box.clientWidth + 1) return;
   if (e.tagName === "TABLE") boxes.tables++; else boxes.code++;
   if (box.getBoundingClientRect().right > w.innerWidth + 1) boxes.clipped.push(%q + " " + e.tagName);
 });
-Array.prototype.forEach.call(w.document.querySelectorAll(".markdown table, .markdown pre:not(.mermaid)"), function (e) {
+Array.prototype.forEach.call(w.document.querySelectorAll(".markdown table, .markdown pre"), function (e) {
   var box = e, scrolls = false;
   for (; box && !box.classList.contains("markdown"); box = box.parentElement) if (/^(auto|scroll)$/.test(w.getComputedStyle(box).overflowX)) scrolls = true;
   if (!scrolls && e.scrollWidth > e.clientWidth + 1) boxes.clipped.push(%q + " " + e.tagName + " cut off");
@@ -1559,7 +1507,7 @@ func TestPagesSiteAC10_NoExternalRequests(t *testing.T) {
 		}
 	}
 	licenses := page(t, dir, "assets/licenses.txt", v)
-	for _, want := range []string{"Geist 5.3.0", "Geist Mono 5.3.0", "Noto Sans KR 5.3.1", "mermaid 11.17.2", "SIL Open Font License", "MIT License"} {
+	for _, want := range []string{"Geist 5.3.0", "Geist Mono 5.3.0", "Noto Sans KR 5.3.1", "SIL Open Font License"} {
 		if !strings.Contains(licenses, want) {
 			fail(t, v, "assets/licenses.txt lacks %q", want)
 		}

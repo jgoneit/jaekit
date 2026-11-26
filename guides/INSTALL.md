@@ -72,7 +72,7 @@ claude plugin list
 
 `#v0.1.9`는 marketplace를 해당 태그에 고정합니다. 마지막 목록에서 `spec@jaekit`, `seal@jaekit`, `spar@jaekit`가 enabled인지 봅니다. 다른 플러그인과 혼동되면 [문제 해결](USAGE.md#문제-해결)을 봅니다.
 
-Claude Code를 새로 열고 대화에서 `/spec:spec <요청>`으로 목표를 정리한 뒤, 별도 메시지의 `/seal:seal docs/specs/<goal>`로 구현을 시작합니다. 플러그인의 스킬은 `/플러그인-이름:스킬-이름`으로 호출합니다. 목표 확인과 이어 가기는 [사용 안내](USAGE.md#명령-보내기)에 있습니다.
+Claude Code를 새로 열고 대화에서 `/spec:spec <요청>`으로 목표를 정리합니다. Spec이 지금 구현할지 물을 때 "응"이라고 답하면 구현이 시작되고, 나중에 별도 메시지의 `/seal:seal docs/specs/<goal>`로 시작해도 됩니다. 플러그인의 스킬은 `/플러그인-이름:스킬-이름`으로 호출합니다. 목표 확인과 이어 가기는 [사용 안내](USAGE.md#명령-보내기)에 있습니다.
 
 ### Spar
 
@@ -187,7 +187,7 @@ brew 대신 [v0.1.9 Release](https://github.com/jgoneit/jaekit/releases/tag/v0.1
 
 두 실행 파일을 모두 설치 위치 옆에 준비한 뒤에 바꾸므로, 받기·복사·권한 설정이 실패하면 둘 다 그대로 남습니다. 다만 두 파일을 바꾸는 것은 따로 일어나서, 그 사이에 명령이 멈추면(강제 종료, 전원 차단 등) `ha`만 새 버전일 수 있습니다. 같은 명령을 다시 실행하면 둘이 맞춰집니다.
 
-`~/.local/bin`이 PATH에 없으면 셸 설정(`~/.zshrc` 등)에 `export PATH="$HOME/.local/bin:$PATH"`를 더합니다. 브라우저로 직접 받은 파일을 macOS가 막으면 `xattr -d com.apple.quarantine ~/.local/bin/ha`로 풉니다. 그다음 [버전 확인](#버전-확인)과 [Codex](#codex) 또는 [Claude Code](#claude-code) 설치로 갑니다.
+`~/.local/bin`이 PATH에 없으면 셸 설정(`~/.zshrc` 등)에 `export PATH="$HOME/.local/bin:$PATH"`를 더합니다. 브라우저로 직접 받은 파일을 macOS가 막으면 `xattr -d com.apple.quarantine ~/.local/bin/ha ~/.local/bin/spar`로 풉니다. 그다음 [버전 확인](#버전-확인)과 [Codex](#codex) 또는 [Claude Code](#claude-code) 설치로 갑니다.
 
 ## 배포판과 개발 조합
 
