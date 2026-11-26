@@ -14,6 +14,7 @@ import (
 	"flag"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"sort"
 	"strconv"
@@ -148,7 +149,8 @@ var removedRoutes = []string{
 
 // optionalChecks may stay in current-file-independence once rewritten to run
 // without the deleted audits (SPEC AC-4); they are left out of that route
-// only before it is compared.
+// only before it is compared. Like every registry check, a kept one must
+// still name a test.
 const optionalRoute = "current-file-independence"
 
 var optionalChecks = map[string]bool{
@@ -184,39 +186,76 @@ var want = map[string]string{
 	"runner-adapter-classification":        "d96405dac32f1456cec0fae40d99d5705cb6e43af63bd0b8dfa6f76acb9dc1fa",
 }
 
-// collects is a Python program that exits 0 only when unittest loads at least
-// one test from argv[2] in the module file argv[1], as the registry's checks
-// are run. The loader turns a missing name or a failed import into a
-// placeholder test and an entry in its errors, so both are read.
+// collects is a Python program that prints each FILE::SELECTOR argument from
+// which unittest loads no test, as the registry's checks are run. Its files
+// share the directory argv[1], so their module names cannot collide. The
+// loader turns a missing name or a failed import into a placeholder test and
+// an entry in its errors, so both count as loading nothing.
 const collects = `import os, sys, unittest
-path, selector = sys.argv[1], sys.argv[2]
-sys.path.insert(0, os.path.dirname(path))
-name = os.path.splitext(os.path.basename(path))[0] + "." + selector
-loader = unittest.TestLoader()
-try:
-    count = loader.loadTestsFromName(name).countTestCases()
-except Exception:
-    sys.exit(1)
-sys.exit(0 if count > 0 and not loader.errors else 1)
+sys.path.insert(0, sys.argv[1])
+for pair in sys.argv[2:]:
+    path, selector = pair.split("::", 1)
+    name = os.path.splitext(os.path.basename(path))[0] + "." + selector
+    loader = unittest.TestLoader()
+    try:
+        count = loader.loadTestsFromName(name).countTestCases()
+    except Exception:
+        count = 0
+    if count == 0 or loader.errors:
+        print(pair)
 `
 
-// testExists reports whether unittest collects a test for the selector in the
-// file. Only a Python that cannot start is an error.
-func testExists(t *testing.T, file, selector string) bool {
+// unresolved returns the registry checks, as FILE::SELECTOR, that name no
+// test: a Python selector unittest loads nothing from, a Go test its package
+// does not list, or a file of any other kind. A tool that cannot run is an
+// error.
+func unresolved(t *testing.T, checks []string) map[string]bool {
 	t.Helper()
-	cmd := exec.Command("python3", "-I", "-c", collects, at(file), selector)
-	cmd.Env = append(os.Environ(), "PYTHONDONTWRITEBYTECODE=1")
-	err := cmd.Run()
-	var exit *exec.ExitError
-	switch {
-	case err == nil:
-		return true
-	case errors.As(err, &exit):
-		return false
-	default:
-		t.Fatalf("cannot run python3: %v", err)
-		return false
+	bad := map[string]bool{}
+	python, golang := map[string][]string{}, map[string][]string{}
+	for _, c := range checks {
+		file, _, _ := strings.Cut(c, "::")
+		switch dir := path.Dir(file); {
+		case strings.HasSuffix(file, ".py"):
+			python[dir] = append(python[dir], c)
+		case strings.HasSuffix(file, "_test.go"):
+			golang[dir] = append(golang[dir], c)
+		default:
+			bad[c] = true
+		}
 	}
+	for dir, cs := range python {
+		cmd := exec.Command("python3", append([]string{"-I", "-c", collects, at(dir)}, cs...)...)
+		cmd.Dir = root
+		cmd.Env = append(os.Environ(), "PYTHONDONTWRITEBYTECODE=1")
+		out, err := cmd.Output()
+		if err != nil {
+			t.Fatalf("cannot load the Python selectors in %s: %v", dir, err)
+		}
+		for _, line := range strings.Split(string(out), "\n") {
+			if line = strings.TrimSpace(line); line != "" {
+				bad[line] = true
+			}
+		}
+	}
+	for dir, cs := range golang {
+		cmd := exec.Command("go", "test", "-list", ".", "./"+dir+"/")
+		cmd.Dir = root
+		out, err := cmd.Output()
+		if err != nil {
+			t.Fatalf("cannot list the Go tests in %s: %v", dir, err)
+		}
+		listed := map[string]bool{}
+		for _, line := range strings.Split(string(out), "\n") {
+			listed[strings.TrimSpace(line)] = true
+		}
+		for _, c := range cs {
+			if _, selector, _ := strings.Cut(c, "::"); !listed[selector] {
+				bad[c] = true
+			}
+		}
+	}
+	return bad
 }
 
 func TestUnusedCheckersAC4(t *testing.T) {
@@ -226,6 +265,17 @@ func TestUnusedCheckersAC4(t *testing.T) {
 	if err := json.Unmarshal([]byte(read(t, "contracts/regressions.json")), &reg); err != nil {
 		t.Fatalf("cannot decode contracts/regressions.json: %v", err)
 	}
+	var all []string
+	for _, route := range reg.Routes {
+		checks, _ := route["checks"].([]any)
+		for _, c := range checks {
+			check, _ := c.(map[string]any)
+			file, _ := check["file"].(string)
+			selector, _ := check["selector"].(string)
+			all = append(all, file+"::"+selector)
+		}
+	}
+	bad := unresolved(t, all)
 	var ids []string
 	invariants := map[string]int{}
 	for _, route := range reg.Routes {
@@ -242,11 +292,12 @@ func TestUnusedCheckersAC4(t *testing.T) {
 			check, _ := c.(map[string]any)
 			file, _ := check["file"].(string)
 			selector, _ := check["selector"].(string)
-			switch {
-			case id != optionalRoute || !optionalChecks[file+"::"+selector]:
+			key := file + "::" + selector
+			if bad[key] {
+				t.Errorf("jaekit:violation=registry-route-stale route %s keeps %s, which names no test", id, key)
+			}
+			if id != optionalRoute || !optionalChecks[key] {
 				kept = append(kept, c)
-			case !testExists(t, file, selector):
-				t.Errorf("jaekit:violation=registry-route-stale route %s keeps %s::%s, which names no test", id, file, selector)
 			}
 		}
 		route["checks"] = kept
