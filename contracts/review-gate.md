@@ -38,6 +38,8 @@ Decisions are recorded only by quoting the user's words, are read only from that
 
 `complete` only when there is no reason at all.
 
+A ledger entry counts as a disposition only when it passes the entry check of `spar cap-report` ([Review round](review-round.md) section 11): it has the values section 7 there requires for its disposition and the finding's class, or, with `auto` true, it is spar's automatic deferral of a `hardening` finding with a `reason`. The gate reads any other entry as no entry. A finding's disposition is its last entry that passes, and a finding with none has no disposition: it is in `unhandled_findings`, and a `defect` or `requirement-question` is open, for example after a `reject` without `evidence` or a `defer` of a `defect` without `user_quote`. `auto_deferred` and `deferred_findings` count only entries that pass.
+
 ## 3. File
 
 ```json

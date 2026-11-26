@@ -409,7 +409,7 @@ func TestGateFixCommitsAndChain(t *testing.T) {
 	a := f.round("01-candidate", &RoundRecord{Stage: "candidate", Base: base, Head: head, Sequence: 1, Counted: true,
 		RequiredReviewers: []string{"host"}, Config: cfg, Reviewers: done},
 		[]Finding{{ID: "host-F1", Class: "hardening"}},
-		[]LedgerEntry{{Finding: "host-F1", Disposition: "fix", Commit: later}})
+		[]LedgerEntry{{Finding: "host-F1", Disposition: "fix", Commit: later, FailedBefore: "x", PassedAfter: "y", UserQuote: "fix it"}})
 	if g := f.gate(head, a); g.State != StateBlocked {
 		t.Errorf("a hardening fix outside the expected head: %s %v", g.State, g.Reasons)
 	}
@@ -454,6 +454,22 @@ func TestGateFixCommitsAndChain(t *testing.T) {
 	sideways := &RoundRecord{Stage: "fixes", Base: head, Head: another, PacketSHA256: "s", Config: cfg, RequestedReviewers: []string{"host"}}
 	if _, _, err := admit([]sibling{{a, cand}, {b, fix}}, nil, sideways); err == nil || !strings.Contains(err.Error(), "chain") {
 		t.Errorf("admission let a fixes round with the previous base and another head skip the chain: %v", err)
+	}
+}
+
+// The gate reads a ledger entry without the values its disposition needs as
+// no entry: its finding stays open, and is neither deferred nor counted as
+// automatically deferred. A valid entry still closes its finding.
+func TestGateReadsAnIncompleteEntryAsNoDisposition(t *testing.T) {
+	f := newFixture(t)
+	a := f.round("01-candidate", &RoundRecord{Stage: "candidate", Base: f.revs[0], Head: f.revs[1], Sequence: 1, Counted: true,
+		RequiredReviewers: []string{"host"}, Reviewers: map[string]*ReviewerState{"host": reviewer("native", true, StatusCompleted)}},
+		[]Finding{{ID: "host-F1", Class: "defect"}, {ID: "host-F2", Class: "defect"}, {ID: "host-F3", Class: "defect"}, {ID: "host-F4", Class: "defect"}},
+		[]LedgerEntry{{Finding: "host-F1", Disposition: "reject"}, {Finding: "host-F2", Disposition: "defer", To: "#7"},
+			{Finding: "host-F3", Disposition: "defer", Auto: true, Reason: "r"}, {Finding: "host-F4", Disposition: "reject", Evidence: "e"}})
+	g := f.gate(f.revs[1], a)
+	if g.State != StateBlocked || g.Open["defect"] != 3 || len(g.DeferredFindings) != 0 || g.AutoDeferred != 0 {
+		t.Fatalf("%s open %v deferred %v auto %d %v", g.State, g.OpenFindings, g.DeferredFindings, g.AutoDeferred, g.Reasons)
 	}
 }
 
