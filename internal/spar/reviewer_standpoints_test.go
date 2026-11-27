@@ -1203,6 +1203,9 @@ func TestSparResultSchemaMatchesValidator(t *testing.T) {
 	}
 	arrays := map[string]bool{"result angles_checked": true, "result angles_unchecked": true, "result findings": true}
 	for label, object := range objects {
+		if object["type"] != "object" {
+			t.Errorf("the schema's %s has type %v; want object", label, object["type"])
+		}
 		var keys []string
 		for key := range rsMap(object["properties"]) {
 			keys = append(keys, key)

@@ -470,6 +470,14 @@ func ccCriterion(s rgState, id string) map[string]any {
 	return nil
 }
 
+// ccWaitBasis is the status budget's wait_basis, which run-rules/4 and later
+// give as executor_reported (contracts/run-record.md), and whether it is there.
+func ccWaitBasis(s rgState) (any, bool) {
+	budget, _ := s.value["budget"].(map[string]any)
+	basis, ok := budget["wait_basis"]
+	return basis, ok
+}
+
 // ccMarkFields lists the fields only a run-rules/7 status shows that s has:
 // check_freeze, and baseline_required on each criterion.
 func ccMarkFields(s rgState) []string {
@@ -611,8 +619,12 @@ func TestCheckCostAC1_StartAndCapabilities(t *testing.T) {
 		if r := ciLines(f.rgFixture)[0].m["rules"]; r != "run-rules/3" {
 			t.Errorf("jaekit:violation=%s a start without --rules records rules %v; want run-rules/3", v, r)
 		}
-		if got := ccMarkFields(f.state(v, "the run-rules/3 goal")); len(got) > 0 {
+		s := f.state(v, "the run-rules/3 goal")
+		if got := ccMarkFields(s); len(got) > 0 {
 			t.Errorf("jaekit:violation=%s the run-rules/3 status shows the run-rules/7 fields %v", v, got)
+		}
+		if basis, ok := ccWaitBasis(s); ok {
+			t.Errorf("jaekit:violation=%s the run-rules/3 status budget has wait_basis %v; want none before run-rules/4", v, basis)
 		}
 	}()
 
@@ -980,8 +992,12 @@ func TestCheckCostRules6KeepsEarlierJudgments(t *testing.T) {
 	if got := ccTargets(added); !rgSame(got, []string{"AC-1", "AC-2"}) || added[0].m["result"] != "fail_as_expected" || added[1].m["result"] != "fail_as_expected" {
 		t.Errorf("jaekit:violation=%s under run-rules/6 ha check --baseline without targets recorded baselines of %v; want fail_as_expected baselines of AC-1 and AC-2", v, got)
 	}
-	if got := ccMarkFields(f.state(v, "the run-rules/6 goal")); len(got) > 0 {
+	s6 := f.state(v, "the run-rules/6 goal")
+	if got := ccMarkFields(s6); len(got) > 0 {
 		t.Errorf("jaekit:violation=%s the run-rules/6 status shows the run-rules/7 fields %v", v, got)
+	}
+	if basis, _ := ccWaitBasis(s6); basis != "executor_reported" {
+		t.Errorf("jaekit:violation=%s the run-rules/6 status budget has wait_basis %v; want executor_reported", v, basis)
 	}
 
 	// Records count by input: a command changed and restored, a time limit
