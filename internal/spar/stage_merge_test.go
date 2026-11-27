@@ -24,6 +24,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"reflect"
 	"slices"
 	"sort"
 	"strconv"
@@ -726,6 +727,70 @@ func TestSparStageMergeAC7_LegacyCapReportGrowth(t *testing.T) {
 		if lines := strings.Split(stdout.String(), "\n"); code != ExitOK || !slices.Contains(lines, smLegacyGrowth) || slices.Contains(lines, smNotMeasured) {
 			t.Errorf("spar cap-report --format md of a series with %s exits %d without the line %q: %s%s", form.name, code, smLegacyGrowth, stdout.String(), stderr.String())
 		}
+	}
+}
+
+// AC-7: today's spar judges a series recorded before the stage merge, with
+// findings, dispositions, a dry fixes round and a code extension: the gate
+// over its rounds is complete, lists the #901 deferral and the note without
+// a disposition and counts the automatic deferral, and the cap report counts
+// the three code rounds, not the dry run or the plan-delta round, against
+// the code cap 3 and the extension.
+func TestSparStageMergeAC7_LegacySeriesJudged(t *testing.T) {
+	f := newFixture(t)
+	writeFile(t, filepath.Join(f.repo, "app.txt"), "later\n")
+	gitRun(t, f.repo, "commit", "-qam", "c3")
+	c := append(f.revs, gitRun(t, f.repo, "rev-parse", "HEAD"))
+	q := "synthetic words of the user"
+	fd := func(id, class, link string) Finding {
+		kind := "criterion"
+		if link == "" {
+			kind = "none"
+		}
+		return Finding{ID: id, Class: class, LinkKind: kind, Link: link, Location: "head/app.txt:1", Path: "app.txt", IntroducedByChange: "no"}
+	}
+	var rounds []string
+	round := func(name, stage, base, head string, dry bool, findings []Finding, ledger ...LedgerEntry) {
+		st := reviewer("native", true, StatusCompleted)
+		if dry {
+			st.Status = StatusNotRun
+		}
+		out := f.round(name, &RoundRecord{Stage: stage, Base: base, Head: head, Sequence: len(rounds) + 1, Counted: !dry, DryRun: dry,
+			RequiredReviewers: []string{"host"}, Config: &Config{Caps: Caps{1, 1, 3}, ConfiguredRequired: []RequiredRef{{"host", "native"}}},
+			Reviewers: map[string]*ReviewerState{"host": st}}, findings, ledger)
+		rounds = append(rounds, out)
+	}
+	round("01-plan", "plan", c[0], c[0], false, []Finding{fd("host-F1", "requirement-question", "AC-2"), fd("host-F2", "defect", "AC-1")},
+		LedgerEntry{Finding: "host-F1", Disposition: "answer", UserQuote: q}, LedgerEntry{Finding: "host-F2", Disposition: "reject", Evidence: "the plan covers AC-1"})
+	round("02-plan-delta", "plan-delta", c[0], c[0], false, nil)
+	round("03-candidate", "candidate", c[0], c[1], false,
+		[]Finding{fd("host-F1", "defect", "AC-1"), fd("host-F2", "hardening", ""), fd("host-F3", "requirement-question", "AC-2"), fd("host-F4", "defect", "AC-1")},
+		LedgerEntry{Finding: "host-F2", Disposition: "defer", Auto: true, Reason: "hardening", To: "deferred hardening"},
+		LedgerEntry{Finding: "host-F1", Disposition: "fix", Commit: c[2], FailedBefore: "failed", PassedAfter: "passed"},
+		LedgerEntry{Finding: "host-F3", Disposition: "answer", UserQuote: q}, LedgerEntry{Finding: "host-F4", Disposition: "duplicate", Of: "host-F1"})
+	round("04-fixes", "fixes", c[1], c[2], false, []Finding{fd("host-F1", "defect", "AC-3"), fd("host-F2", "note", "")},
+		LedgerEntry{Finding: "host-F1", Disposition: "defer", To: "#901", UserQuote: q})
+	round("05-candidate", "candidate", c[0], c[2], false, []Finding{fd("host-F1", "defect", "AC-1")},
+		LedgerEntry{Finding: "host-F1", Disposition: "reject", Evidence: "head/app.txt:1 is right"})
+	round("06-fixes", "fixes", c[2], c[3], true, nil)
+	series := filepath.Dir(rounds[0])
+	writeFile(t, filepath.Join(series, "extensions.jsonl"), `{"stage":"code","by":1,"cause":"churn","user_quote":"one more code round","recorded_at":"2026-01-01T00:00:00Z"}`+"\n")
+
+	g := f.gate(c[2], rounds[:5]...)
+	if g.State != StateComplete || len(g.Reasons) != 0 || g.Open["defect"]+g.Open["requirement-question"] != 0 || g.AutoDeferred != 1 ||
+		!reflect.DeepEqual(g.DeferredFindings, []GateDeferred{{"s", "04-fixes", "host-F1", "defect", "#901"}}) ||
+		!reflect.DeepEqual(g.UnhandledFindings, []GateUnhandled{{"s", "04-fixes", "host-F2", "note"}}) {
+		t.Errorf("the gate over 01-plan to 05-candidate is %s, reasons %v, open %v, auto_deferred %d, deferred %v, unhandled %v",
+			g.State, g.Reasons, g.Open, g.AutoDeferred, g.DeferredFindings, g.UnhandledFindings)
+	}
+	var stdout, stderr strings.Builder
+	code := Main("test", []string{"cap-report", series, "--format", "json", "--repo", f.repo}, strings.NewReader(""), &stdout, &stderr, env(map[string]string{"HOME": f.dir}))
+	var rep capReport
+	if err := json.Unmarshal([]byte(stdout.String()), &rep); code != ExitOK || err != nil || rep.Cap.Code == nil || *rep.Cap.Code != 3 ||
+		rep.Cap.Extensions != 1 || rep.Cap.Allowed == nil || *rep.Cap.Allowed != 4 || rep.Cap.Counted != 3 ||
+		!reflect.DeepEqual(rep.Skipped, []capSkipped{{"06-fixes", "dry run"}}) {
+		t.Errorf("spar cap-report --format json exits %d (%v); want cap code 3, extensions 1, allowed 4, counted 3 and 06-fixes skipped as a dry run: %s%s",
+			code, err, stdout.String(), stderr.String())
 	}
 }
 
