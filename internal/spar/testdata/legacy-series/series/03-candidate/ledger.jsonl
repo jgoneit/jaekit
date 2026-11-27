@@ -1,0 +1,4 @@
+{"finding":"host-F2","disposition":"defer","auto":true,"reason":"hardening: check path finding without a false pass, inverted meaning or linked contract violation","to":"deferred hardening","recorded_at":"2026-01-01T00:00:00Z"}
+{"finding":"host-F1","disposition":"fix","auto":false,"commit":"93cac67dc43b88547e3c13cb3f9d4dc3f373d3ff","failed_before":"synthetic check failed before the fix","passed_after":"synthetic check passed after the fix","recorded_at":"2026-01-01T00:00:00Z"}
+{"finding":"host-F3","disposition":"answer","auto":false,"user_quote":"synthetic answer: other() stays","recorded_at":"2026-01-01T00:00:00Z"}
+{"finding":"host-F4","disposition":"duplicate","auto":false,"of":"host-F1","recorded_at":"2026-01-01T00:00:00Z"}

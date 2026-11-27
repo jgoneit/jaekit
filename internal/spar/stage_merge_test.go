@@ -730,67 +730,78 @@ func TestSparStageMergeAC7_LegacyCapReportGrowth(t *testing.T) {
 	}
 }
 
-// AC-7: today's spar judges a series recorded before the stage merge, with
-// findings, dispositions, a dry fixes round and a code extension: the gate
-// over its rounds is complete, lists the #901 deferral and the note without
+// smLegacyCommits are the commits c0 to c3 of newSMWorld. The frozen series
+// in testdata/legacy-series names them, so the world must give them again.
+var smLegacyCommits = []string{
+	"6f153db7ffe18958da1d62a0844e1db0ffd42547",
+	"8a807f9e98214f58b30fc0199bfe4b57d7496ea8",
+	"93cac67dc43b88547e3c13cb3f9d4dc3f373d3ff",
+	"fdab52c8730c3b39fa79414b1d1fea95272aa0d6",
+}
+
+// smCopySeries copies the frozen series into the world's reviews/legacy,
+// with the world's folder in place of @DIR@, and returns that folder.
+func (w *smWorld) smCopySeries() string {
+	w.t.Helper()
+	src, series := filepath.Join("testdata", "legacy-series", "series"), filepath.Join(w.repo, "reviews", "legacy")
+	err := filepath.WalkDir(src, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		rel, err := filepath.Rel(src, path)
+		if err != nil {
+			return err
+		}
+		if d.IsDir() {
+			return os.MkdirAll(filepath.Join(series, rel), 0o755)
+		}
+		data, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		return os.WriteFile(filepath.Join(series, rel), []byte(strings.ReplaceAll(string(data), "@DIR@", w.dir)), 0o644)
+	})
+	if err != nil {
+		w.t.Fatalf("setup: the legacy series cannot be copied: %v", err)
+	}
+	return series
+}
+
+// AC-7: today's spar judges the series spar eb093be recorded with plan-delta
+// and fixes rounds (testdata/legacy-series): the gate over its rounds is
+// complete with nothing open, lists the #901 deferral and the note without
 // a disposition and counts the automatic deferral, and the cap report counts
 // the three code rounds, not the dry run or the plan-delta round, against
-// the code cap 3 and the extension.
+// the code cap 3 and the one extension.
 func TestSparStageMergeAC7_LegacySeriesJudged(t *testing.T) {
-	f := newFixture(t)
-	writeFile(t, filepath.Join(f.repo, "app.txt"), "later\n")
-	gitRun(t, f.repo, "commit", "-qam", "c3")
-	c := append(f.revs, gitRun(t, f.repo, "rev-parse", "HEAD"))
-	q := "synthetic words of the user"
-	fd := func(id, class, link string) Finding {
-		kind := "criterion"
-		if link == "" {
-			kind = "none"
-		}
-		return Finding{ID: id, Class: class, LinkKind: kind, Link: link, Location: "head/app.txt:1", Path: "app.txt", IntroducedByChange: "no"}
+	w := newSMWorld(t)
+	if !slices.Equal(w.commits, smLegacyCommits) {
+		t.Fatalf("setup: the world's commits are %v, not the %v the frozen series names", w.commits, smLegacyCommits)
 	}
-	var rounds []string
-	round := func(name, stage, base, head string, dry bool, findings []Finding, ledger ...LedgerEntry) {
-		st := reviewer("native", true, StatusCompleted)
-		if dry {
-			st.Status = StatusNotRun
-		}
-		out := f.round(name, &RoundRecord{Stage: stage, Base: base, Head: head, Sequence: len(rounds) + 1, Counted: !dry, DryRun: dry,
-			RequiredReviewers: []string{"host"}, Config: &Config{Caps: Caps{1, 1, 3}, ConfiguredRequired: []RequiredRef{{"host", "native"}}},
-			Reviewers: map[string]*ReviewerState{"host": st}}, findings, ledger)
-		rounds = append(rounds, out)
+	series := w.smCopySeries()
+	args := []string{"gate"}
+	for _, name := range []string{"01-plan", "02-plan-delta", "03-candidate", "04-fixes", "05-candidate"} {
+		args = append(args, filepath.Join(series, name))
 	}
-	round("01-plan", "plan", c[0], c[0], false, []Finding{fd("host-F1", "requirement-question", "AC-2"), fd("host-F2", "defect", "AC-1")},
-		LedgerEntry{Finding: "host-F1", Disposition: "answer", UserQuote: q}, LedgerEntry{Finding: "host-F2", Disposition: "reject", Evidence: "the plan covers AC-1"})
-	round("02-plan-delta", "plan-delta", c[0], c[0], false, nil)
-	round("03-candidate", "candidate", c[0], c[1], false,
-		[]Finding{fd("host-F1", "defect", "AC-1"), fd("host-F2", "hardening", ""), fd("host-F3", "requirement-question", "AC-2"), fd("host-F4", "defect", "AC-1")},
-		LedgerEntry{Finding: "host-F2", Disposition: "defer", Auto: true, Reason: "hardening", To: "deferred hardening"},
-		LedgerEntry{Finding: "host-F1", Disposition: "fix", Commit: c[2], FailedBefore: "failed", PassedAfter: "passed"},
-		LedgerEntry{Finding: "host-F3", Disposition: "answer", UserQuote: q}, LedgerEntry{Finding: "host-F4", Disposition: "duplicate", Of: "host-F1"})
-	round("04-fixes", "fixes", c[1], c[2], false, []Finding{fd("host-F1", "defect", "AC-3"), fd("host-F2", "note", "")},
-		LedgerEntry{Finding: "host-F1", Disposition: "defer", To: "#901", UserQuote: q})
-	round("05-candidate", "candidate", c[0], c[2], false, []Finding{fd("host-F1", "defect", "AC-1")},
-		LedgerEntry{Finding: "host-F1", Disposition: "reject", Evidence: "head/app.txt:1 is right"})
-	round("06-fixes", "fixes", c[2], c[3], true, nil)
-	series := filepath.Dir(rounds[0])
-	writeFile(t, filepath.Join(series, "extensions.jsonl"), `{"stage":"code","by":1,"cause":"churn","user_quote":"one more code round","recorded_at":"2026-01-01T00:00:00Z"}`+"\n")
-
-	g := f.gate(c[2], rounds[:5]...)
-	if g.State != StateComplete || len(g.Reasons) != 0 || g.Open["defect"]+g.Open["requirement-question"] != 0 || g.AutoDeferred != 1 ||
-		!reflect.DeepEqual(g.DeferredFindings, []GateDeferred{{"s", "04-fixes", "host-F1", "defect", "#901"}}) ||
-		!reflect.DeepEqual(g.UnhandledFindings, []GateUnhandled{{"s", "04-fixes", "host-F2", "note"}}) {
-		t.Errorf("the gate over 01-plan to 05-candidate is %s, reasons %v, open %v, auto_deferred %d, deferred %v, unhandled %v",
-			g.State, g.Reasons, g.Open, g.AutoDeferred, g.DeferredFindings, g.UnhandledFindings)
+	out := filepath.Join(w.dir, "gate.json")
+	code, _, stderr := w.spar(append(args, "--expect-head", w.commits[2], "--out", out, "--repo", w.repo)...)
+	var g GateRecord
+	if err := json.Unmarshal(w.read(out), &g); err != nil {
+		t.Fatalf("setup: spar gate exits %d and its file is not JSON: %v: %s", code, err, stderr)
 	}
-	var stdout, stderr strings.Builder
-	code := Main("test", []string{"cap-report", series, "--format", "json", "--repo", f.repo}, strings.NewReader(""), &stdout, &stderr, env(map[string]string{"HOME": f.dir}))
+	if code != ExitOK || g.State != StateComplete || len(g.Reasons) != 0 || g.Open["defect"]+g.Open["requirement-question"] != 0 || g.AutoDeferred != 1 ||
+		!reflect.DeepEqual(g.DeferredFindings, []GateDeferred{{"legacy", "04-fixes", "host-F1", "defect", "#901"}}) ||
+		!reflect.DeepEqual(g.UnhandledFindings, []GateUnhandled{{"legacy", "04-fixes", "host-F2", "note"}}) {
+		t.Errorf("the gate over 01-plan to 05-candidate exits %d: %s, reasons %v, open %v, auto_deferred %d, deferred %v, unhandled %v",
+			code, g.State, g.Reasons, g.Open, g.AutoDeferred, g.DeferredFindings, g.UnhandledFindings)
+	}
+	code, report, stderr := w.spar("cap-report", series, "--format", "json", "--repo", w.repo)
 	var rep capReport
-	if err := json.Unmarshal([]byte(stdout.String()), &rep); code != ExitOK || err != nil || rep.Cap.Code == nil || *rep.Cap.Code != 3 ||
+	if err := json.Unmarshal([]byte(report), &rep); code != ExitOK || err != nil || rep.Cap.Code == nil || *rep.Cap.Code != 3 ||
 		rep.Cap.Extensions != 1 || rep.Cap.Allowed == nil || *rep.Cap.Allowed != 4 || rep.Cap.Counted != 3 ||
 		!reflect.DeepEqual(rep.Skipped, []capSkipped{{"06-fixes", "dry run"}}) {
 		t.Errorf("spar cap-report --format json exits %d (%v); want cap code 3, extensions 1, allowed 4, counted 3 and 06-fixes skipped as a dry run: %s%s",
-			code, err, stdout.String(), stderr.String())
+			code, err, report, stderr)
 	}
 }
 
