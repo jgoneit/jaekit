@@ -1094,13 +1094,6 @@ func TestRepeatFindingsAC8_TriageThenFixes(t *testing.T) {
 	}
 }
 
-// AC-10: packets without boundary documents or dispositions stay as the
-// earlier goals' fixed packets have them.
-func TestRepeatFindingsAC10_FixedPackets(t *testing.T) {
-	t.Run("decisions", TestSparPacketDecisionsAC6_NoDecisionPacketUnchanged)
-	t.Run("standpoints", TestReviewerStandpointsAC8_NoStandpointUnchanged)
-}
-
 // AC-10: the packet of the candidate round after review fixes, whose
 // earlier finding has no disposition, keeps the earlier line, the candidate
 // stage line and no new guidance or section.
