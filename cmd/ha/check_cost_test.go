@@ -931,7 +931,10 @@ func TestCheckCostAC4_MinimumFollowsMark(t *testing.T) {
 }
 
 // Under run-rules/6 the baseline column narrows nothing: a baseline run
-// without targets records every change condition, marked or not. A file
+// without targets records every change condition, marked or not. Records
+// count by input: a restored command's baseline counts again and another
+// command's does not, a time limit needs a new check, and a producer put
+// back to its recorded content leaves its baseline fresh. A file
 // outside the scope gives out_of_scope until a later commit removes it. A
 // change condition's baseline input reaches its error limit at the second
 // error; a recovery is refused before that limit and clears it after, the
@@ -940,17 +943,61 @@ func TestCheckCostAC4_MinimumFollowsMark(t *testing.T) {
 func TestCheckCostRules6KeepsEarlierJudgments(t *testing.T) {
 	t.Parallel()
 	const v = "rules-v6-judgment-changed"
-	f := ccRepo(t, ccGoal{conds: []ccCond{ccChange("AC-1", ccMark), ccChange("AC-2", "—")}, column: true})
+	// AC-1's 검사 경로 holds checks/pass.sh, its producer inverted: a command
+	// that passes at the base, with the same check files.
+	pass := ccCond{id: "AC-1", kind: "change", mark: ccMark, paths: []string{ccScript("AC-1"), ccDecl("AC-1"), "checks/pass.sh"}}
+	f := ccRepo(t, ccGoal{conds: []ccCond{pass, ccChange("AC-2", "—"), ccMaintain("AC-3")}, column: true})
 	if code, out := f.ha("start", rgGoal, "--request", ccRequest, "--rules", "run-rules/6"); code != exitOK {
 		t.Fatalf("setup: ha start --rules run-rules/6 exit %d: %s", code, out)
 	}
 	f.base = f.git("rev-parse", "HEAD")
+	f.put("checks/pass.sh", strings.Replace(ccProducer(*f.cond("AC-1")), "= ok ]", "= old ]", 1))
 	f.implement()
 	before := len(ciLines(f.rgFixture))
 	f.must(v, "the default baseline run", exitOK, "check", rgGoal, "--baseline")
 	added := ccRuns(ciLines(f.rgFixture)[before:], "baseline")
 	if got := ccTargets(added); !rgSame(got, []string{"AC-1", "AC-2"}) || added[0].m["result"] != "fail_as_expected" || added[1].m["result"] != "fail_as_expected" {
 		t.Errorf("jaekit:violation=%s under run-rules/6 ha check --baseline without targets recorded baselines of %v; want fail_as_expected baselines of AC-1 and AC-2", v, got)
+	}
+
+	// Records count by input: a command changed and restored, a time limit
+	// added, a producer changed and restored to the recorded content.
+	conds := func(label string) []string {
+		out := []string{}
+		for _, r := range f.state(v, label).reasons {
+			if strings.HasPrefix(r, "AC-") {
+				out = append(out, r)
+			}
+		}
+		return out
+	}
+	f.must(v, "every condition checked", exitOK, "check", rgGoal)
+	plan := ccPlan(f.g)
+	f.put(rgGoal+"/PLAN.md", strings.Replace(plan, "`sh "+ccScript("AC-1")+"`", "`sh checks/pass.sh`", 1))
+	f.must(v, "AC-1's baseline under a command that passes at the base", exitProblems, "check", rgGoal, "--baseline", "AC-1")
+	if l := ciLines(f.rgFixture); l[len(l)-1].m["result"] != "unexpected_pass" {
+		t.Fatalf("setup: AC-1's baseline under the other command is %v, want unexpected_pass", l[len(l)-1].m["result"])
+	}
+	f.put(rgGoal+"/PLAN.md", plan)
+	if got := conds("AC-1's command restored"); len(got) > 0 {
+		t.Errorf("jaekit:violation=%s with AC-1's command restored the reasons are %v; want none: the other command's unexpected_pass must not count", v, got)
+	}
+	f.put(rgGoal+"/PLAN.md", plan+"\n## 시간 제한\n- AC-3: 5분\n")
+	if got := conds("a time limit for AC-3"); !rgSame(got, []string{"AC-3:criterion_missing"}) {
+		t.Errorf("jaekit:violation=%s a time limit added for the checked AC-3 gives the reasons %v; want AC-3:criterion_missing until it is checked again", v, got)
+	}
+	f.must(v, "AC-3 checked under its time limit", exitOK, "check", rgGoal, "AC-3")
+	if got := conds("AC-3 checked under its time limit"); len(got) > 0 {
+		t.Errorf("jaekit:violation=%s AC-3 checked under its time limit keeps the reasons %v", v, got)
+	}
+	producer := string(f.read(ccScript("AC-1")))
+	f.revise(ccScript("AC-1"), "the producer reads one file")
+	f.head = f.commit("the producer changed")
+	f.put(ccScript("AC-1"), producer)
+	f.head = f.commit("the producer restored")
+	f.must(v, "every condition checked after the producer was restored", exitOK, "check", rgGoal)
+	if got := conds("the producer restored"); len(got) > 0 {
+		t.Errorf("jaekit:violation=%s after AC-1's producer is restored to its recorded content and checked, the reasons are %v; want none", v, got)
 	}
 
 	judged := f.state(v, "before a file outside the scope").reasons
