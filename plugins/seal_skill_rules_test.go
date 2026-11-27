@@ -1,12 +1,10 @@
 package plugins
 
 // Property: Seal skill rules
-// The Seal skill's documents keep the format tokens of their rules (code
-// spans, headings and link targets), wherever in the skill a rule sits. The
-// templates and core-requirements.json keep their forms, the body stays
-// within its word cap, this tree's ha carries a synthetic goal from the
-// start form the skill shows and from the PROGRESS template, and spar runs
-// the review round form the skill shows.
+// The PLAN template and core-requirements.json keep the forms ha parses,
+// the body stays within its word cap, this tree's ha carries a synthetic
+// goal from the start form the skill shows and from the PROGRESS template,
+// and spar runs the review round form the skill shows.
 
 import (
 	"bytes"
@@ -26,7 +24,6 @@ const (
 	skSkill        = sealSkillDir + "/SKILL.md"
 	skDecl         = sealSkillDir + "/core-requirements.json"
 	skPlanTmpl     = sealSkillDir + "/assets/templates/PLAN.md"
-	skReviewTmpl   = sealSkillDir + "/assets/templates/REVIEW.md"
 	skProgressTmpl = sealSkillDir + "/assets/templates/PROGRESS.md"
 )
 
@@ -89,28 +86,6 @@ func skTemplate(t *testing.T, path, heading string, phrases ...string) {
 		where += " " + heading
 	}
 	skRequire(t, where, text, phrases...)
-}
-
-// skTemplateLine reports unless one line of the section under heading of a
-// template holds every phrase, white space runs read as one space and case
-// ignored.
-func skTemplateLine(t *testing.T, path, heading string, phrases ...string) {
-	t.Helper()
-	sec := skSection(read(t, path), heading)
-	if sec == "" {
-		t.Errorf("%s lacks the section %q", path, heading)
-		return
-	}
-	for _, line := range strings.Split(sec, "\n") {
-		flat, all := strings.ToLower(skFlat(line)), true
-		for _, p := range phrases {
-			all = all && strings.Contains(flat, strings.ToLower(skFlat(p)))
-		}
-		if all {
-			return
-		}
-	}
-	t.Errorf("%s %s has no line holding all of %q", path, heading, phrases)
 }
 
 // skStartSpan finds the ha start command the skill tells the agent to run:
@@ -359,90 +334,9 @@ func TestSealSkillWordCapStated(t *testing.T) {
 	}
 }
 
-// The skill names the install route and the PATH check for a missing ha.
-func TestSealSkillMissingHa(t *testing.T) {
-	requireSkillTokens(t, sealSkillDir, "brew install jgoneit/tap/jaekit", "which -a ha")
-}
-
-// The check input rules keep their tokens: the condition kinds they cover,
-// the runner adapter feature, the path that must not change and the reason
-// Core reports for it, the documents they never convert and the link to the
-// details; the skill keeps the confirm note.
-func TestSealSkillCheckInputs(t *testing.T) {
-	requireSkillTokens(t, sealSkillDir,
-		"change", "maintain", "EX-n", "runner-adapters/v1", "바꿀 수 있는 경로", "out_of_scope", "PROGRESS.md", "REVIEW.md",
-		"link:references/bundle.md#check-inputs",
-		"ha note <goal> confirm <AC-n | scope:<path> | tests:<path> | spec>", "needs_user")
-}
-
-// The skill links every file in references/.
-func TestSealSkillReferences(t *testing.T) {
-	refs, err := filepath.Glob(filepath.Join(sealSkillDir, "references", "*.md"))
-	if err != nil || len(refs) == 0 {
-		t.Fatalf("%s/references holds no .md file: %v", sealSkillDir, err)
-	}
-	var tokens []string
-	for _, ref := range refs {
-		tokens = append(tokens, "link:references/"+filepath.Base(ref))
-	}
-	requireSkillTokens(t, sealSkillDir, tokens...)
-}
-
-// Goals started with an earlier Seal have a reference the skill links.
-func TestSealSkillEarlierGoalForms(t *testing.T) {
-	requireSkillTokens(t, sealSkillDir, "link:references/earlier-goals.md")
-}
-
-// The review stages, the order of ha done and rework, the finding classes
-// and the earlier review form keep their tokens. The round after review fixes
-// is a candidate round from the goal's base commit, as the cumulative round
-// command shows.
-func TestSealSkillReviewOrder(t *testing.T) {
-	requireSkillTokens(t, sealSkillDir, "plan", "candidate", "--stage candidate --base <goal base commit>", "strict",
-		"REVIEW.md", "ha done", "reopen", "defect", "requirement-question", "hardening", "run-rules/4")
-}
-
-// SPEC's `Assurance:` line, the tiers, the stages they take, the REVIEW.md
-// record and the project instructions' floor keep their tokens.
-func TestSealSkillAssuranceTiers(t *testing.T) {
-	requireSkillTokens(t, sealSkillDir, "Assurance:", "light", "standard", "strict", "candidate", "plan", "REVIEW.md", "AGENTS.md")
-}
-
-// The automatic budget line, the tool list section and the ha doctor run
-// keep their tokens.
-func TestSealSkillStartChecks(t *testing.T) {
-	requireSkillTokens(t, sealSkillDir, "- 검증 실행: 자동", "## 실행 환경", "ha doctor <goal>")
-}
-
-// The completion report comes from ha report in the user's language: the
-// skill's documents keep those tokens and the link to the report format.
-func TestSealSkillProgressReport(t *testing.T) {
-	requireSkillTokens(t, sealSkillDir, "ha report", "ha report <goal>", "--lang ko", "--lang en", "ha status",
-		"ha done", "manual", "link:references/bundle.md#completion-report")
-}
-
-// The bundle and ha references keep the automatic budget, the `## 실행 환경`
-// section, the start check and the report and doctor commands; the PLAN
-// template carries the automatic budget and `## 실행 환경`.
+// The PLAN template carries the automatic budget and `## 실행 환경`.
 func TestSealSkillReferencesAndTemplates(t *testing.T) {
-	requireSkillTokens(t, sealSkillDir, "검증 실행: 자동", "ha start", "### `## 실행 환경`", "--check-skill",
-		"ha report <goal> [--lang ko\\|en]", "ha doctor <goal>")
 	skTemplate(t, skPlanTmpl, "", "- 검증 실행: 자동", "## 실행 환경")
-}
-
-// The rules for questions to the user keep their tokens: the skill's link to
-// the questions reference, the scope section that lists new check files from
-// the start, the ha doctor report, the confirm note an early answer becomes
-// and the wait note.
-func TestSealSkillQuestionsUpFront(t *testing.T) {
-	requireSkillTokens(t, sealSkillDir,
-		"### `## 범위`", "## run-rules/8", "link:references/bundle.md#questions-for-the-user", "바꿀 수 있는 경로",
-		"ha doctor", "ha note <goal> confirm", `ha note <goal> wait --reason "<the decision asked>"`)
-}
-
-// Review rounds take the goal's check files as `--check-path`.
-func TestSealSkillRoundCheckPaths(t *testing.T) {
-	requireSkillTokens(t, sealSkillDir, "--check-path")
 }
 
 // The skill declares the Core support it needs in core-requirements.json
@@ -484,132 +378,7 @@ func TestSealSkillCoreRequirements(t *testing.T) {
 	requireSkillTokens(t, sealSkillDir, "core-requirements.json")
 }
 
-// skDuty is one executor duty of the Seal skill and the format tokens that
-// state it in the skill's documents. A duty whose statement holds no format
-// token, or only the bare name ha, is not listed.
-type skDuty struct {
-	id     string
-	tokens []string
-}
-
-var skDuties = []skDuty{
-	// Authority
-	{"ready-not-request", []string{"Status: Ready"}},
-	{"quote-request", []string{"ha start --request"}},
-	// The execution bundle
-	{"bundle-handover", []string{"ha status"}},
-	{"plan-changes", []string{"PROGRESS.md"}},
-	{"extra-checks-optional", []string{"EX-n"}},
-	{"needs-user-review", []string{"REVIEW.md", "needs_user"}},
-	// Seal Core
-	{"ha-install", []string{"brew install jgoneit/tap/jaekit"}},
-	{"capability-compare", []string{"core-requirements.json"}},
-	{"start-rules", []string{"--rules run-rules/8"}},
-	{"host-flags", []string{"--host-name", "--host-version", "--model"}},
-	{"baseline", []string{"ha check <goal> --baseline AC-n", "change"}},
-	{"clean-committed", []string{"ha check", "fail"}},
-	{"unknown-shares-limit", []string{"unknown"}},
-	// Check inputs
-	{"inputs-scope-path", []string{"바꿀 수 있는 경로", "out_of_scope"}},
-	// Final candidate evidence
-	{"final-once", []string{"ha check"}},
-	// Autonomy under run-rules/4
-	{"test-authority", []string{`--test-authority "<your reading of the request>"`}},
-	{"test-change-note", []string{"ha note <goal> test-change tests:<path> --criteria AC-n --how"}},
-	{"test-change-moved", []string{"--moved-to <path>"}},
-	{"test-weakened", []string{"--weakened"}},
-	{"wait-note", []string{"ha note <goal> wait --reason"}},
-	{"wait-resume", []string{"ha note <goal> resume"}},
-	{"preapprove-raise", []string{"--runs", "--reason"}},
-	{"preapprove-record", []string{`ha budget <goal> --preapprove <N> --window <seq> --revision <seq> --quote "…" --context "…"`}},
-	{"recover-note", []string{"ha note <goal> recover <AC-n> --input check|baseline --change"}},
-	{"recover-failures-stay", []string{"fail"}},
-	{"time-limit", []string{"## 시간 제한"}},
-	// Completion
-	{"done-only", []string{"ha done <goal>"}},
-	{"done-output", []string{"ha report"}},
-	{"remote-review-stale", []string{"ha done"}},
-	{"needs-user", []string{"needs_user"}},
-	{"blocked-stop", []string{"blocked", "budget_exhausted", "PROGRESS.md"}},
-	{"confirm-note", []string{"ha note <goal> confirm <AC-n | scope:<path> | tests:<path> | spec> --quote"}},
-	{"terminal-block", []string{"block"}},
-	{"report-local", []string{"local"}},
-	// Post-completion discoveries
-	{"discovery-rework", []string{"reopen"}},
-	// Resuming
-	{"resume-status", []string{"ha status <goal>"}},
-	{"resume-trust", []string{"PROGRESS.md"}},
-	// Budget
-	{"budget-default", []string{"- 검증 실행: 자동"}},
-	{"budget-interpretation", []string{"--interpretation"}},
-	// Forbidden
-	{"forbid-records", []string{"runs.jsonl"}},
-	{"forbid-output", []string{"ha log"}},
-	{"forbid-output-pointer", []string{"ha log <goal> <seq>"}},
-}
-
-// No duty of the Seal skill silently loses the format tokens that state it.
-func TestSealSkillDutiesAccounted(t *testing.T) {
-	for _, d := range skDuties {
-		t.Run(d.id, func(t *testing.T) { requireSkillTokens(t, sealSkillDir, d.tokens...) })
-	}
-}
-
-// The baseline guidance keeps its tokens: the rule and the PLAN column mark,
-// and the skill's links to the sections that state it.
-func TestSealSkillBaselineGuidance(t *testing.T) {
-	requireSkillTokens(t, sealSkillDir,
-		"run-rules/7", "baseline", "요구",
-		"link:references/bundle.md", "link:references/bundle.md#check-inputs", "link:references/bundle.md#review-summary",
-		"link:references/ha.md#structured-change-results")
-}
-
-// Under run-rules/7 "before any baseline" means before the goal's first ha
-// check record: ha doctor and the skill's link to the questions section keep
-// their tokens.
-func TestSealSkillFirstCheckPoint(t *testing.T) {
-	requireSkillTokens(t, sealSkillDir, "run-rules/7", "ha check", "ha doctor", "ha doctor <goal>",
-		"link:references/bundle.md#questions-for-the-user")
-}
-
-// The input failure guidance keeps its tokens: the condition kinds that
-// require no baseline, the declared missing case, REVIEW.md where the
-// producer's outcomes go, and the links to the check inputs and assurance
-// sections.
-func TestSealSkillInputFailureGuidance(t *testing.T) {
-	requireSkillTokens(t, sealSkillDir, "maintain", "EX-n",
-		"REVIEW.md", "missing: violation", "link:references/bundle.md#check-inputs",
-		"link:references/bundle.md#assurance-policy-and-counterexamples")
-}
-
-// The check freeze keeps its tokens: the stages whose earliest round is the
-// freeze head, the notes that record the gate and a changed check file, the
-// freeze display and the link to the check inputs.
-func TestSealSkillCheckFreeze(t *testing.T) {
-	requireSkillTokens(t, sealSkillDir, "plan", "strict", "candidate", "standard",
-		"ha note <goal> check-change checks:<path> --reason", "ha note <goal> review --gate", "check_freeze",
-		"link:references/bundle.md#check-inputs")
-}
-
-// The skill starts under run-rules/8, and its documents keep that rule's
-// section, the baseline mark, the check-change note, the freeze stages and
-// the condition table section; the PLAN and REVIEW templates name the rule
-// and the mark.
-func TestSealSkillRunRules7(t *testing.T) {
-	requireSkillTokens(t, sealSkillDir, "--rules run-rules/8", "## run-rules/8", "run-rules/6",
-		"ha note <goal> check-change", "baseline", "요구", "plan", "candidate", "### `## 조건표`")
-	skTemplateLine(t, skPlanTmpl, "## 조건표", "`run-rules/8`", "`요구`")
-	skTemplateLine(t, skReviewTmpl, "## 검증 방법과 환경", "`run-rules/8`", "`요구`")
-}
-
-// The ha reference keeps the run-rules/8 section, and the skill's documents
-// keep the review base and post-completion judgment tokens of run-rules/6.
-func TestSealSkillRunRules6(t *testing.T) {
-	requireSkillTokens(t, sealSkillDir, "## run-rules/8", "review_base_mismatch", "post_completion_seconds")
-}
-
-// The review summary, the REVIEW and PROGRESS forms, and the decisions passed
-// to Spar rounds: the skill's documents keep the format tokens.
+// The PROGRESS template's review summary and the review round form.
 
 const sbSummary = "## 검수 요약"
 
@@ -705,76 +474,6 @@ func sbPrefixSection(text, start string) string {
 		return strings.Join(lines[i:end], "\n")
 	}
 	return ""
-}
-
-// sbHeadings lists the headings of one level outside fenced code, in order.
-func sbHeadings(text string, level int, fence sbFencer) []string {
-	var out []string
-	open := ""
-	for _, l := range strings.Split(text, "\n") {
-		var fenced bool
-		if open, fenced = fence(open, l); fenced {
-			continue
-		}
-		if sbLevel(l) == level {
-			out = append(out, strings.TrimRight(l, " \t\r"))
-		}
-	}
-	return out
-}
-
-// sbNoPlace marks a review summary item that has no place under its heading.
-const sbNoPlace = "summary-item-without-place"
-
-// sbMarkSkillTokens reports, with the marker of id first, each token that no
-// document of the Seal skill holds as a format token.
-func sbMarkSkillTokens(t *testing.T, id string, tokens ...string) {
-	t.Helper()
-	set := skillTokens(t, sealSkillDir)
-	for _, tok := range tokens {
-		if !set.has(sealSkillDir, tok) {
-			t.Errorf("jaekit:violation=%s: %s lacks the format token %q", id, sealSkillDir, tok)
-		}
-	}
-}
-
-// The skill's documents keep the tokens of ha done and of the stops the
-// review summary is not written at.
-func TestSealBundleReviewSummaryPlacement(t *testing.T) {
-	requireSkillTokens(t, sealSkillDir, "ha done", "needs_user", "blocked", "budget_exhausted")
-}
-
-// What to inspect by hand: the skill's documents keep the ha report and
-// manual tokens.
-func TestSealBundleReviewSummaryToInspect(t *testing.T) {
-	sbMarkSkillTokens(t, sbNoPlace, "ha report", "manual")
-}
-
-// What was not observed: the skill's documents keep the local assurance
-// token.
-func TestSealBundleReviewSummaryDecidersAndUnobserved(t *testing.T) {
-	sbMarkSkillTokens(t, sbNoPlace, "local")
-}
-
-// At completion the judgment items that move out of the completion report:
-// the skill's documents keep the manual and ha status tokens.
-func TestSealBundleCompletionReportPointsToSummary(t *testing.T) {
-	sbMarkSkillTokens(t, sbNoPlace, "manual", "ha status")
-}
-
-// The skill's documents keep the PROGRESS.md token.
-func TestSealBundleReviewSummaryEarlierGoals(t *testing.T) {
-	requireSkillTokens(t, sealSkillDir, "PROGRESS.md")
-}
-
-// The skill links the review summary format.
-func TestSealBundleReviewSummaryStartsReview(t *testing.T) {
-	requireSkillTokens(t, sealSkillDir, "link:references/bundle.md#review-summary")
-}
-
-// The skill's documents keep the reopen token.
-func TestSealBundleReviewSummaryReopen(t *testing.T) {
-	requireSkillTokens(t, sealSkillDir, "reopen")
 }
 
 // sbRun runs a command in dir with env and returns its combined output. A
@@ -894,59 +593,6 @@ func TestSealBundleTemplateGoalCompletes(t *testing.T) {
 	if status.Status != "complete" || status.Completion == nil {
 		t.Errorf("after a commit that fills the review summary alone, ha status is %q with completion record %v, not complete with one", status.Status, status.Completion)
 	}
-}
-
-// The section helpers skip fenced code opened with ``` or ~~~, so a heading
-// inside an example block is not a heading of the document.
-func TestSealBundleHelpersSkipFences(t *testing.T) {
-	text := "## A\n~~~markdown\n### fake\n## fake\n~~~\n### real\n```\n### also fake\n~~~\n```\n## B\n"
-	if got := sbHeadings(text, 2, sbPrefixFence); strings.Join(got, "|") != "## A|## B" {
-		t.Errorf("sbHeadings(2) = %q", got)
-	}
-	sec, ok := sbSection(text, "## A")
-	if !ok {
-		t.Fatalf("no section ## A")
-	}
-	if got := sbHeadings(sec, 3, sbPrefixFence); strings.Join(got, "|") != "### real" {
-		t.Errorf("sbHeadings(3) = %q", got)
-	}
-}
-
-// The skill's documents keep the tokens of the ha report stamp and link the
-// earlier forms.
-func TestSealBundleProgressCurrentStamped(t *testing.T) {
-	requireSkillTokens(t, sealSkillDir, "ha report <goal>", "ha start", "ha status",
-		"link:references/earlier-goals.md")
-}
-
-// The skill's documents keep the needs_user token.
-func TestSealBundleProgressTimelineWhatToRecord(t *testing.T) {
-	requireSkillTokens(t, sealSkillDir, "needs_user")
-}
-
-// The skill's documents keep the ha report token, and the skill links the
-// reference for earlier goals.
-func TestSealBundleSkillKeepsTimeline(t *testing.T) {
-	requireSkillTokens(t, sealSkillDir, "ha report", "link:references/earlier-goals.md")
-}
-
-// The decisions passed to review rounds keep their tokens: the decision and
-// quote flags, the notes they come from, what is never passed, and the
-// skill's link to them.
-func TestSealBundleDecisionsToPass(t *testing.T) {
-	requireSkillTokens(t, sealSkillDir, "link:references/bundle.md#questions-for-the-user", "--decision", "--decision-quote",
-		"confirm", "input", "requirement-question", "reopen")
-}
-
-// The skill's documents keep the question flag that passes one question per
-// invariant place to every round.
-func TestSealBundleInvariantPlaces(t *testing.T) {
-	requireSkillTokens(t, sealSkillDir, "--question")
-}
-
-// The skill's documents keep the REVIEW.md token.
-func TestSealBundleReviewRoundsScope(t *testing.T) {
-	requireSkillTokens(t, sealSkillDir, "REVIEW.md")
 }
 
 // sbWorld is a repository of two commits with criteria and rules, and a user

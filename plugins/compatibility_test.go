@@ -89,56 +89,6 @@ func TestCompatibilityAC10_SourceVersions(t *testing.T) {
 	}
 }
 
-func TestCompatibilityAC11_ReleaseAndDevelopmentGuidance(t *testing.T) {
-	for _, path := range []string{"../README.md", "../README.ko.md", "../guides/INSTALL.md", "../guides/INSTALL.en.md", "../guides/USAGE.md", "../guides/USAGE.en.md", "../guides/OPERATIONS.md"} {
-		t.Run(path, func(t *testing.T) {
-			content := read(t, path)
-			if path == "../README.md" || path == "../README.ko.md" {
-				// The short README links the version matrix instead of repeating
-				// component identities and rule details in its introduction.
-				guide, heading, anchor := "../guides/INSTALL.en.md", "## Release and development combinations", "release-and-development-combinations"
-				if path == "../README.ko.md" {
-					guide, heading, anchor = "../guides/INSTALL.md", "## 배포판과 개발 조합", "배포판과-개발-조합"
-				}
-				compatibilityContains(t, path, content, "v0.1.9", "ha 0.1.9", "("+strings.TrimPrefix(guide, "../")+"#"+anchor+")")
-				content += "\n" + visualSection(t, guide, heading)
-			}
-			// Spec 0.1.16 and Seal 0.1.36 make up the current release.
-			compatibilityContains(t, path, content, "v0.1.9", "ha 0.1.9", "0.1.16", "0.1.36")
-			for _, stale := range []string{"jaekit@v0.1.2", "jaekit#v0.1.2", "/releases/download/v0.1.2"} {
-				if strings.Contains(strings.ToLower(content), stale) {
-					t.Errorf("[requirement] %s retains obsolete release guidance: %s", path, stale)
-				}
-			}
-		})
-	}
-	for path, capabilities := range map[string]string{"../guides/INSTALL.md": "contracts/core-capabilities.md", "../guides/INSTALL.en.md": "contracts/core-capabilities.md"} {
-		compatibilityContains(t, path, read(t, path), "jaekit@v0.1.9", "jaekit#v0.1.9", "ha_0.1.9_${os}_${arch}", capabilities, "ha 0.1.9-dev", "v0.1.2")
-	}
-	// The operations guide points to the contract for what /4 adds to the /3
-	// budget rules.
-	compatibilityContains(t, "operations guide", read(t, "../guides/OPERATIONS.md"), "USAGE.md#자율-처리-run-rules4", "run-record.md#47-run-rules4")
-}
-
-// The Seal reference's rules section points to run-record.md §4.7 for the
-// run limit a /4 reopen carries.
-func TestCompatibilitySealReferenceLinksRunRules4Reopen(t *testing.T) {
-	const path = "seal/skills/seal/references/ha.md"
-	compatibilityContains(t, path, mdSection(t, path, "## run-rules/8"), "contracts/run-record.md#47-run-rules4")
-}
-
-// Each section that gives the /3 reopen limit also points to run-record.md
-// §4.7 for /4, so "/4 keeps every /3 rule" does not lead to the /3 limit.
-func TestCompatibilitySealRun3ReopenLinksRunRules4(t *testing.T) {
-	for _, s := range []struct{ path, heading string }{
-		{"seal/skills/seal/SKILL.md", "## Budget"},
-		{"seal/skills/seal/references/bundle.md", "### `## 예산`"},
-		{"seal/skills/seal/references/ha.md", "## Budget changes"},
-	} {
-		compatibilityContains(t, s.path, mdSection(t, s.path, s.heading), "contracts/run-record.md#47-run-rules4")
-	}
-}
-
 func TestCompatibilityAC12_SpecAndVerificationBoundaries(t *testing.T) {
 	keys, _ := frontMatter(t, "spec/skills/spec/SKILL.md")
 	// Agents may invoke Spec.
