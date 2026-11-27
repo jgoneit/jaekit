@@ -470,6 +470,24 @@ func ccCriterion(s rgState, id string) map[string]any {
 	return nil
 }
 
+// ccMarkFields lists the fields only a run-rules/7 status shows that s has:
+// check_freeze, and baseline_required on each criterion.
+func ccMarkFields(s rgState) []string {
+	var out []string
+	if _, ok := s.value["check_freeze"]; ok {
+		out = append(out, "check_freeze")
+	}
+	list, _ := s.value["criteria"].([]any)
+	for _, item := range list {
+		if c, _ := item.(map[string]any); c != nil {
+			if _, ok := c["baseline_required"]; ok {
+				out = append(out, fmt.Sprintf("%v baseline_required", c["id"]))
+			}
+		}
+	}
+	return out
+}
+
 // ccHasReason reports whether the status names the reason code for the
 // criterion (id "" for a goal-level reason).
 func ccHasReason(s rgState, id, code string) bool {
@@ -592,6 +610,9 @@ func TestCheckCostAC1_StartAndCapabilities(t *testing.T) {
 		}
 		if r := ciLines(f.rgFixture)[0].m["rules"]; r != "run-rules/3" {
 			t.Errorf("jaekit:violation=%s a start without --rules records rules %v; want run-rules/3", v, r)
+		}
+		if got := ccMarkFields(f.state(v, "the run-rules/3 goal")); len(got) > 0 {
+			t.Errorf("jaekit:violation=%s the run-rules/3 status shows the run-rules/7 fields %v", v, got)
 		}
 	}()
 
@@ -958,6 +979,9 @@ func TestCheckCostRules6KeepsEarlierJudgments(t *testing.T) {
 	added := ccRuns(ciLines(f.rgFixture)[before:], "baseline")
 	if got := ccTargets(added); !rgSame(got, []string{"AC-1", "AC-2"}) || added[0].m["result"] != "fail_as_expected" || added[1].m["result"] != "fail_as_expected" {
 		t.Errorf("jaekit:violation=%s under run-rules/6 ha check --baseline without targets recorded baselines of %v; want fail_as_expected baselines of AC-1 and AC-2", v, got)
+	}
+	if got := ccMarkFields(f.state(v, "the run-rules/6 goal")); len(got) > 0 {
+		t.Errorf("jaekit:violation=%s the run-rules/6 status shows the run-rules/7 fields %v", v, got)
 	}
 
 	// Records count by input: a command changed and restored, a time limit

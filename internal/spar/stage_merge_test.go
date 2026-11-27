@@ -803,6 +803,24 @@ func TestSparStageMergeAC7_LegacySeriesJudged(t *testing.T) {
 		t.Errorf("spar cap-report --format json exits %d (%v); want cap code 3, extensions 1, allowed 4, counted 3 and 06-fixes skipped as a dry run: %s%s",
 			code, err, report, stderr)
 	}
+	classes := map[string]map[string]int{}
+	for _, r := range rep.Rounds {
+		classes[r.Round] = r.Classes
+	}
+	counts := func(defect, question, hardening, note int) map[string]int {
+		return map[string]int{"defect": defect, "requirement-question": question, "hardening": hardening, "note": note}
+	}
+	if want := map[string]map[string]int{"03-candidate": counts(2, 1, 1, 0), "04-fixes": counts(1, 0, 0, 1), "05-candidate": counts(1, 0, 0, 0)}; !reflect.DeepEqual(classes, want) {
+		t.Errorf("the cap report's rounds have the classes %v, want %v", classes, want)
+	}
+	if !reflect.DeepEqual(rep.Churn, []capChurn{{"04-fixes", 1, []string{"host-F1"}}, {"05-candidate", 0, []string{}}}) || len(rep.Recurring) != 0 ||
+		!reflect.DeepEqual(rep.Unrelated, []capFinding{{"04-fixes", "host-F1"}}) || rep.CheckGrowth != (capGrowth{Check: 3, Other: 1, OverHardening: true}) {
+		t.Errorf("the cap report's signals are churn %v, recurring %v, unrelated %v, check growth %+v; want 04-fixes 1 (host-F1) and 05-candidate 0, none, 04-fixes host-F1, check 3 other 1 over hardening",
+			rep.Churn, rep.Recurring, rep.Unrelated, rep.CheckGrowth)
+	}
+	if !reflect.DeepEqual(g.Growth.AddedLines, map[string]int{"check": 3, "other": 1}) || !g.Growth.OverHardening {
+		t.Errorf("the gate's growth is %+v, want check 3, other 1 and over hardening", g.Growth)
+	}
 }
 
 // AC-8: a project configuration that still sets caps.plan_delta loads; a

@@ -17,6 +17,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -304,6 +305,30 @@ func TestCoreIntegrityAC1_StartAndCapabilities(t *testing.T) {
 	ciStart(f, v)
 	if r := ciLines(f)[0].m["rules"]; r != "run-rules/6" {
 		t.Errorf("jaekit:violation=%s ha start --rules run-rules/6 records rules %v", v, r)
+	}
+}
+
+// Under run-rules/5 and run-rules/6, a light goal and a goal without an
+// Assurance line complete without a gate, and a reopen note with the user's
+// words voids the completion record; no review note follows it.
+func TestCoreIntegrityReopenVoidsUngatedCompletion(t *testing.T) {
+	t.Parallel()
+	const v = "reopen-kept-completion"
+	for _, rules := range []string{"run-rules/5", "run-rules/6"} {
+		for _, tier := range []string{"light", ""} {
+			label := fmt.Sprintf("%s, tier %q", rules, tier)
+			f := rgRepo(t, tier)
+			ciMust(f, exitOK, "start", rgGoal, "--request", ciRequest, "--rules", rules)
+			f.base = f.git("rev-parse", "HEAD")
+			f.put("src/work.txt", "one\n")
+			f.head = f.commit("a code commit")
+			f.check()
+			ciMustDone(f, label)
+			ciMust(f, exitOK, "note", rgGoal, "reopen", "--quote", "synthetic user words: reopen the goal")
+			if s := f.status(); s.completion != nil {
+				t.Errorf("jaekit:violation=%s %s: after the reopen note the completion record is %v; want none", v, label, s.completion)
+			}
+		}
 	}
 }
 
