@@ -151,10 +151,6 @@ func (w *amWorld) answer() string {
 	return w.write(filepath.Join(w.dir, "answers", fmt.Sprintf("%d.json", w.n)), string(data))
 }
 
-func amQuote(s string) string {
-	return "'" + strings.ReplaceAll(s, "'", `'\''`) + "'"
-}
-
 // fake writes the CLI of a preset as an executable called file in the fake
 // folder. Each call writes its arguments, NUL separated, to the next
 // numbered file of calls/<file>. The model the arguments name (after

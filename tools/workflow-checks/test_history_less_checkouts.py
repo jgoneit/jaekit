@@ -1,9 +1,8 @@
 """The CI jobs that run the full Go suite and the docs group check out one commit without history.
 
-The go group's public copies no longer repeat those suites (guides/CI.md,
-`## 로컬 검사`). Whether ordinary Go tests or documentation regressions need
-history shows only in these required jobs, so their checkout stays at the
-default depth of one commit and nothing fetches more.
+Whether ordinary Go tests or documentation regressions need history shows
+only in these required jobs, so their checkout stays at the default depth of
+one commit and nothing fetches more.
 """
 from pathlib import Path
 import re

@@ -106,7 +106,7 @@ func compatibilityFake(t *testing.T, dir, response string, exit int, mutate bool
 	}
 	source := "#!/bin/sh\nif [ \"$*\" != 'capabilities --format json' ]; then exit 99; fi\n" + change +
 		"printf '%s\\n' '" + response + "'\nexit " + strconv.Itoa(exit) + "\n"
-	compatibilityWrite(t, path, source, 0o755)
+	writeExecutable(t, path, source)
 	return path
 }
 

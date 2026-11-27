@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Report one review regression suite without treating runner errors as violations.
 
-Usage: python3 tools/review-checks/produce.py AC-1
+Usage: python3 tools/review-checks/produce.py AC-7
 The unittest runner executes each case once. Actual assertion identities,
 collection/runtime errors and skipped cases have separate declared targets.
 """

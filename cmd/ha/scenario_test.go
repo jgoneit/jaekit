@@ -106,9 +106,7 @@ func runScenario(t *testing.T, name string) {
 	os.WriteFile(cfg, nil, 0o644)
 	bin := t.TempDir()
 	runner := filepath.Join(bin, "jaekit-test-runner")
-	if err := os.WriteFile(runner, []byte("#!/bin/sh\nexec sh \"$@\"\n"), 0o755); err != nil {
-		t.Fatal(err)
-	}
+	writeExecutable(t, runner, "#!/bin/sh\nexec sh \"$@\"\n")
 	s.config = t.TempDir()
 	s.bare = os.Getenv("PATH")
 	s.path = bin + string(os.PathListSeparator) + s.bare

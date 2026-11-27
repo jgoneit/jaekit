@@ -90,12 +90,9 @@ func TestSparAgentModelAC10_HaCostReadsBothForms(t *testing.T) {
 	answerFile := filepath.Join(tools, "answer.json")
 	sfhWrite(t, answerFile, string(answer))
 	codex := filepath.Join(tools, "codex")
-	sfhWrite(t, codex, "#!/bin/sh\nif [ \"$1\" = --version ]; then echo 'codex 0.0.0 (synthetic)'; exit 0; fi\n"+
+	writeExecutable(t, codex, "#!/bin/sh\nif [ \"$1\" = --version ]; then echo 'codex 0.0.0 (synthetic)'; exit 0; fi\n"+
 		"cat >/dev/null\nout=\nfor a in \"$@\"; do if [ \"$prev\" = -o ]; then out=$a; fi; prev=$a; done\n"+
 		"cat '"+answerFile+"' > \"$out\"\nprintf '%s\\n' '{\"type\":\"thread.started\"}' '{\"type\":\"turn.completed\",\"usage\":{}}'\n")
-	if err := os.Chmod(codex, 0o755); err != nil {
-		t.Fatalf("setup: %v", err)
-	}
 	config := filepath.Join(tools, "spar.toml")
 	sfhWrite(t, config, "[[reviewers]]\nname = \"codex\"\npreset = \"codex\"\nbinary = \""+codex+"\"\n\n"+
 		"[[reviewers]]\nname = \"host\"\npreset = \"native\"\n")

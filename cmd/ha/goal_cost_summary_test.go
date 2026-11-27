@@ -889,9 +889,7 @@ func TestGoalCostSummaryAC8_ReadOnly(t *testing.T) {
 	bin, ran := t.TempDir(), filepath.Join(t.TempDir(), "ran")
 	for _, name := range []string{"claude", "codex", "agy", "spar", "gemini"} {
 		script := "#!/bin/sh\necho " + name + " >> '" + ran + "'\nexit 0\n"
-		if err := os.WriteFile(filepath.Join(bin, name), []byte(script), 0o755); err != nil {
-			t.Fatalf("setup: %v", err)
-		}
+		writeExecutable(t, filepath.Join(bin, name), script)
 	}
 	f.env = envWith(f.env, "PATH="+bin+string(os.PathListSeparator)+envValue(f.env, "PATH"))
 	others := func() []string {

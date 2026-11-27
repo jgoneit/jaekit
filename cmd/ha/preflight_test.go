@@ -166,9 +166,7 @@ func TestCheckPreflightRefusesDirty(t *testing.T) {
 		}
 		bin := t.TempDir()
 		wrapper := "#!/bin/sh\nif [ \"$1\" = status ]; then echo 'synthetic status failure' >&2; exit 81; fi\nexec \"$HA_REAL_GIT\" \"$@\"\n"
-		if err := os.WriteFile(filepath.Join(bin, "git"), []byte(wrapper), 0o755); err != nil {
-			t.Fatal(err)
-		}
+		writeExecutable(t, filepath.Join(bin, "git"), wrapper)
 		f.env = envWith(f.env, "HA_REAL_GIT="+realGit, "PATH="+bin+string(os.PathListSeparator)+envValue(f.env, "PATH"))
 		before := f.read(scenarioGoal + "/runs.jsonl")
 		code, out := f.ha("check", scenarioGoal, "AC-2")
