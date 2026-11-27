@@ -1202,6 +1202,14 @@ func TestSparResultSchemaMatchesValidator(t *testing.T) {
 		"finding confidence":           {"high", "medium", "low"},
 	}
 	arrays := map[string]bool{"result angles_checked": true, "result angles_unchecked": true, "result findings": true}
+	// The keys G1, G4 and G5 fix for the result, an angle item and a finding.
+	contractKeys := map[string][]string{
+		"result":                {"reviewed_head", "verdict", "angles_checked", "angles_unchecked", "findings", "limits"},
+		"angles_checked item":   {"angle", "result"},
+		"angles_unchecked item": {"angle", "reason"},
+		"finding": {"id", "proposed_class", "angle", "location", "claim", "failure_scenario", "evidence",
+			"link_kind", "link", "introduced_by_change", "regression", "check_impact", "confidence", "smallest_fix"},
+	}
 	for label, object := range objects {
 		if object["type"] != "object" {
 			t.Errorf("the schema's %s has type %v; want object", label, object["type"])
@@ -1223,11 +1231,12 @@ func TestSparResultSchemaMatchesValidator(t *testing.T) {
 				}
 			}
 		}
-		required := strs(object["required"])
+		required, want := strs(object["required"]), append([]string(nil), contractKeys[label]...)
 		sort.Strings(keys)
 		sort.Strings(required)
-		if object["additionalProperties"] != false || !reflect.DeepEqual(keys, required) {
-			t.Errorf("the schema's %s takes other fields (%v) or fields it does not require: %v, required %v", label, object["additionalProperties"], keys, required)
+		sort.Strings(want)
+		if object["additionalProperties"] != false || !reflect.DeepEqual(keys, want) || !reflect.DeepEqual(required, want) {
+			t.Errorf("the schema's %s has additionalProperties %v, fields %v and required %v; the contract's keys are %v", label, object["additionalProperties"], keys, required, want)
 		}
 	}
 
