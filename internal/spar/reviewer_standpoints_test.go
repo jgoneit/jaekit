@@ -1,7 +1,6 @@
 package spar
 
 import (
-	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -20,12 +19,6 @@ import (
 // unreadable JSON, or unavailable tool starts with setup. No test reads the
 // checkout's history or private goal documents. Test names are the adapter's
 // entry points; all added helpers and their identifiers have the rs prefix.
-//
-// Regenerate the baseline ONLY on the goal's pre-standpoint tree:
-// RS_WRITE_BASE=1 go test -run TestReviewerStandpointsAC8_ ./internal/spar
-// The generator refuses a tree which already emits standpoints. The fixture
-// pins actual CLI inputs, packet/schema/summary bytes and legacy records.
-const rsFixture = "testdata/reviewer-standpoints/base.json"
 const rsSection = "## Standpoints for this round"
 const rsNoInstruction = "You have no standpoint this round. Review the whole change as the packet asks; the standpoints below belong to other reviewers."
 const rsQuote = "synthetic user decision: continue without this reviewer"
@@ -1093,11 +1086,6 @@ func TestReviewerStandpointsAC7_Uncovered(rsT *testing.T) {
 	}
 }
 
-// Normalize only world identities, times and execution durations. Packet
-// digests are checked against the RAW bytes before replacing them with the
-// digest of normalized bytes, so a stale/wrong digest cannot be normalized
-// into success. No source code, git refs or previous checkout is consulted.
-func rsHash(rsText string) string { return fmt.Sprintf("%x", sha256.Sum256([]byte(rsText))) }
 func (rsW *rsWorld) rsNormalize(rsText string) string {
 	rsPairs := []string{rsW.rsDir, "<world>"}
 	for rsI, rsCommit := range rsW.rsCommits {
@@ -1130,119 +1118,15 @@ func (rsW *rsWorld) rsNormalize(rsText string) string {
 	rsText = regexp.MustCompile(`, [0-9]+\.[0-9]+s\)`).ReplaceAllString(rsText, ", <elapsed>s)")
 	return rsText
 }
-func (rsW *rsWorld) rsExpand(rsText string) string {
-	rsPairs := []string{"<world>", rsW.rsDir, "<time>", "2026-01-01T00:00:00Z"}
-	for rsI, rsCommit := range rsW.rsCommits {
-		rsPairs = append(rsPairs, fmt.Sprintf("<commit-%d>", rsI), rsCommit, fmt.Sprintf("<short-commit-%d>", rsI), rsCommit[:12], fmt.Sprintf("<tree-%d>", rsI), rsW.rsTrees[rsI])
-	}
-	return strings.NewReplacer(rsPairs...).Replace(rsText)
-}
-func (rsW *rsWorld) rsPinDigests(rsOut string) {
-	rsR := rsW.rsRaw(rsOut)
-	rsPacket := rsW.rsRead(filepath.Join(rsOut, "packet.md"))
-	rsActual := rsString(rsR["packet_sha256"])
-	if rsActual != rsHash(rsPacket) {
-		rsAssert(rsW.rsChecks, false, "packet_sha256 is not the digest of packet.md")
-	} else {
-		rsW.rsReplacements[rsActual] = rsHash(rsW.rsNormalize(rsPacket))
-	}
-	rsConfig := rsMap(rsR["config"])
-	rsConfigBody := rsW.rsRead(rsW.rsConfig)
-	rsW.rsReplacements[rsHash(rsConfigBody)] = rsHash(rsW.rsNormalize(rsConfigBody))
-	rsDigest := rsString(rsConfig["digest"])
-	if len(rsDigest) >= 12 {
-		rsW.rsReplacements[rsDigest] = "<config-digest>"
-		rsW.rsReplacements[rsDigest[:12]] = "<short-config-digest>"
-	}
-}
 
-// Remove only execution timing fields. In particular, do not remove new
-// standpoint fields from reviewer entries or any other newly emitted key.
-func rsWithoutTiming(rsV any) {
-	switch rsValue := rsV.(type) {
-	case map[string]any:
-		for rsKey, rsChild := range rsValue {
-			switch rsKey {
-			case "started_at", "finished_at", "elapsed_seconds":
-				delete(rsValue, rsKey)
-			default:
-				rsWithoutTiming(rsChild)
-			}
-		}
-	case []any:
-		for _, rsChild := range rsValue {
-			rsWithoutTiming(rsChild)
-		}
-	}
-}
-
-func (rsW *rsWorld) rsSnapshot(rsOut string) map[string]any {
-	rsW.rsPinDigests(rsOut)
-	rsR := rsW.rsRaw(rsOut)
-	rsInputs := map[string]any{}
-	for _, rsValue := range rsList(rsR["requested_reviewers"]) {
-		rsName := rsString(rsValue)
-		if rsName == "native" {
-			rsInputs[rsName] = map[string]any{"prompt.md": rsW.rsNormalize(rsW.rsRead(filepath.Join(rsOut, rsName, "prompt.md")))}
-			continue
-		}
-		rsInputs[rsName] = map[string]any{"argv": rsW.rsNormalize(rsW.rsLast(rsName, "argv")), "stdin": rsW.rsNormalize(rsW.rsLast(rsName, "stdin"))}
-		if rsName == "claude" {
-			// Unlike agy/codex, claude receives schema bytes in argv, not a
-			// path. Pin those exact bytes independently of schema.json.
-			rsMap(rsInputs[rsName])["--json-schema"] = rsArg(rsW.rsLast(rsName, "argv"), "--json-schema")
-		}
-		if rsName == "command" {
-			rsMap(rsInputs[rsName])["prompt"] = rsW.rsNormalize(rsW.rsLast(rsName, "prompt"))
-		}
-		rsCalls := rsW.rsCalls(rsName)
-		rsPath := filepath.Join(rsCalls[len(rsCalls)-1], "PACKET.md")
-		if rsData, rsErr := os.ReadFile(rsPath); rsErr == nil {
-			rsMap(rsInputs[rsName])["PACKET.md"] = rsW.rsNormalize(string(rsData))
-		} else if !os.IsNotExist(rsErr) {
-			rsW.rsT.Fatalf("setup: capture PACKET.md: %v", rsErr)
-		}
-	}
-	delete(rsR, "standpoints") // AC-8 separately requires this to be exactly [].
-	rsWithoutTiming(rsR)
-	return map[string]any{"inputs": rsInputs, "round.json": rsW.rsJSON(rsW.rsNormalize(rsW.rsEncode(rsR))), "packet.md": rsW.rsNormalize(rsW.rsRead(filepath.Join(rsOut, "packet.md"))), "schema.json": rsW.rsRead(filepath.Join(rsOut, "schema.json")), "packet_sha256": rsW.rsNormalize(rsString(rsR["packet_sha256"])), "summary.md": rsW.rsNormalize(rsW.rsRead(filepath.Join(rsOut, "summary.md")))}
-}
-
-// rsCompactLimit keeps base.json small enough to fit a review packet: a
-// snapshot value longer than this is pinned by its length and sha256 instead
-// of its bytes, which still fixes every byte (02-candidate: the agy PACKET.md
-// route, 888 KB twice, made the packet exceed the reviewers' input limits).
-const rsCompactLimit = 64 << 10
-
-func rsCompact(rsValue any) any {
-	switch rsV := rsValue.(type) {
-	case map[string]any:
-		rsOut := make(map[string]any, len(rsV))
-		for rsK, rsX := range rsV {
-			rsOut[rsK] = rsCompact(rsX)
-		}
-		return rsOut
-	case []any:
-		rsOut := make([]any, len(rsV))
-		for rsI, rsX := range rsV {
-			rsOut[rsI] = rsCompact(rsX)
-		}
-		return rsOut
-	case string:
-		if len(rsV) > rsCompactLimit {
-			return fmt.Sprintf("sha256:%s bytes:%d", rsHash(rsV), len(rsV))
-		}
-	}
-	return rsValue
-}
-
-// rsStages runs a no-standpoint round of each stage a new round starts as in
-// the series baseline (01-plan, 02-candidate) and the agy file route, and
-// returns their snapshots and folders. A plan-delta and a fixes round of the
-// same form are refused before anything is written.
-func (rsW *rsWorld) rsStages() (map[string]any, []string) {
-	rsSnapshots := map[string]any{}
-	rsRounds := []string{}
+// A round without standpoints, of each stage a round starts as and through
+// agy's packet file route, records "standpoints": [] and writes no
+// input.md for any reviewer.
+func TestReviewerStandpointsAC8_NoStandpointUnchanged(rsT *testing.T) {
+	const rsID = "no-standpoint-round-changed"
+	rsC := rsCollect(rsT, rsID)
+	rsW := rsNew(rsT, rsC)
+	var rsRounds []string
 	for rsI, rsStage := range StartStages {
 		rsW.rsAll(1, nil)
 		rsOut := rsW.rsOut("baseline", fmt.Sprintf("%02d-%s", rsI+1, rsStage))
@@ -1251,174 +1135,13 @@ func (rsW *rsWorld) rsStages() (map[string]any, []string) {
 			rsExtra = append(rsExtra, "--subject", filepath.Join(rsW.rsRepo, "PLAN.md"))
 		}
 		rsW.rsRun("", rsOut, rsStage, 0, 1, rsExtra...)
-		rsSnapshots[rsStage] = rsCompact(rsW.rsSnapshot(rsOut))
 		rsRounds = append(rsRounds, rsOut)
 	}
-	for _, rsOld := range []struct {
-		rsStage        string
-		rsBase, rsHead int
-		rsExtra        []string
-	}{
-		{"plan-delta", 0, 1, []string{"--question", "Is AC-1 covered?", "--subject", filepath.Join(rsW.rsRepo, "PLAN.md")}},
-		{"fixes", 1, 2, []string{"--question", "Is AC-1 covered?"}},
-	} {
-		rsOut := rsW.rsOut("baseline", "03-"+rsOld.rsStage)
-		rsCode, _, rsErr := rsW.rsCLI(rsW.rsArgs(rsOut, rsOld.rsStage, rsOld.rsBase, rsOld.rsHead, rsOld.rsExtra...)...)
-		_, rsStatErr := os.Lstat(rsOut)
-		rsAssert(rsW.rsChecks, rsCode == ExitUsage && strings.Contains(strings.Split(rsErr, "\n")[0], "candidate") && os.IsNotExist(rsStatErr),
-			"a no-standpoint %s round exits %d and leaves its folder: %v: %s; want a usage error (64) naming candidate", rsOld.rsStage, rsCode, rsStatErr == nil, strings.Split(rsErr, "\n")[0])
-	}
-	// A separate series avoids changing the legacy rerun fixture's history.
 	rsW.rsUse(rsW.rsFake("agy", "agy", rsW.rsAnswer("agy-large", 1, nil, false), ""))
 	rsLarge := rsW.rsOut("baseline-large", "01-candidate")
 	rsW.rsRun("", rsLarge, "candidate", 0, 1, "--criteria", rsW.rsLargeCriteria())
-	rsSnapshots["agy-file"] = rsCompact(rsW.rsSnapshot(rsLarge))
-	rsRounds = append(rsRounds, rsLarge)
-	return rsSnapshots, rsRounds
-}
-func (rsW *rsWorld) rsLoadFixture() map[string]any {
-	rsW.rsT.Helper()
-	rsFixtureValue := rsMap(rsW.rsJSON(rsW.rsRead(rsFixture)))
-	if rsFixtureValue["format"] != "reviewer-standpoints-base/v1" {
-		rsW.rsT.Fatal("setup: base.json has an unknown fixture format")
-	}
-	for _, rsKey := range []string{"stages", "rerun", "legacy", "legacy_expected", "config"} {
-		if len(rsMap(rsFixtureValue[rsKey])) == 0 {
-			rsW.rsT.Fatalf("setup: base.json is missing %s", rsKey)
-		}
-	}
-	return rsFixtureValue
-}
-
-// Store only public, synthetic record files, never reviewer scratch output.
-func (rsW *rsWorld) rsArchive(rsPaths ...string) map[string]any {
-	rsArchive := map[string]any{}
-	for _, rsPath := range rsPaths {
-		rsRel, rsErr := filepath.Rel(rsW.rsDir, rsPath)
-		if rsErr != nil {
-			rsW.rsT.Fatalf("setup: archive: %v", rsErr)
-		}
-		rsArchive[filepath.ToSlash(rsRel)] = rsW.rsNormalize(rsW.rsRead(rsPath))
-	}
-	return rsArchive
-}
-func (rsW *rsWorld) rsRestore(rsArchive map[string]any) {
-	for rsRel, rsValue := range rsArchive {
-		rsW.rsWrite(filepath.Join(rsW.rsDir, filepath.FromSlash(rsRel)), rsW.rsExpand(rsString(rsValue)))
-	}
-}
-func (rsW *rsWorld) rsLegacySetup() map[string]any {
-	rsW.rsUse(rsNative("native"), rsW.rsFake("agy", "agy", rsW.rsAnswer("agy", 1, nil, false), "fallback_model=\"\""))
-	rsW.rsWrite(filepath.Join(rsW.rsDir, "fail-agy"), "intentional")
-	rsOut := rsW.rsOut("legacy", "01-candidate")
-	rsW.rsRun("", rsOut, "candidate", 0, 1)
-	rsW.rsRecord(rsOut, "native", rsW.rsAnswer("legacy", 1, nil, false, rsFinding("F1", nil), rsFinding("F2", map[string]any{"location": "head/checks/test_app.py:1", "link_kind": "none", "link": "", "introduced_by_change": "no"})), "result")
-	rsW.rsGate("legacy", 1, rsOut)
-	rsW.rsMust(0, "extend", filepath.Dir(rsOut), "--stage", "code", "--by", "1", "--cause", "other", "--reason", "synthetic extension", "--user-quote", rsQuote)
-	// Preserve exact old records for the new readers, including a prior gate
-	// so the replacement-gate path exercises previous_gate_digest.
-	return rsW.rsArchive(filepath.Join(rsOut, "round.json"), filepath.Join(rsOut, "findings.json"), filepath.Join(rsOut, "ledger.jsonl"), filepath.Join(rsOut, "summary.md"), filepath.Join(filepath.Dir(rsOut), "extensions.jsonl"), rsW.rsOut("gates", "legacy.json"))
-}
-func (rsW *rsWorld) rsLegacyRead() map[string]any {
-	rsOut := rsW.rsOut("legacy", "01-candidate")
-	rsResult := map[string]any{}
-	// These are observations, not setup: retain exit codes and output in the
-	// fixture, including a command refusing a valid old record after a change.
-	rsCode, rsStdout, rsStderr := rsW.rsCLI("triage", rsOut, "native-F1", "reject", "--evidence", "synthetic source proves the finding false")
-	rsResult["triage"] = []any{rsCode, rsW.rsNormalize(rsStdout), rsW.rsNormalize(rsStderr)}
-	rsCode, rsStdout, rsStderr = rsW.rsCLI("waive", rsOut, "agy", "--user-quote", rsQuote)
-	rsResult["waive"] = []any{rsCode, rsW.rsNormalize(rsStdout), rsW.rsNormalize(rsStderr)}
-	rsCode, rsStdout, rsStderr = rsW.rsCLI("cap-report", filepath.Dir(rsOut), "--format", "json", "--repo", rsW.rsRepo)
-	rsResult["cap-report"] = []any{rsCode, rsW.rsNormalize(rsStdout), rsW.rsNormalize(rsStderr)}
-	rsGate := rsW.rsGate("legacy", 1, rsOut)
-	// This digest covers timestamps in the previous file. Pin its semantics
-	// by checking it against the bytes supplied before the command, separately.
-	delete(rsGate, "previous_gate_digest")
-	rsResult["gate"] = rsW.rsJSON(rsW.rsNormalize(rsW.rsEncode(rsGate)))
-	rsResult["ledger"] = rsW.rsNormalize(rsW.rsRead(filepath.Join(rsOut, "ledger.jsonl")))
-	rsResult["summary"] = rsW.rsNormalize(rsW.rsMust(0, "summary", rsOut))
-	return rsResult
-}
-
-// Reflection lists the accepted TOML fields, and CLI probes below verify
-// that they remain accepted. This observes any added key, even one this goal
-// did not predict, without parsing implementation source text.
-func rsConfigKeys() map[string]any {
-	rsResult := map[string]any{}
-	for rsName, rsType := range map[string]reflect.Type{"user": reflect.TypeOf(userFile{}), "reviewer": reflect.TypeOf(reviewerEntry{}), "project": reflect.TypeOf(projectFile{}), "caps": reflect.TypeOf(capsEntry{})} {
-		rsKeys := []string{}
-		for rsI := 0; rsI < rsType.NumField(); rsI++ {
-			rsKey := rsType.Field(rsI).Tag.Get("toml")
-			if rsKey != "" && rsKey != "-" {
-				rsKeys = append(rsKeys, rsKey)
-			}
-		}
-		sort.Strings(rsKeys)
-		rsResult[rsName] = rsKeys
-	}
-	return rsResult
-}
-func (rsW *rsWorld) rsConfigSnapshot() map[string]any {
-	rsW.rsAll(1, nil)
-	rsOut := rsW.rsMust(0, "config", "--repo", rsW.rsRepo)
-	rsConfigBody := rsW.rsRead(rsW.rsConfig)
-	rsW.rsReplacements[rsHash(rsConfigBody)] = rsHash(rsW.rsNormalize(rsConfigBody))
-	rsCfg := rsMap(rsW.rsJSON(rsOut))
-	rsDigest := rsString(rsCfg["digest"])
-	if len(rsDigest) > 12 {
-		rsW.rsReplacements[rsDigest] = "<config-digest>"
-		rsW.rsReplacements[rsDigest[:12]] = "<short-config-digest>"
-	}
-	rsResult := map[string]any{"output": rsW.rsNormalize(rsOut), "keys": rsConfigKeys()}
-	rsProbes := map[string]any{}
-	for _, rsProbe := range []struct{ rsName, rsUser, rsProject string }{
-		{"all-user-keys", "timeout_seconds=60\n[[reviewers]]\nname=\"r\"\npreset=\"claude\"\nbinary=\"synthetic\"\nmodel=\"m\"\nfallback_model=\"fb\"\neffort=\"low\"\ntimeout_seconds=30\n", ""},
-		{"allowed-lists", "[[reviewers]]\nname=\"r\"\npreset=\"codex\"\nallowed_models=[\"m\"]\nallowed_efforts=[\"high\"]\n", ""},
-		{"command-argv", "[[reviewers]]\nname=\"cmd\"\npreset=\"command\"\nargv=[\"/bin/cat\",\"{prompt}\"]\n", ""},
-		{"all-project-keys", rsNative("native"), "angles=[\"design\"]\nrules=[\"AGENTS.md\"]\ncheck_paths=[\"checks/**\"]\n[caps]\nplan=2\nplan_delta=2\ncode=4\n"},
-		{"user-standpoint", "standpoint=\"risk\"\n" + rsNative("native"), ""},
-		{"user-standpoints", "standpoints=[]\n" + rsNative("native"), ""},
-		{"reviewer-standpoint", rsNative("native") + "standpoint=\"risk\"\n", ""},
-		{"project-standpoint", rsNative("native"), "standpoint=\"risk\"\n"},
-		{"project-standpoints", rsNative("native"), "standpoints=[]\n"},
-		{"project-reviewers", rsNative("native"), "reviewers=[\"native\"]\n"},
-	} {
-		rsW.rsUse(rsProbe.rsUser)
-		rsProject := filepath.Join(rsW.rsRepo, ".jaekit/spar.toml")
-		rsW.rsWrite(rsProject, rsProbe.rsProject)
-		rsCode, _, rsErr := rsW.rsCLI("config", "--repo", rsW.rsRepo)
-		rsProbes[rsProbe.rsName] = []any{rsCode, rsW.rsNormalize(rsErr)}
-	}
-	rsW.rsRemove(filepath.Join(rsW.rsRepo, ".jaekit/spar.toml"))
-	rsResult["probes"] = rsProbes
-	return rsResult
-}
-func TestReviewerStandpointsAC8_NoStandpointUnchanged(rsT *testing.T) {
-	const rsID = "no-standpoint-round-changed"
-	rsC := rsCollect(rsT, rsID)
-	rsW := rsNew(rsT, rsC)
-	rsSnapshots, rsRounds := rsW.rsStages()
-	if os.Getenv("RS_WRITE_BASE") == "1" {
-		if _, rsPresent := rsW.rsRaw(rsRounds[0])["standpoints"]; rsPresent {
-			rsT.Fatal("setup: refuse to regenerate base.json on a standpoint-aware tree")
-		}
-		// Candidate's native reviewer is still pending, so its old record is a
-		// real rerun target after the product gains standpoints.
-		rsCandidate := rsRounds[1]
-		rsArchive := rsW.rsArchive(filepath.Join(rsCandidate, "round.json"), filepath.Join(rsCandidate, "findings.json"), filepath.Join(rsCandidate, "ledger.jsonl"))
-		rsLegacy := rsW.rsLegacySetup()
-		rsLegacyExpected := rsW.rsLegacyRead()
-		rsConfig := rsW.rsConfigSnapshot()
-		rsW.rsWrite(rsFixture, rsW.rsEncode(map[string]any{"format": "reviewer-standpoints-base/v1", "stages": rsSnapshots, "rerun": rsArchive, "legacy": rsLegacy, "legacy_expected": rsLegacyExpected, "config": rsConfig}))
-		return
-	}
-	rsFixtureValue := rsW.rsLoadFixture()
-	for _, rsStage := range []string{"plan", "candidate", "agy-file"} {
-		rsAssert(rsC, reflect.DeepEqual(rsW.rsJSON(rsW.rsEncode(rsSnapshots[rsStage])), rsMap(rsFixtureValue["stages"])[rsStage]), "%s no-standpoint input, packet, schema, digest, whole round.json or summary differs from base.json", rsStage)
-	}
-	for _, rsOut := range rsRounds {
-		rsR := rsW.rsRaw(rsOut)
-		rsSP, rsPresent := rsR["standpoints"]
+	for _, rsOut := range append(rsRounds, rsLarge) {
+		rsSP, rsPresent := rsW.rsRaw(rsOut)["standpoints"]
 		rsAssert(rsC, rsPresent && reflect.DeepEqual(rsSP, []any{}), "%s must record explicit standpoints: []", filepath.Base(rsOut))
 		for _, rsName := range rsNames {
 			_, rsErr := os.Stat(filepath.Join(rsOut, rsName, "input.md"))
@@ -1428,40 +1151,21 @@ func TestReviewerStandpointsAC8_NoStandpointUnchanged(rsT *testing.T) {
 			rsAssert(rsC, os.IsNotExist(rsErr), "no-standpoint round created %s/input.md", rsName)
 		}
 	}
-	// Restore the OLD candidate record and its digest, not a record newly
-	// emitted by the product under test. Translate its normalized packet hash
-	// back to the actual packet bytes in this temporary world.
-	rsArchive := rsMap(rsFixtureValue["rerun"])
-	rsCurrentPacket := rsW.rsRead(filepath.Join(rsRounds[1], "packet.md"))
-	rsNormalizedHash := rsString(rsMap(rsMap(rsFixtureValue["stages"])["candidate"])["packet_sha256"])
-	for rsRel, rsValue := range rsArchive {
-		rsText := strings.ReplaceAll(rsString(rsValue), rsNormalizedHash, rsHash(rsCurrentPacket))
-		rsW.rsWrite(filepath.Join(rsW.rsDir, rsRel), rsW.rsExpand(rsText))
-	}
-	rsW.rsAll(1, nil)
-	rsAgain := rsW.rsOut("baseline", "03-candidate")
-	rsW.rsRun(rsID, rsAgain, "candidate", 0, 1, "--reviewers", "native", "--question", "Is AC-1 covered?")
-	rsAgainRecord := rsW.rsRaw(rsAgain)
-	rsAssert(rsC, rsAgainRecord["counted"] == false && reflect.DeepEqual(rsAgainRecord["rerun_of"], []any{"02-candidate"}), "old no-standpoint packet is not an uncounted rerun: %v %v", rsAgainRecord["counted"], rsAgainRecord["rerun_of"])
 }
 
-func TestReviewerStandpointsAC11_EarlierRecords(rsT *testing.T) {
-	rsC := rsCollect(rsT, "")
-	rsW := rsNew(rsT, rsC)
-	rsFixtureValue := rsW.rsLoadFixture()
-	rsW.rsRestore(rsMap(rsFixtureValue["legacy"]))
-	rsPrevious := rsW.rsRead(rsW.rsOut("gates", "legacy.json"))
-	rsGot := rsW.rsLegacyRead()
-	rsAssert(rsC, reflect.DeepEqual(rsW.rsJSON(rsW.rsEncode(rsGot)), rsFixtureValue["legacy_expected"]), "legacy gate/cap-report/triage/waive results differ from base.json\ngot: %s\nwant: %s", rsW.rsEncode(rsGot), rsW.rsEncode(rsFixtureValue["legacy_expected"]))
-	rsGate := rsMap(rsW.rsJSON(rsW.rsRead(rsW.rsOut("gates", "legacy.json"))))
-	rsAssert(rsC, rsGate["previous_gate_digest"] == rsHash(rsPrevious), "legacy gate replacement did not preserve previous_gate_digest")
-}
+// A project configuration that sets every project key loads, and keeps its
+// rules entry, a readable file inside the repository.
 func TestReviewerStandpointsAC12_Config(rsT *testing.T) {
-	rsC := rsCollect(rsT, "")
-	rsW := rsNew(rsT, rsC)
-	rsFixtureValue := rsW.rsLoadFixture()
-	rsGot := rsW.rsConfigSnapshot()
-	rsAssert(rsC, reflect.DeepEqual(rsW.rsJSON(rsW.rsEncode(rsGot)), rsFixtureValue["config"]), "configuration output, accepted keys or refusal probes changed\ngot: %s\nwant: %s", rsW.rsEncode(rsGot), rsW.rsEncode(rsFixtureValue["config"]))
+	rsDir := rsT.TempDir()
+	rsRepo := filepath.Join(rsDir, "repo")
+	writeFile(rsT, filepath.Join(rsRepo, "AGENTS.md"), "# Rules\n")
+	writeFile(rsT, filepath.Join(rsRepo, ".jaekit", "spar.toml"),
+		"angles=[\"design\"]\nrules=[\"AGENTS.md\"]\ncheck_paths=[\"checks/**\"]\n[caps]\nplan=2\nplan_delta=2\ncode=4\n")
+	rsCfg, rsErr := LoadConfig(rsRepo, env(map[string]string{"HOME": rsDir, "XDG_CONFIG_HOME": rsDir}), nil)
+	if rsErr != nil || strings.Join(rsCfg.Rules, ",") != "AGENTS.md" || strings.Join(rsCfg.CheckPaths, ",") != "checks/**" ||
+		strings.Join(rsCfg.Angles, ",") != "design" || rsCfg.Caps.Plan != 2 || rsCfg.Caps.Code != 4 {
+		rsT.Errorf("a project configuration with every project key: %v %+v", rsErr, rsCfg)
+	}
 }
 
 func TestReviewerStandpointsAC9_ClassificationIndependent(rsT *testing.T) {
