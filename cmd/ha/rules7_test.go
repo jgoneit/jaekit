@@ -363,3 +363,22 @@ func TestRules7ReportRestoredAndAddedBaselineMarks(t *testing.T) {
 		t.Fatal("reading the reports changed the run records")
 	}
 }
+
+// cwSaved reports whether a goal under rules is a saved-record fixture:
+// this tree's ha starts run-rules/3 to /7 with --rules, and no longer starts
+// run-rules/1 or /2.
+func cwSaved(rules string) bool { return rules == "run-rules/1" || rules == "run-rules/2" }
+
+// cwSaveRules turns the goal this tree's ha just started under run-rules/3
+// into a saved goal of rules: its start line, still the record's only line,
+// names rules. No later line links to it yet, so no hash link is joined
+// again (estimate_test.go makes its earlier-rule goals the same way).
+func cwSaveRules(f *rgFixture, rules string) {
+	f.t.Helper()
+	lines := ciLines(f)
+	if len(lines) != 1 || lines[0].kind() != "start" {
+		f.t.Fatalf("setup: the record after ha start is not one start line (%d lines)", len(lines))
+	}
+	lines[0].m["rules"] = rules
+	ciWrite(f, ciRelink(f, lines, 0))
+}
