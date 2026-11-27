@@ -1,6 +1,8 @@
 package spar
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -1159,6 +1161,160 @@ func TestReviewerStandpointsAC8_NoStandpointUnchanged(rsT *testing.T) {
 	}
 	rsW.rsUse(rsW.rsFake("agy", "agy", rsW.rsAnswer("agy-large", 1, nil, false), ""))
 	rsCheck(rsW.rsOut("baseline-large", "01-candidate"), "candidate", []string{"agy"}, "--criteria", rsW.rsLargeCriteria())
+}
+
+// The schema a reviewer CLI is held to asks for what validateResult reads:
+// a result built from its required fields and first enum values passes the
+// validator, its enums are the validator's lists, and no object in it takes
+// a field it does not require.
+func TestSparResultSchemaMatchesValidator(t *testing.T) {
+	var schema map[string]any
+	if err := json.Unmarshal(resultSchema(false), &schema); err != nil {
+		t.Fatalf("setup: schema: %v", err)
+	}
+	props := rsMap(schema["properties"])
+	finding := rsMap(rsMap(props["findings"])["items"])
+	checked, unchecked := rsMap(rsMap(props["angles_checked"])["items"]), rsMap(rsMap(props["angles_unchecked"])["items"])
+	strs := func(v any) []string {
+		out := []string{}
+		for _, s := range rsList(v) {
+			out = append(out, rsString(s))
+		}
+		return out
+	}
+	enum := func(object map[string]any, key string) []string {
+		return strs(rsMap(rsMap(object["properties"])[key])["enum"])
+	}
+	value := func(object map[string]any) map[string]any {
+		m := map[string]any{}
+		for _, key := range strs(object["required"]) {
+			if m[key] = "synthetic"; len(enum(object, key)) > 0 {
+				m[key] = enum(object, key)[0]
+			}
+		}
+		return m
+	}
+	head := strings.Repeat("a", 40)
+	angles := []any{}
+	for _, a := range Angles[1:] {
+		item := value(checked)
+		item["angle"] = a
+		angles = append(angles, item)
+	}
+	result := value(schema)
+	for key, v := range map[string]any{"reviewed_head": head, "angles_checked": angles, "angles_unchecked": []any{value(unchecked)}, "findings": []any{value(finding)}} {
+		if _, ok := result[key]; ok {
+			result[key] = v
+		}
+	}
+	if problems := validateResult(result, head, Angles); len(problems) > 0 {
+		t.Errorf("a result with the schema's required fields fails the validator: %v", problems)
+	}
+	enums := map[string][2][]string{"verdict": {enum(schema, "verdict"), verdicts}, "angles_checked angle": {enum(checked, "angle"), Angles},
+		"angles_unchecked angle": {enum(unchecked, "angle"), Angles}}
+	for key, list := range map[string][]string{"proposed_class": Classes, "angle": Angles, "link_kind": linkKinds,
+		"introduced_by_change": yesNo, "regression": yesNo, "check_impact": checkImpact, "confidence": confidences} {
+		enums["finding "+key] = [2][]string{enum(finding, key), list}
+	}
+	for key, pair := range enums {
+		if !reflect.DeepEqual(pair[0], pair[1]) {
+			t.Errorf("the schema's %s enum is %v, the validator's %v", key, pair[0], pair[1])
+		}
+	}
+	for label, object := range map[string]map[string]any{"result": schema, "finding": finding, "angles_checked item": checked, "angles_unchecked item": unchecked} {
+		var keys []string
+		for k := range rsMap(object["properties"]) {
+			keys = append(keys, k)
+		}
+		required := strs(object["required"])
+		sort.Strings(keys)
+		sort.Strings(required)
+		if object["additionalProperties"] != false || !reflect.DeepEqual(keys, required) {
+			t.Errorf("the schema's %s takes other fields (%v) or fields it does not require: %v, required %v", label, object["additionalProperties"], keys, required)
+		}
+	}
+}
+
+// A plan round with a subject, a decision, a standpoint and two questions
+// records the values spar computed from its inputs, places the questions
+// after the documents, decision and standpoint sections and before the
+// changes, and opens summary.md with its head lines and the reviewer's line.
+// A check-path finding of a later round is deferred automatically.
+func TestSparRoundRecordedValues(t *testing.T) {
+	w := rsNew(t, &rsChecks{})
+	w.rsUse(w.rsFake("claude", "claude", w.rsAnswer("claude", 1, rsReport(true, "checked claude"), true), ""))
+	out, plan := w.rsOut("values", "01-plan"), filepath.Join(w.rsRepo, "PLAN.md")
+	questions := []any{"Is AC-1 covered?", "Is AC-2 covered?"}
+	w.rsRun("", out, "plan", 0, 1, "--subject", plan, "--question", "Is AC-1 covered?", "--question", "Is AC-2 covered?",
+		"--decision", "the scope", "--decision-quote", "synthetic user words", "--standpoint", "claude=synthetic risk")
+	r := w.rsRaw(out)
+	sum := func(data string) string { s := sha256.Sum256([]byte(data)); return hex.EncodeToString(s[:]) }
+	diff, err := exec.Command("git", "-C", w.rsRepo, "diff", "--no-color", "--no-ext-diff", "--no-textconv", "-M", w.rsCommits[0], w.rsCommits[1], "--").Output()
+	if err != nil {
+		t.Fatalf("setup: git diff: %v", err)
+	}
+	for key, want := range map[string]any{"diff_sha256": sum(string(diff)), "base_tree": w.rsTrees[0], "head_tree": w.rsTrees[1], "questions": questions,
+		"criteria_digest": sum("SPEC.md\x00" + sum(w.rsRead(filepath.Join(w.rsRepo, "SPEC.md"))) + "\x00"),
+		"subjects":        []any{map[string]any{"name": "PLAN.md", "source": plan, "sha256": sum(w.rsRead(plan))}}} {
+		if !reflect.DeepEqual(r[key], want) {
+			t.Errorf("round.json %s is %v, want %v", key, r[key], want)
+		}
+	}
+	cfg := rsMap(r["config"])
+	files := rsList(cfg["files"])
+	for _, f := range files {
+		if path := rsString(rsMap(f)["path"]); rsMap(f)["sha256"] != sum(w.rsRead(path)) {
+			t.Errorf("round.json config.files gives %s the sha256 %v, not that of its bytes", path, rsMap(f)["sha256"])
+		}
+	}
+	if len(files) != 1 || rsMap(files[0])["path"] != w.rsConfig {
+		t.Errorf("round.json config.files is %v, want the one user configuration %s", files, w.rsConfig)
+	}
+
+	packet, last := w.rsRead(filepath.Join(out, "packet.md")), -1
+	for _, heading := range []string{"## Documents under review", "## Decisions the user made", rsSection, "## Questions for this round", "## Changes from base to head"} {
+		at := strings.Index(packet, "\n"+heading+"\n")
+		if at <= last {
+			t.Errorf("packet.md has %q at %d, not after the section before it (at %d)", heading, at, last)
+		}
+		last = at
+	}
+	if !strings.Contains(packet, "\n## Questions for this round\n\n- Is AC-1 covered?\n- Is AC-2 covered?\n\n## ") {
+		t.Errorf("packet.md does not list the two questions alone in their section")
+	}
+
+	var head []string
+	summary := w.rsRead(filepath.Join(out, "summary.md"))
+	for _, line := range strings.Split(strings.Split(summary, "## Reviewers")[0], "\n") {
+		if line != "" && !strings.HasPrefix(line, "- Standpoints: ") {
+			head = append(head, line)
+		}
+	}
+	source := rsMap(cfg["source"])
+	if want := []string{"# Spar round 01-plan", "- Stage: plan, base " + w.rsCommits[0][:12] + ", head " + w.rsCommits[1][:12],
+		"- Packet: sha256 " + rsString(r["packet_sha256"]),
+		fmt.Sprintf("- Configuration: %s %s (digest %s)", source["kind"], source["path"], rsString(cfg["digest"])[:12]),
+		"- Angles asked: " + strings.Join(rsAngles, ", ")}; !reflect.DeepEqual(head, want) {
+		t.Errorf("summary.md opens with\n%s\nwant\n%s", strings.Join(head, "\n"), strings.Join(want, "\n"))
+	}
+	line := regexp.MustCompile(`(?m)^- claude: completed, 0 findings \(.*, observed synthetic, verified isolation, required, \d+\.\ds\)$`)
+	if !line.MatchString(summary) || !strings.Contains(summary, "\n## Findings\n\nNo finding was recorded from the reviewers that completed.\n") {
+		t.Errorf("summary.md lacks the claude line with its observed model, isolation, requirement and elapsed time, or the no-finding line:\n%s", summary)
+	}
+
+	w.rsUse(w.rsFake("claude", "claude", w.rsAnswer("claude", 1, nil, false,
+		rsFinding("F1", map[string]any{"location": "head/checks/test_app.py:1", "link_kind": "none", "link": ""})), ""))
+	out = w.rsOut("deferred", "01-candidate")
+	w.rsRun("", out, "candidate", 0, 1)
+	var found []map[string]any
+	var entry map[string]any
+	if json.Unmarshal([]byte(w.rsRead(filepath.Join(out, "findings.json"))), &found) != nil || len(found) != 1 || found[0]["class"] != "hardening" ||
+		json.Unmarshal([]byte(w.rsRead(filepath.Join(out, "ledger.jsonl"))), &entry) != nil {
+		t.Fatalf("setup: the check-path finding is not one hardening finding with a ledger line: %v", found)
+	}
+	if entry["disposition"] != "defer" || entry["auto"] != true || entry["reason"] != "hardening: "+rsString(found[0]["class_reason"]) || entry["to"] != "deferred hardening" {
+		t.Errorf("the hardening finding's ledger line is %v; want an automatic defer to \"deferred hardening\" with the reason \"hardening: <class reason>\"", entry)
+	}
 }
 
 // A round recorded before standpoints, whose round.json has no standpoints

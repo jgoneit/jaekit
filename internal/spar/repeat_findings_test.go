@@ -866,15 +866,18 @@ func TestRepeatFindingsAC6_PresetDefaults(t *testing.T) {
 	head := w.commits[1]
 	w.useConfig(w.pdFake("claude", head), w.pdFake("codex", head), w.pdFake("agy", head),
 		"[[reviewers]]\nname = \"native\"\npreset = \"native\"\n\n", pdCommand("cmd", w.script("ok", "exit 0\n")))
-	limits := map[string]int{}
+	limits, isolation := map[string]int{}, map[string]any{}
 	for _, r := range w.rptConfigReviewers(id) {
 		name, _ := r["name"].(string)
-		limits[name] = rptLimit(r)
+		limits[name], isolation[name] = rptLimit(r), r["isolation"]
 	}
-	for _, name := range []string{"claude", "codex", "agy"} {
-		if limits[name] <= 0 {
-			t.Errorf("jaekit:violation=%s %s has no default packet limit", id, name)
+	for name, want := range map[string]int{"claude": 1_200_000, "codex": 1_200_000, "agy": 4_000_000} {
+		if limits[name] != want {
+			t.Errorf("jaekit:violation=%s %s has the default packet limit %d, want %d", id, name, limits[name], want)
 		}
+	}
+	if want := map[string]any{"claude": "verified", "codex": "verified", "agy": "verified", "native": "host", "cmd": "unverified"}; !reflect.DeepEqual(isolation, want) {
+		t.Errorf("preset isolation without a setting is %v, want %v", isolation, want)
 	}
 	for _, name := range []string{"native", "cmd"} {
 		if limits[name] != 0 {

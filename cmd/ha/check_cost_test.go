@@ -929,3 +929,77 @@ func TestCheckCostAC4_MinimumFollowsMark(t *testing.T) {
 		}
 	}()
 }
+
+// Under run-rules/6 the baseline column narrows nothing: a baseline run
+// without targets records every change condition, marked or not. A file
+// outside the scope gives out_of_scope until a later commit removes it. A
+// change condition's baseline input reaches its error limit at the second
+// error; a recovery is refused before that limit and clears it after, the
+// status counts recoveries against the baseline input's two, a third is
+// refused, and the user's allowance of one more gives 3 of 3.
+func TestCheckCostRules6KeepsEarlierJudgments(t *testing.T) {
+	t.Parallel()
+	const v = "rules-v6-judgment-changed"
+	f := ccRepo(t, ccGoal{conds: []ccCond{ccChange("AC-1", ccMark), ccChange("AC-2", "—")}, column: true})
+	if code, out := f.ha("start", rgGoal, "--request", ccRequest, "--rules", "run-rules/6"); code != exitOK {
+		t.Fatalf("setup: ha start --rules run-rules/6 exit %d: %s", code, out)
+	}
+	f.base = f.git("rev-parse", "HEAD")
+	f.implement()
+	before := len(ciLines(f.rgFixture))
+	f.must(v, "the default baseline run", exitOK, "check", rgGoal, "--baseline")
+	added := ccRuns(ciLines(f.rgFixture)[before:], "baseline")
+	if got := ccTargets(added); !rgSame(got, []string{"AC-1", "AC-2"}) || added[0].m["result"] != "fail_as_expected" || added[1].m["result"] != "fail_as_expected" {
+		t.Errorf("jaekit:violation=%s under run-rules/6 ha check --baseline without targets recorded baselines of %v; want fail_as_expected baselines of AC-1 and AC-2", v, got)
+	}
+
+	judged := f.state(v, "before a file outside the scope").reasons
+	f.put("notes/outside.txt", "outside\n")
+	f.head = f.commit("a file outside the scope")
+	if s := f.state(v, "a file outside the scope"); !ccHasReason(s, "", "out_of_scope") {
+		t.Errorf("jaekit:violation=%s a committed file outside the scope gives reasons %v; want out_of_scope", v, s.reasons)
+	}
+	f.git("rm", "-q", "notes/outside.txt")
+	f.head = f.commit("the file outside the scope removed")
+	if s := f.state(v, "the file outside the scope removed"); !rgSame(s.reasons, judged) {
+		t.Errorf("jaekit:violation=%s after the file outside the scope is removed the reasons are %v; want %v as before it", v, s.reasons, judged)
+	}
+
+	f.put(rgGoal+"/PLAN.md", strings.Replace(ccPlan(f.g), "`sh "+ccScript("AC-2")+"`", "`cc-no-such-program`", 1))
+	recoverArgs := []string{"note", rgGoal, "recover", "AC-2", "--input", "baseline", "--change", "the command names a program that exists"}
+	f.must(v, "the first AC-2 baseline that cannot start", exitProblems, "check", rgGoal, "--baseline", "AC-2")
+	if s := f.state(v, "after one error"); ccHasReason(s, "AC-2", "error_limit") {
+		t.Errorf("jaekit:violation=%s one baseline error already gives AC-2:error_limit", v)
+	}
+	records := f.records()
+	if code, out := f.ha(recoverArgs...); code != exitRefused || !bytes.Equal(records, f.records()) {
+		t.Errorf("jaekit:violation=%s a recovery before the error limit exits %d and changed the record %v: %s", v, code, !bytes.Equal(records, f.records()), out)
+	}
+	f.must(v, "the second AC-2 baseline that cannot start", exitProblems, "check", rgGoal, "--baseline", "AC-2")
+	if s := f.state(v, "after two errors"); !ccHasReason(s, "AC-2", "error_limit") {
+		t.Errorf("jaekit:violation=%s two baseline errors give reasons %v; want AC-2:error_limit", v, s.reasons)
+	}
+	recovered := func(label string, used, allowed int) {
+		t.Helper()
+		f.must(v, label, exitOK, recoverArgs...)
+		s := f.state(v, label)
+		recoveries, _ := s.value["recoveries"].([]any)
+		r, _ := append(recoveries, nil)[0].(map[string]any)
+		if ccHasReason(s, "AC-2", "error_limit") || len(recoveries) != 1 ||
+			r["criterion"] != "AC-2" || r["input"] != "baseline" || r["used"] != float64(used) || r["allowed"] != float64(allowed) {
+			t.Errorf("jaekit:violation=%s after %s the reasons are %v and recoveries %v; want no AC-2:error_limit and AC-2 baseline %d of %d", v, label, s.reasons, recoveries, used, allowed)
+		}
+	}
+	errorLimit := func() {
+		for i := 0; i < 2; i++ {
+			f.must(v, "an AC-2 baseline that cannot start", exitProblems, "check", rgGoal, "--baseline", "AC-2")
+		}
+	}
+	recovered("the first recovery", 1, 2)
+	errorLimit()
+	recovered("the second recovery", 2, 2)
+	errorLimit()
+	f.must(v, "a third recovery without the user's allowance", exitRefused, recoverArgs...)
+	f.must(v, "the user's allowance", exitOK, "note", rgGoal, "allow-recovery", "AC-2", "--input", "baseline", "--count", "1", "--quote", "synthetic user words")
+	recovered("the allowed recovery", 3, 3)
+}
