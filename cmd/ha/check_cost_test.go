@@ -30,6 +30,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 	"testing"
@@ -1089,4 +1090,111 @@ func TestCheckCostRules6KeepsEarlierJudgments(t *testing.T) {
 	f.must(v, "a third recovery without the user's allowance", exitRefused, recoverArgs...)
 	f.must(v, "the user's allowance", exitOK, "note", rgGoal, "allow-recovery", "AC-2", "--input", "baseline", "--count", "1", "--quote", "synthetic user words")
 	recovered("the allowed recovery", 3, 3)
+}
+
+// Earlier rules keep what a goal's views show: after a start without
+// --skill, ha lint, ha estimate, checks, AC-1's baseline and an incomplete
+// ha done; hashes, times and measured seconds are matched by shape.
+func TestCheckCostEarlierRulesViews(t *testing.T) {
+	t.Parallel()
+	const v = "earlier-rules-view-changed"
+	hash, at, secs := regexp.MustCompile(`[0-9a-f]{12,64}`), regexp.MustCompile(`\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ`), regexp.MustCompile(`\d+(/14400 seconds| seconds\))`)
+	norm := func(s string) string {
+		return "\n" + secs.ReplaceAllString(at.ReplaceAllString(hash.ReplaceAllString(s, "<hash>"), "<time>"), "<s>$1") + "\n"
+	}
+	asJSON := func(x any) string { b, _ := json.Marshal(x); return string(b) }
+	obj := func(x any) map[string]any { m, _ := x.(map[string]any); return m }
+	for _, rules := range []string{"run-rules/3", "run-rules/5", "run-rules/6"} {
+		f := ccRepo(t, ccGoal{conds: []ccCond{ccChange("AC-1", ""), ccChange("AC-2", ""), ccMaintain("AC-3")}})
+		views, raw := map[string]string{}, map[string]map[string]any{}
+		run := func(name string, want int, args ...string) {
+			code, out, errb := haIn(f.dir, envIn(f.dir, f.env), args...)
+			if code != want {
+				t.Errorf("jaekit:violation=%s %s: ha %v exits %d, want %d: %s", v, rules, args, code, want, errb)
+			}
+			m := map[string]any{}
+			_ = json.Unmarshal([]byte(out), &m)
+			views[name], raw[name] = norm(out), m
+		}
+		run("start", exitOK, "start", rgGoal, "--request", ccRequest, "--rules", rules)
+		records := f.records()
+		run("lint", exitOK, "lint", rgGoal)
+		if !bytes.Equal(records, f.records()) {
+			t.Errorf("jaekit:violation=%s %s: ha lint changed the record", v, rules)
+		}
+		for name, args := range map[string][]string{"estimate json": {"--format", "json"}, "estimate baseline json": {"--baseline", "--format", "json"}, "estimate": nil, "estimate baseline": {"--baseline"}} {
+			run(name, exitOK, append([]string{"estimate", rgGoal}, args...)...)
+		}
+		f.implement()
+		f.must(v, "every condition checked", exitOK, "check", rgGoal)
+		f.must(v, "AC-1's baseline", exitOK, "check", rgGoal, "--baseline", "AC-1")
+		run("done", exitProblems, "done", rgGoal)
+		if l := ciLines(f.rgFixture); len(l) != 6 || l[5].kind() != "done" || l[5].m["status"] != "incomplete" {
+			t.Errorf("jaekit:violation=%s %s: an incomplete ha done leaves %d lines, the last %v; want 6, the last a done line with status incomplete", v, rules, len(l), l[len(l)-1].m)
+		}
+		run("status json", exitProblems, "status", rgGoal, "--format", "json")
+		run("status", exitProblems, "status", rgGoal)
+		run("report", exitOK, "report", rgGoal, "--lang", "en")
+		run("report ko", exitOK, "report", rgGoal, "--lang", "ko")
+
+		s, est, base := raw["status json"], raw["estimate json"], raw["estimate baseline json"]
+		criteria := append(s["criteria"].([]any), nil, nil)
+		_, auto := est["auto"]
+		attempts := `"baseline_errors":0,"baseline_fails":0,"baseline_unknowns":0,"baselines":%d,"checks":1,"errors":0,"fail_commits":[],"fails":0,"stale":0,"unexpected_passes":0,"unknowns":0`
+		for _, c := range []struct{ field, got, want string }{
+			{"schema, check_author, goal", asJSON([]any{s["schema"], s["check_author"], s["goal"]}), `["status/v1","executor","docs/specs/demo"]`},
+			{"ha_version, commit, tree_clean", asJSON([]any{s["ha_version"], s["commit"], s["tree_clean"]}), fmt.Sprintf("[%q,%q,true]", version, f.head)},
+			{"complete_without_record, lint, logs, budget.history, skill", asJSON([]any{s["complete_without_record"], s["lint"], s["logs"], obj(s["budget"])["history"], s["skill"]}), `[false,null,[],[],{"digest":"","name":"","version":""}]`},
+			{"changes", asJSON(s["changes"]), `{"command_changed":[],"ha_version_changed":[],"invalid_confirmations":[],"kind_changed":[],"optional":[]}`},
+			{"reasons", asJSON(s["reasons"]), `[{"class":"executor","code":"baseline_missing","criterion":"AC-2"}]`},
+			{"criteria[0].attempts", asJSON(obj(criteria[0])["attempts"]), "{" + fmt.Sprintf(attempts, 1) + "}"},
+			{"criteria[1]", asJSON(criteria[1]), `{"attempts":{` + fmt.Sprintf(attempts, 0) + `},"id":"AC-2","kind":"change","reason":"baseline_missing","records":[],"required":true,"satisfied":false}`},
+			{"usage", asJSON(s["usage"]), `{"baselines":1,"checks":3,"current_inputs":4,"environment_errors":0,"stale_inputs":0,"total":4,"unknowns":0,"valid_evidence":4}`},
+			{"findings", asJSON(s["findings"]), `{"candidate":0,"confirmed":0,"confirmed_existing":0,"findings":[],"goal":"docs/specs/demo","record_head":` + asJSON(s["record_head"]) + `,"schema":"findings/v1","unresolved":0}`},
+			{"estimate schema, goal, auto", asJSON([]any{est["schema"], est["goal"], auto}), `["estimate/v1","docs/specs/demo",false]`},
+			{"estimate selected", asJSON([]any{obj(est["selected"])["mode"], obj(est["selected"])["targets"], obj(base["selected"])["mode"], obj(base["selected"])["targets"]}), `["check",["AC-1","AC-2","AC-3"],"baseline",["AC-1","AC-2"]]`},
+		} {
+			if c.got != c.want {
+				t.Errorf("jaekit:violation=%s %s: JSON %s is %s, want %s", v, rules, c.field, c.got, c.want)
+			}
+		}
+
+		estimate := "## ha estimate: docs/specs/demo\n\n- required minimum: 5 runs (2 change × 2 + 1 maintain; manual: 0)\n" +
+			"- PLAN run limit: 50; shortfall: 0; headroom above minimum: 45\n- default commands: check 3 + baseline 2 runs; additional to minimum: 0\n- selected "
+		limitation := fmt.Sprintf("\n\n%v", est["limitation"])
+		row := " | checks 1 (fail 0, error 0), baselines %d (unexpected pass 0, error 0), stale 0 |"
+		for name, lines := range map[string][]string{
+			"lint":              {"ok: no lint problems"},
+			"estimate":          {estimate + "check: 3 runs; additional: 0 (optional 0, task 0, repeated required 0)\n  - AC-1\n  - AC-2\n  - AC-3" + limitation},
+			"estimate baseline": {estimate + "baseline: 2 runs; additional: 0 (optional 0, task 0, repeated required 0)\n  - AC-1\n  - AC-2" + limitation},
+			"status": {"## ha status: docs/specs/demo\n\n- status: **incomplete** (exit 1)", "- assurance: local (an agent with the same user permissions can change checks and records)\n- check author: executor\n- record head: seq 6 (<hash>)",
+				"- rules: " + rules + "; skill: not recorded; ha: " + version + "\n- code: <hash>, tree clean: yes; goal digest: <hash>",
+				"- attempts: 4 total; types: 3 check, 1 baseline; outcomes: 0 environment errors, 0 unknown; inputs: 4 current, 0 stale; valid positive evidence: 4 (overlapping axes)",
+				"### Unmet\n\n- AC-2 `baseline_missing` (executor): no fresh record", "| ID | kind | required | satisfied | reason | records | attempts |",
+				"| AC-1 | change | yes | yes | — | 2, 5" + fmt.Sprintf(row, 1), "| AC-2 | change | yes | no | baseline_missing | —" + fmt.Sprintf(row, 0),
+				"| AC-3 | maintain | yes | yes | — | 4" + fmt.Sprintf(row, 0), "### Reasons\n\n- `baseline_missing` (executor) AC-2", "### Budget\n\n- window from seq 1: 4/50 runs, <s>/14400 seconds\n- budget revision: 1; remaining: 46 runs; excess: 0 runs; run cap reached: no"},
+			"report": {"| AC-2 | change | yes | no | — |", "### Completion coverage\n\n- completion record: none"},
+			"report ko": {"남은 한계: 보증 수준 local; 검사 작성자: 실행자; 지금 HEAD를 덮는 완료 기록이 없음\n다음 행동: AC-2 `baseline_missing` 해결 (executor)", "- 기록 head: seq 6 (<hash>), 기록 시각 <time>; 상태: incomplete", "근거 출처: 지금 상태", "| AC-2 | change | 예 | 아니오 | — |",
+				"### 완료 범위\n\n- 완료 기록: none", "- AC-2 `baseline_missing` (executor): 신선한 기록 없음"},
+		} {
+			for _, line := range lines {
+				if !strings.Contains(views[name], "\n"+line+"\n") {
+					t.Errorf("jaekit:violation=%s %s: the %s view has no line\n%s\nin\n%s", v, rules, name, line, views[name])
+				}
+			}
+		}
+		wait := strings.Contains(views["status"], "\n- elapsed leaves out 0 seconds of waits the executor reported (window span <s> seconds)\n")
+		after := strings.Contains(views["status"], "\n- elapsed also leaves out 0 seconds after completion, excluding reported waits and runs\n")
+		if wait != (rules != "run-rules/3") || after != (rules == "run-rules/6") {
+			t.Errorf("jaekit:violation=%s %s: the status Budget's wait line is there %v and its after-completion line %v", v, rules, wait, after)
+		}
+
+		f.must(v, "AC-2's baseline", exitOK, "check", rgGoal, "--baseline", "AC-2")
+		f.must(v, "ha done of the complete goal", exitOK, "done", rgGoal)
+		run("status json", exitOK, "status", rgGoal, "--format", "json")
+		run("status", exitOK, "status", rgGoal)
+		if got := asJSON(raw["status json"]["reasons"]); got != "[]" || !strings.Contains(views["status"], "\n### Reasons\n\nNone.\n") {
+			t.Errorf("jaekit:violation=%s %s: a complete goal's status gives reasons %s and no \"None.\" under ### Reasons", v, rules, got)
+		}
+	}
 }
