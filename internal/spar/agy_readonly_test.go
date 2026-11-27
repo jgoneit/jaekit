@@ -123,6 +123,38 @@ func TestSparAgyReadonlyAC2_OtherCommandsStayViolations(t *testing.T) {
 	}
 }
 
+// A command agy reports shortened, cut at 512 characters and ended with
+// "…" as agy's event stream does, is refused with a reason that says so, even
+// when the full command is read-only. A long read-only command that is not
+// shortened, and one of 512 characters or fewer that happens to end in "…",
+// are judged as before.
+func TestSparAgyReadonlyShortenedCommand(t *testing.T) {
+	spec, _ := arAgySpec(t, []byte("packet"))
+	var names []string
+	for i := 0; len(strings.Join(names, "|")) < 600; i++ {
+		names = append(names, fmt.Sprintf("TestRemovedName%d", i))
+	}
+	full := `rg -n "` + strings.Join(names, "|") + `" cmd internal`
+	if why := unsafeCommand(full); why != "" {
+		t.Fatalf("setup: the full search is not read-only: %s", why)
+	}
+	cut := string([]rune(full)[:512]) + "…"
+	if why := spec.checkEvent(arRunCommand(cut)); !strings.Contains(why, "shortened to 513 characters") || strings.Contains(why, "unclosed quote") {
+		t.Errorf("agy's event check of a shortened command gives %q; want a reason that says agy shortened it", why)
+	}
+	long := string([]rune(full)[:480]) + `" cmd`
+	if why := spec.checkEvent(arRunCommand(long)); why != "" {
+		t.Errorf("agy's event check stops a %d-character read-only command: %s", len([]rune(long)), why)
+	}
+	edge := `grep -n "` + strings.Repeat("x", 512-len([]rune(`grep -n "" README.md …`))) + `" README.md …`
+	if n := len([]rune(edge)); n != 512 {
+		t.Fatalf("setup: the edge command has %d characters, not 512", n)
+	}
+	if why := spec.checkEvent(arRunCommand(edge)); why != "" {
+		t.Errorf("a 512-character read-only command ending in … is stopped: %s", why)
+	}
+}
+
 func arOneLine(s string) string {
 	return strings.Join(strings.Fields(s), " ")
 }
@@ -146,7 +178,8 @@ func TestSparAgyReadonlyAC3_KeptCommands(t *testing.T) {
 // programs and operators a shell command may use, and what stops a review.
 func arNoteTokens() []string {
 	tokens := []string{"view_file", "read_file", "list_dir", "grep_search", "find_by_name",
-		"sed -n", "|", "&&", "||", ";", "true", "tests", "builds", "git", "stops", "discards", "tool_violation"}
+		"sed -n", "|", "&&", "||", ";", "true", "tests", "builds", "git", "stops", "discards", "tool_violation",
+		"under 500 characters", "shortened"}
 	for name := range readOnlyPrograms {
 		tokens = append(tokens, name)
 	}

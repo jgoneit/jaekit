@@ -15,6 +15,7 @@ import (
 	"strings"
 	"time"
 	"unicode"
+	"unicode/utf8"
 )
 
 // Status values of a reviewer in a round.
@@ -60,6 +61,21 @@ var systemProgramDirs = map[string]bool{"/bin": true, "/usr/bin": true, "/usr/lo
 // each of which is read-only on its own.
 var commandSeparators = map[string]bool{"|": true, "&&": true, "||": true, ";": true}
 
+// agyCommandChars is the longest shell command the note asks agy for,
+// below agyReportedChars: agy's event stream reports a longer command cut
+// at agyReportedChars characters and ended with "…", which spar cannot
+// check as read-only.
+const (
+	agyCommandChars  = 500
+	agyReportedChars = 512
+)
+
+// agyShortened reports whether agy reported a command line shortened: more
+// than agyReportedChars characters, ending with "…".
+func agyShortened(line string) bool {
+	return strings.HasSuffix(line, "…") && utf8.RuneCountInString(line) > agyReportedChars
+}
+
 // agyCommandNote opens agy's prompt, before the packet: which shell commands
 // spar accepts. The packet itself stays the same for every reviewer.
 var agyCommandNote = func() string {
@@ -71,6 +87,7 @@ var agyCommandNote = func() string {
 	return "Spar checks every shell command you run during this review. Read, list and search files with your file tools " +
 		"(view_file, read_file, list_dir, grep_search, find_by_name) first. A shell command may run only these read-only programs: " +
 		strings.Join(names, ", ") + ", and sed -n with a print script such as sed -n '1,40p'; join commands only with |, &&, || or ;. " +
+		fmt.Sprintf("Keep each shell command under %d characters and split longer searches: spar cannot check a command agy shortened. ", agyCommandChars) +
 		"Running code, tests, builds, git or any other program, or other shell syntax such as cd, subshells, loops, background jobs " +
 		"or redirection (2>/dev/null and 2>&1 aside), stops this review at once and discards your result as tool_violation.\n\n"
 }()
@@ -351,6 +368,10 @@ func agySpec(r Reviewer, model, binary string, p runPaths, packet []byte) review
 			switch {
 			case name == "run_command":
 				line := str(params["CommandLine"])
+				if agyShortened(line) {
+					return fmt.Sprintf("ran a command agy reported shortened to %d characters, which spar cannot check as read-only: %s",
+						utf8.RuneCountInString(line), short(line, 200))
+				}
 				if why := unsafeCommand(line); why != "" {
 					return fmt.Sprintf("ran a command that is not read-only (%s): %s", why, short(line, 200))
 				}
