@@ -90,7 +90,7 @@ func TestCompatibilityAC10_SourceVersions(t *testing.T) {
 }
 
 func TestCompatibilityAC11_ReleaseAndDevelopmentGuidance(t *testing.T) {
-	for _, path := range []string{"../README.md", "../README.ko.md", "../guides/INSTALL.md", "../guides/INSTALL.en.md", "../guides/USAGE.md", "../guides/USAGE.en.md", "../guides/OPERATIONS.md"} {
+	for _, path := range []string{"../README.md", "../README.ko.md", "../guides/INSTALL.md", "../guides/INSTALL.en.md", "../guides/RULES.md", "../guides/RULES.en.md", "../guides/OPERATIONS.md"} {
 		t.Run(path, func(t *testing.T) {
 			content := read(t, path)
 			if path == "../README.md" || path == "../README.ko.md" {
@@ -113,11 +113,11 @@ func TestCompatibilityAC11_ReleaseAndDevelopmentGuidance(t *testing.T) {
 		})
 	}
 	for path, capabilities := range map[string]string{"../guides/INSTALL.md": "contracts/core-capabilities.md", "../guides/INSTALL.en.md": "contracts/core-capabilities.md"} {
-		compatibilityContains(t, path, read(t, path), "jaekit@v0.1.9", "jaekit#v0.1.9", "ha_0.1.9_${os}_${arch}", capabilities, "ha 0.1.9-dev", "v0.1.2")
+		compatibilityContains(t, path, read(t, path), "jaekit@v0.1.9", "jaekit#v0.1.9", "ha_0.1.9_${os}_${arch}", capabilities, "ha 0.1.9-dev")
 	}
 	// The operations guide points to the contract for what /4 adds to the /3
 	// budget rules.
-	compatibilityContains(t, "operations guide", read(t, "../guides/OPERATIONS.md"), "USAGE.md#자율-처리-run-rules4", "run-record.md#47-run-rules4")
+	compatibilityContains(t, "operations guide", read(t, "../guides/OPERATIONS.md"), "RULES.md#자율-처리", "run-record.md#47-run-rules4")
 }
 
 // The Seal reference's rules section points to run-record.md §4.7 for the

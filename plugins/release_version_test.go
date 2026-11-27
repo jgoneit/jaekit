@@ -266,8 +266,8 @@ func TestReleaseVersionCombination(t *testing.T) {
 	// The Spar plugin version is read with its label, since a bare number
 	// can also be part of the release tag or the executables' versions.
 	for _, c := range []struct{ path, plugin string }{
-		{"../guides/USAGE.md", "플러그인 0.1.9"},
-		{"../guides/USAGE.en.md", "plugin 0.1.9"},
+		{"../guides/RULES.md", "플러그인 0.1.9"},
+		{"../guides/RULES.en.md", "plugin 0.1.9"},
 		{"../guides/OPERATIONS.md", "플러그인 0.1.9"},
 		{"../guides/OPERATIONS.en.md", "plugin 0.1.9"},
 	} {

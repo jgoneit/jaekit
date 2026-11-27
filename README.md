@@ -189,7 +189,7 @@ codex plugin add spar@jaekit
 > **Reopen Codex after installation.** `@v0.1.9` pins the release to use.
 
 > [!NOTE]
-> **Spar for `standard` and `strict` goals.** From v0.1.7, `standard` and `strict` goals need the Spar executable and the Spar plugin, which the commands above install, with reviewers set to the CLIs you have: see [Spar](guides/INSTALL.en.md#spar). The v0.1.7 Seal started new goals under `run-rules/5`; Seal 0.1.36 in v0.1.9 starts them under `run-rules/8`. A `standard` or `strict` goal started under `run-rules/5` or later completes only with a recorded Spar gate. `light` goals, goals without an `Assurance:` line and goals started under `run-rules/4` or earlier do not need Spar. To finish without review, you decide a goal-document change that lowers the tier to `light` ([Review gate](guides/USAGE.en.md#review-gate-run-rules5)). A `run-rules/8` goal with a `review` condition also needs that criterion changed, or it stops at `review_tier_missing`.
+> **Spar for `standard` and `strict` goals.** From v0.1.7, `standard` and `strict` goals need the Spar executable and the Spar plugin, which the commands above install, with reviewers set to the CLIs you have: see [Spar](guides/INSTALL.en.md#spar). The v0.1.7 Seal started new goals under `run-rules/5`; Seal 0.1.36 in v0.1.9 starts them under `run-rules/8`. A `standard` or `strict` goal started under `run-rules/5` or later completes only with a recorded Spar gate. `light` goals, goals without an `Assurance:` line and goals started under `run-rules/4` or earlier do not need Spar. To finish without review, you decide a goal-document change that lowers the tier to `light` ([Review gate](guides/RULES.en.md#review-gate)). A `run-rules/8` goal with a `review` condition also needs that criterion changed, or it stops at `review_tier_missing`.
 
 ### Before your first `standard` goal
 
@@ -424,7 +424,7 @@ Next step: resolve AC-2 `criterion_failed` (executor)
 - AC-2 `criterion_failed` (executor): seq 4, output `ha log docs/specs/password-link 4`
 ```
 
-To see what one goal cost in checks and review rounds, run `ha cost docs/specs/<goal> --series docs/reviews/<goal>` in Terminal. It only reads the records. See [Reading one goal's cost](guides/USAGE.en.md#reading-one-goals-cost).
+To see what one goal cost in checks and review rounds, run `ha cost docs/specs/<goal> --series docs/reviews/<goal>` in Terminal. It only reads the records. See [Reading one goal's cost](guides/RULES.en.md#reading-one-goals-cost).
 
 ### The review summary
 

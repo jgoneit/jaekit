@@ -1055,8 +1055,8 @@ func TestGoalCostSummaryAC11_ContractAndGuides(t *testing.T) {
 		"`review-round/v1`", "`review-gate/v1`", "`cost/v1`", "| `ha cost <goal>",
 		"https://github.com/jgoneit/jaekit/issues/174")
 	for path, wants := range map[string][]string{
-		"../../guides/USAGE.md":    {"ha cost docs/specs/<goal> --series docs/reviews/<goal>"},
-		"../../guides/USAGE.en.md": {"ha cost docs/specs/<goal> --series docs/reviews/<goal>"},
+		"../../guides/RULES.md":    {"ha cost docs/specs/<goal> --series docs/reviews/<goal>"},
+		"../../guides/RULES.en.md": {"ha cost docs/specs/<goal> --series docs/reviews/<goal>"},
 	} {
 		gcContains(t, v, path, read(path), wants...)
 	}
