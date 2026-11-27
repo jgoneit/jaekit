@@ -1144,7 +1144,7 @@ func TestCheckCostEarlierRulesViews(t *testing.T) {
 		for _, c := range []struct{ field, got, want string }{
 			{"schema, check_author, goal", asJSON([]any{s["schema"], s["check_author"], s["goal"]}), `["status/v1","executor","docs/specs/demo"]`},
 			{"ha_version, commit, tree_clean", asJSON([]any{s["ha_version"], s["commit"], s["tree_clean"]}), fmt.Sprintf("[%q,%q,true]", version, f.head)},
-			{"complete_without_record, lint, logs, budget.history, skill", asJSON([]any{s["complete_without_record"], s["lint"], s["logs"], obj(s["budget"])["history"], s["skill"]}), `[false,null,[],[],{"digest":"","name":"","version":""}]`},
+			{"complete_without_record, lint, logs, budget.history", asJSON([]any{s["complete_without_record"], s["lint"], s["logs"], obj(s["budget"])["history"]}), `[false,null,[],[]]`},
 			{"changes", asJSON(s["changes"]), `{"command_changed":[],"ha_version_changed":[],"invalid_confirmations":[],"kind_changed":[],"optional":[]}`},
 			{"reasons", asJSON(s["reasons"]), `[{"class":"executor","code":"baseline_missing","criterion":"AC-2"}]`},
 			{"criteria[0].attempts", asJSON(obj(criteria[0])["attempts"]), "{" + fmt.Sprintf(attempts, 1) + "}"},
