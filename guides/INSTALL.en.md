@@ -2,7 +2,11 @@
 
 [한국어](INSTALL.md) · **English**
 
-Read this to install Jaekit for the first time, update it to a new version, or remove it. Jaekit consists of two terminal programs, `ha` and `spar`, and three agent plugins, Spec, Seal and Spar. The programs install with brew or a Release file and the plugins with the plugin commands of Codex or Claude Code; both are needed. This guide is for the current release, `v0.1.9`. Supported platforms are macOS and Linux on arm64 and amd64. Run the commands below **in Terminal**. After installing, see [your first task](../README.md#your-first-task) for what to send to the agent.
+Read this guide to install Jaekit for the first time, update it to a new version, or remove it.
+
+Jaekit consists of two terminal programs, `ha` and `spar`, and three agent plugins, Spec, Seal and Spar. The programs install with brew or a Release file. The plugins install with the plugin commands of Codex or Claude Code. Jaekit needs both.
+
+This guide is for the current release, `v0.1.9`. It supports macOS and Linux on arm64 and amd64. Run all the commands below **in Terminal**. After installing, see [your first task](../README.md#your-first-task) for what to send to the agent.
 
 - First installation: [Basic install](#basic-install)
 - Without brew: [Install from a Release file](#install-from-a-release-file)
@@ -18,9 +22,9 @@ Read this to install Jaekit for the first time, update it to a new version, or r
 
 You need Git 2.36 or later and either Codex or Claude Code. For the brew route, install [Homebrew](https://brew.sh) too. Your project must be a folder whose changes are tracked with Git. You do not need to clone (copy to your computer) the Jaekit repository.
 
-The current public release of Seal Core `ha` does not support Windows. The [Windows native candidate guide](WINDOWS.en.md) covers a separate candidate package. Actual installation, Core execution and host behavior on Windows 11 x64 with PowerShell 5.1/7 remain unverified; cross-compilation and local tests do not establish them.
+> **Windows.** The current public release of Seal Core `ha` does not support Windows. The [Windows native candidate guide](WINDOWS.en.md) covers a separate candidate package. Actual installation, Core execution and host behavior on Windows 11 x64 with PowerShell 5.1/7 have not been checked yet. Cross-compilation and local tests do not establish them.
 
-This describes native Windows execution. A [separate guide](WSL.en.md) prepares the Linux release route for Ubuntu 24.04 LTS x64 in WSL2. Actual WSL2 installation, execution, and agent use have not been checked yet; ordinary Linux results do not establish them.
+> **WSL2.** The note above is about native Windows execution. A [separate guide](WSL.en.md) prepares the Linux release route for Ubuntu 24.04 LTS x64 in WSL2. Actual WSL2 installation, execution and agent use have not been checked yet. Ordinary Linux results do not establish them.
 
 ### Install ha
 
@@ -28,7 +32,9 @@ This describes native Windows execution. A [separate guide](WSL.en.md) prepares 
 brew install jgoneit/tap/jaekit
 ```
 
-Run one block at a time. Pasting the next commands before brew finishes can cause it to consume those lines. Brew downloads the Release executable and verifies its checksum (a value used to check file contents). Homebrew installs `ha` and `spar` together. It does not install Go or build the source. Without Homebrew, follow [Install from a Release file](#install-from-a-release-file).
+Run one block at a time. If you paste the next commands before brew finishes, brew can consume those lines.
+
+Brew installs `ha` and `spar` together. It downloads the Release executable and verifies its checksum (a value used to check file contents). It does not install Go or build the source. Without Homebrew, follow [Install from a Release file](#install-from-a-release-file).
 
 ### Check the version
 
@@ -39,13 +45,17 @@ spar --version
 which -a spar
 ```
 
-`ha --version` should print `ha 0.1.9`, and `spar --version` the same version, `spar 0.1.9`. The first line from `which -a ha` is the file that actually runs (for `spar`, the first line from `which -a spar`). PATH lists the folders to search for commands, in order. If the version differs, check this path first. If an older file built with `go install` comes first, remove that file or change your PATH order. It lives in the folder printed by `go env GOBIN`, or in `$(go env GOPATH)/bin` when that is empty.
+`ha --version` should print `ha 0.1.9`. `spar --version` should print the same version, `spar 0.1.9`.
 
-If the command is missing and `which -a ha` is empty, check that installation finished and that its folder is on PATH. Reopen Codex or Claude Code after setting it so the agent can also find `ha`.
+The first line from `which -a ha` is the file that actually runs. For `spar`, look at the first line from `which -a spar`. PATH is the list of folders where the terminal looks for commands. It looks in the folders at the front first.
+
+If the version differs, check this path first. If an older file built with `go install` comes first, remove that file or change your PATH order. That file is in the folder that `go env GOBIN` prints. If `go env GOBIN` is empty, it is in `$(go env GOPATH)/bin`.
+
+If the command is not found and `which -a ha` is empty too, first check that installation finished. Then check that the folder you installed into is on PATH. Set PATH so the agent can find `ha` too, then reopen Codex or Claude Code.
 
 ### Codex
 
-First [install ha](#install-ha) and [check its version](#check-the-version). The installation commands below require [Codex CLI](https://learn.chatgpt.com/docs/codex/cli), the Terminal tool. Plugins work in Codex CLI and the desktop app; the Codex IDE extension does not support them.
+First [install ha](#install-ha) and [check its version](#check-the-version). To run the installation commands below, you need [Codex CLI](https://learn.chatgpt.com/docs/codex/cli), the Terminal tool. Plugins work in Codex CLI and the desktop app. The Codex IDE extension does not support them.
 
 ```bash
 codex plugin marketplace add jgoneit/jaekit@v0.1.9
@@ -54,9 +64,9 @@ codex plugin add seal@jaekit
 codex plugin add spar@jaekit
 ```
 
-`@v0.1.9` pins the marketplace (the source of the plugin list) to that tag. Even when main changes, you get the release's spec 0.1.16, seal 0.1.36 and spar 0.1.9.
+`@v0.1.9` pins the marketplace (the source of the plugin list) to that tag. So even when main changes, you get this release's spec 0.1.16, seal 0.1.36 and spar 0.1.9.
 
-Reopen Codex, type `$` in the conversation, and choose Jaekit's `spec:spec` or `seal:seal`. The invocation names are `$spec:spec` and `$seal:seal`. Follow [your first task](../README.md#your-first-task). If you confuse them with another plugin, see [troubleshooting](USAGE.en.md#troubleshooting).
+Reopen Codex. Type `$` in the conversation and choose Jaekit's `spec:spec` or `seal:seal`. The invocation names are `$spec:spec` and `$seal:seal`. Then follow [your first task](../README.md#your-first-task). If they get mixed up with another plugin, see [troubleshooting](USAGE.en.md#troubleshooting).
 
 ### Claude Code
 
@@ -70,35 +80,48 @@ claude plugin install spar@jaekit
 claude plugin list
 ```
 
-`#v0.1.9` pins the marketplace to that tag. Check that `spec@jaekit`, `seal@jaekit` and `spar@jaekit` are enabled in the list. If you confuse them with another plugin, see [troubleshooting](USAGE.en.md#troubleshooting).
+`#v0.1.9` pins the marketplace to that tag. In the final list, check that `spec@jaekit`, `seal@jaekit` and `spar@jaekit` are enabled. If they get mixed up with another plugin, see [troubleshooting](USAGE.en.md#troubleshooting).
 
-Reopen Claude Code and use `/spec:spec <request>` in the conversation to define the goal, then `/seal:seal docs/specs/<goal>` in a separate message to start implementation. Plugin skills use `/plugin-name:skill-name`. The [usage guide](USAGE.en.md#sending-commands) explains how to review the goal and continue a task.
+Reopen Claude Code. In the conversation, define the goal with `/spec:spec <request>`. When Spec asks whether to implement now, answering yes starts implementation. You can also start later with `/seal:seal docs/specs/<goal>` in a separate message. Plugin skills are invoked as `/plugin-name:skill-name`. The [usage guide](USAGE.en.md#sending-commands) explains how to review the goal and continue a task.
 
 ### Spar
 
-Spar runs independent review rounds with several reviewer CLIs; see the [Spar guide](SPAR.en.md). From v0.1.7, `standard` and `strict` goals need the Spar executable and the Spar plugin. The v0.1.7 Seal started new goals under `run-rules/5`; Seal 0.1.36 in v0.1.9 starts them under `run-rules/8`. A `standard` or `strict` goal started under `run-rules/5` or later completes only with a recorded Spar gate. `light` goals, goals without an `Assurance:` line and goals started under `run-rules/4` or earlier do not need Spar. To finish without review, you decide a goal-document change that lowers the tier to `light` ([Review gate](USAGE.en.md#review-gate-run-rules5)). A `run-rules/8` goal with a `review` condition also needs that criterion changed, or it stops at `review_tier_missing`.
+Spar runs independent review rounds with several reviewer CLIs. See the [Spar guide](SPAR.en.md) for details.
 
-From v0.1.7, installing with Homebrew or from a Release file installs `ha` and `spar` together, with the same version. Release files, formulas and marketplace tags of v0.1.6 and earlier do not contain Spar.
+`standard` and `strict` goals need the Spar executable and the Spar plugin. Such a goal completes only with a recorded Spar gate.
+
+These goals do not need Spar:
+
+- `light` goals
+- Goals without an `Assurance:` line
+
+To finish without review, change the goal document to lower the tier to `light`. The user decides this change ([Review gate](RULES.en.md#review-gate)). A goal with a `review` condition also needs that criterion changed. Otherwise it stops at `review_tier_missing` and does not complete.
+
+The Homebrew formula and the Release file install `ha` and `spar` together. Both have the same version. Check them with these commands:
 
 ```bash
 spar --version
 which -a spar
 ```
 
-`spar --version` prints the same version as `ha --version`. The [Codex](#codex) and [Claude Code](#claude-code) installation commands above install the Spar plugin too. If you installed only spec and seal, add it from the marketplace pinned to v0.1.9:
+`spar --version` should print the same version as `ha --version`.
+
+The [Codex](#codex) and [Claude Code](#claude-code) installation commands above install the Spar plugin too. If you installed only spec and seal, add it from the marketplace pinned to v0.1.9:
 
 ```bash
 codex plugin add spar@jaekit
 claude plugin install spar@jaekit
 ```
 
-Reopen the host. Before the first round, list only the CLIs you have as reviewers, as [Configure reviewers](SPAR.en.md#configure-reviewers) shows, and check them with `spar config`. Seal runs the review rounds of `standard` and `strict` goals with Spar. When another plan or change needs an independent review, use `$spar:spar` in Codex or `/spar:spar` in Claude Code.
+Then reopen the host. Before the first round, list only the CLIs you have as reviewers, as [Configure reviewers](SPAR.en.md#configure-reviewers) shows. Check the result with `spar config`. Seal runs the review rounds of `standard` and `strict` goals with Spar. When some other plan or change needs an independent review, use `$spar:spar` in Codex or `/spar:spar` in Claude Code.
 
 ## Install from a Release file
 
-Instead of brew, you can install from the file `ha_0.1.9_<os>_<arch>.tar.gz` in the [v0.1.9 Release](https://github.com/jgoneit/jaekit/releases/tag/v0.1.9). `<os>` is `darwin` (macOS) or `linux`, and `<arch>` is `arm64` (Apple Silicon and others) or `amd64` (Intel and others).
+Instead of brew, you can install from the file `ha_0.1.9_<os>_<arch>.tar.gz` in the [v0.1.9 Release](https://github.com/jgoneit/jaekit/releases/tag/v0.1.9). `<os>` is `darwin` (macOS) or `linux`. `<arch>` is `arm64` (Apple Silicon and others) or `amd64` (Intel and others).
 
-Paste the commands below as they are. The block picks the file for your OS and CPU, verifies its checksum, and puts `ha` and `spar` at `~/.local/bin/ha` and `~/.local/bin/spar` (`spar` is in the files from v0.1.7). On an unsupported OS or CPU it stops without downloading or installing anything. If the extracted file has no `spar`, it stops with a message without changing anything.
+Paste the commands below as they are. They pick the file for your OS and CPU and download it. They verify its checksum, then put `ha` and `spar` at `~/.local/bin/ha` and `~/.local/bin/spar`.
+
+On an unsupported OS or CPU, the commands stop without downloading or installing anything. If the extracted file has no `spar`, they print a message and stop without changing anything.
 
 ```bash
 (
@@ -185,9 +208,9 @@ Paste the commands below as they are. The block picks the file for your OS and C
 )
 ```
 
-The commands prepare both executables next to their destinations before replacing either, so a failed download, copy or permission change leaves both as they were. The two replacements are still separate steps: if the commands stop between them (for example after a crash or a power loss), `ha` can be new while `spar` is old. Run the same commands again to bring them together.
+The commands prepare both executables next to their destinations before replacing either. So if a download, copy or permission change fails, both files stay as they were. The two replacements are still separate steps. If the commands stop between them (for example after a crash or a power loss), `ha` can be new while `spar` is old. Run the same commands again to bring both to the same version.
 
-If `~/.local/bin` is not on your PATH, add `export PATH="$HOME/.local/bin:$PATH"` to your shell config (such as `~/.zshrc`). If macOS blocks a file you downloaded with a browser, clear it with `xattr -d com.apple.quarantine ~/.local/bin/ha`. Then [check the version](#check-the-version) and install the plugins for [Codex](#codex) or [Claude Code](#claude-code).
+If `~/.local/bin` is not on your PATH, add `export PATH="$HOME/.local/bin:$PATH"` to your shell config file (such as `~/.zshrc`). If macOS blocks a file you downloaded with a browser, clear it with `xattr -d com.apple.quarantine ~/.local/bin/ha ~/.local/bin/spar`. Then [check the version](#check-the-version) and install the plugins for [Codex](#codex) or [Claude Code](#claude-code).
 
 ## Release and development combinations
 
@@ -195,53 +218,52 @@ If `~/.local/bin` is not on your PATH, add `export PATH="$HOME/.local/bin:$PATH"
 | --- | --- | --- | --- | --- |
 | Current release `v0.1.9` | `ha 0.1.9`, `spar 0.1.9` | 0.1.16 | 0.1.36 | 0.1.9 |
 | Previous release `v0.1.8` | `ha 0.1.8`, `spar 0.1.8` | 0.1.13 | 0.1.23 | 0.1.4 |
-| Previous release `v0.1.7` | `ha 0.1.7`, `spar 0.1.7` | 0.1.13 | 0.1.22 | 0.1.3 |
-| Previous release `v0.1.6` | `ha 0.1.6` | 0.1.12 | 0.1.17 | — |
-| Previous release `v0.1.5` | `ha 0.1.5` | 0.1.12 | 0.1.16 | — |
-| Previous release `v0.1.4` | `ha 0.1.4` | 0.1.12 | 0.1.12 | — |
-| Previous release `v0.1.3` | `ha 0.1.3` | 0.1.11 | 0.1.9 | — |
-| Previous release `v0.1.2` | `ha 0.1.2` | 0.1.10 | 0.1.8 | — |
 | Source build | `ha 0.1.9-dev`, `spar 0.1.9-dev` | Checkout version | Checkout version | Checkout version |
 
 What each release includes:
 
-- **Current release `v0.1.9`**: Everything in v0.1.8, plus Seal starting new goals under `/8` (from `run-rules/6` to `/8`: baselines only for marked change conditions, no check freeze, an informational elapsed time and `review` conditions met by the review gate), the `## 검수 요약` review summary in `PROGRESS.md`, review findings in `ha report`, the Spar cap report (`spar cap-report`, `spar extend --cause` recording why a cap was extended, and that cause in `ha cost`), reviewer models and efforts the agent chooses where the user's settings leave them unset, within an allow list the user can set, Spar reviewer standpoints and the earlier dispositions candidate rounds receive, and a per-reviewer packet size limit (`max_packet_bytes`); `ha history` is removed, `spar run --stage plan-delta` and `fixes` are usage errors (64), and the default code round cap drops from 3 to 2
-- **Source build**: Development identity; not evidence of installing a release artifact
+**Current release `v0.1.9`.** It adds the following to everything in v0.1.8.
 
-<details>
-<summary>What earlier releases include</summary>
+- Seal starts new goals under `/8`. So only marked change conditions need a baseline, and there is no check freeze. Elapsed time is informational, and `review` conditions are met by the review gate.
+- `PROGRESS.md` has the `## 검수 요약` review summary.
+- `ha report` shows review findings.
+- Spar has a cap report, `spar cap-report`. `spar extend --cause` records why a cap was extended. `ha cost` shows that cause.
+- Where the user's settings leave a reviewer's model and effort unset, the agent chooses them. The user can bound that choice with an allow list.
+- Spar reviewers are given standpoints.
+- Candidate rounds receive the earlier dispositions.
+- Each reviewer has a packet size limit (`max_packet_bytes`).
 
-- **Previous release `v0.1.8`**: Everything in v0.1.7, plus `ha cost` (one goal's verification and review cost summary), Seal asking the decisions it can foresee in one message before the first baseline, the smallest fix direction on Spar findings, and a direct installation that stops when `spar` is missing
-- **Previous release `v0.1.7`**: Default rules `/3`; Seal starts new goals under `/5` (a `standard` or `strict` goal completes only with a recorded Spar gate), Spar review rounds and gate, runner adapters, `ha report`, `ha doctor` and the automatic budget, Core support check at start (`--check-skill`), Spec that the agent can call
-- **Previous release `v0.1.6`**: Default rules `/3`; Seal starts new goals under `/4` (proceeding within recorded authority), run timing, check-authoring guidance, final-candidate evidence, post-completion findings, evidence and assurance-policy reporting; no Spar or `/5`
-- **Previous release `v0.1.5`**: Same Core behavior as v0.1.6; Seal before the run limit of a reopened `/4` window was linked to its contract
-- **Previous release `v0.1.4`**: Default rules `/3`, post-completion findings, evidence and assurance-policy reporting; no `/4` or run timing
-- **Previous release `v0.1.3`**: Default rules `/3`, capabilities, run estimation and total-limit changes; no post-completion findings extension
-- **Previous release `v0.1.2`**: Default rules `/2`; does not meet the new Seal's support requirements
+These changed or were removed:
 
-</details>
+- `ha history` is removed.
+- `spar run --stage plan-delta` and `fixes` are usage errors (64).
+- The default code round cap drops from 3 to 2.
 
-The tag-pinned installation commands below install v0.1.9. Seal checks the actual Core executable's capabilities and stops before recording if support is missing or cannot be established. Matching version numbers or switching to older rules does not establish compatibility. See the [Core capabilities contract](../contracts/core-capabilities.md) for the required support.
+**Source build.** A development identity. It is not evidence of installing a release artifact.
 
-Spec writes documents without installing Core or querying capabilities. New Spec 0.1.16 documents use `nested/1`, so implementation needs a Core that supports that format. Updates do not change existing goal formats, `/1`, `/2` or `/3` records, usage or time limits. See the [v0.1.9 release notes](https://github.com/jgoneit/jaekit/releases/tag/v0.1.9) for the scope of actual host checks.
+What earlier releases contain is in the [release list](https://github.com/jgoneit/jaekit/releases).
+
+The tag-pinned installation commands in this guide install v0.1.9. Seal checks the capabilities of the Core executable it will actually use. If support is missing or cannot be established, Seal stops before recording. Matching version numbers or switching to older rules does not establish compatibility. See the [Core capabilities contract](../contracts/core-capabilities.md) for the required support.
+
+Spec writes documents without installing Core or querying capabilities. New documents from Spec 0.1.16 use `nested/1`. So implementation needs a Core that supports that format. Updates do not change existing goal formats, records, or usage and time limits. See the [v0.1.9 release notes](https://github.com/jgoneit/jaekit/releases/tag/v0.1.9) for the scope of actual host checks.
 
 ## Get the reference check
 
-The v0.1.9 archive includes `tools/check-result-reference.py` and `examples/check-result/`. Copy them into your project without a development checkout or Go installation. This producer uses only the Python 3 standard library. Python is needed only when choosing this check, not for Spec or Seal in general. The implementing agent chooses other runners; automatic pytest, Vitest and Playwright adapters are not included.
+The v0.1.9 archive includes `tools/check-result-reference.py` and `examples/check-result/`. You can copy them into your project without a development checkout or a Go installation. This producer uses only the Python 3 standard library. Python is needed only when you choose this check. It is not a requirement of Spec or Seal. The implementing agent chooses other runners. Automatic pytest, Vitest and Playwright adapters are not included.
 
-From your project root, run **one block** for your installation method to select the public data path. Homebrew stores it under `pkgshare`:
+First select the public data path. From your project root, run **one block** for your installation method. For a Homebrew installation, use this `pkgshare` location:
 
 ```bash
 package_root="$(brew --prefix jaekit)/share/jaekit"
 ```
 
-The direct-install commands above retain the checksum-verified public data in the versioned directory below. If data for that version already exists, it is reused only when it consists of ordinary files and directories with identical contents. Different contents, or other entries such as symlinks, stop installation before replacing the binary and name the path. For a direct installation, use:
+The direct-install commands above keep the checksum-verified public data in the versioned directory below. If data for that version already exists, it is reused only when it consists of ordinary files and directories with identical contents. If the contents differ, or there are other entries such as symlinks, installation stops before replacing the binary and names the path. For a direct installation, use:
 
 ```bash
 package_root="$HOME/.local/share/jaekit/0.1.9"
 ```
 
-Then run the following from the project root in the same terminal. It stops if any example destination already exists instead of overwriting it.
+Then run the following from the project root in the same terminal. It stops instead of overwriting if any example destination already exists.
 
 ```bash
 (
@@ -260,13 +282,17 @@ Then run the following from the project root in the same terminal. It stops if a
 )
 ```
 
-Follow the [synthetic example's PLAN and observation steps](../examples/check-result/README.md) to preserve the initial file as the baseline before starting the goal. The command is `python3 tools/check-result-reference.py checks/declaration.json checks/reference.json`; `ha check` supplies the invocation-specific report path. It distinguishes the initial file's actual requirement violation from a pass after the change; environment errors are not expected failures. Commit the declaration, configuration and producer before checking and include all three in PLAN's check paths. Choose targets and paths that fit your project. See the [result contract](../contracts/check-result.md) for the format.
+Next, follow the [synthetic example's PLAN and observation steps](../examples/check-result/README.md). Preserve the initial file as the baseline before you start the goal.
+
+The check command is `python3 tools/check-result-reference.py checks/declaration.json checks/reference.json`. `ha check` supplies the report path for each invocation. The check tells the initial file's actual requirement violation apart from a pass after the change. Environment errors are not expected failures.
+
+Commit the declaration, configuration and producer before checking. Include all three in PLAN's check paths. Choose targets and paths that fit your project. See the [result contract](../contracts/check-result.md) for the format.
 
 ## Update
 
-Move `ha` and the plugins to the new version together, with the tools you installed them with. The commands below move to v0.1.9. Paste one command block at a time.
+Move `ha` and the plugins to the new version together. Upgrade with the tools you installed them with. The commands below move to v0.1.9. Paste one command block at a time.
 
-For an `ha` installed with brew, brew fetches the tap again and then upgrades it.
+For an `ha` installed with brew, brew fetches the tap again first and then upgrades it.
 
 ```bash
 brew update
@@ -276,9 +302,9 @@ brew update
 brew upgrade jgoneit/tap/jaekit
 ```
 
-For an `ha` installed from a Release file, paste the commands in [Install from a Release file](#install-from-a-release-file) again. The new version's file replaces `~/.local/bin/ha` and puts `~/.local/bin/spar` in place.
+For an `ha` installed from a Release file, paste the commands in [Install from a Release file](#install-from-a-release-file) again. The new version's file replaces `~/.local/bin/ha`. It also puts the new file at `~/.local/bin/spar`.
 
-Then check both executables' versions and which files actually run. They should print `ha 0.1.9` and `spar 0.1.9`. If either prints another version, the first line of `which -a ha` or `which -a spar` is the file that actually runs; follow [Check the version](#check-the-version) to fix PATH.
+Then check both executables' versions and which files actually run. They should print `ha 0.1.9` and `spar 0.1.9`. If either prints another version, follow [Check the version](#check-the-version) to fix PATH. The first line of `which -a ha` or `which -a spar` is the file that actually runs.
 
 ```bash
 ha --version
@@ -334,7 +360,7 @@ After a Release file installation, the earlier versions' public data stays in `~
 
 </details>
 
-For the plugins, register the marketplace again pinned to the new tag. Two marketplaces with the same name cannot be registered together, so remove it first. Removing it also removes the spec, seal and spar plugins installed from it, so install them again. Paste only the commands for the host you use.
+For the plugins, register the marketplace again, pinned to the new tag. Two marketplaces with the same name cannot be registered together, so remove it first. Removing it also removes the spec, seal and spar plugins installed from it, so install them again. Paste only the commands for the host you use.
 
 Codex:
 
@@ -360,7 +386,7 @@ Open the host again to load the new Spec, Seal and Spar.
 
 ## Uninstall
 
-Remove `ha`, the plugins, and the `jaekit` marketplace. Paste the commands for how you installed it and the host you use.
+Remove `ha`, the plugins, and the `jaekit` marketplace. Paste the commands that match how you installed it and the host you use.
 
 For an `ha` installed with brew:
 
@@ -376,13 +402,13 @@ For an `ha` installed from a Release file:
 rm ~/.local/bin/ha
 ```
 
-From v0.1.7 the direct installation also put `spar` there; remove it too.
+The direct installation also puts `spar` there. Remove it too.
 
 ```bash
 rm ~/.local/bin/spar
 ```
 
-Also remove the folder where the direct installation keeps the public data. Reference check files you copied into your project (such as `tools/check-result-reference.py`) and your goal documents and records stay. If `~/.local/share/jaekit` is a symlink, only the link is removed and its target stays.
+Also remove the folder where the direct installation keeps the public data. Reference check files you copied into your project (such as `tools/check-result-reference.py`) stay. Your goal documents and records stay too. If `~/.local/share/jaekit` is a symlink, only the link is removed and its target stays.
 
 ```bash
 rm -rf ~/.local/share/jaekit
@@ -406,11 +432,15 @@ claude plugin uninstall spar@jaekit
 claude plugin marketplace remove jaekit
 ```
 
-Installation, updates and removal preserve your project's documents, records and raw output. Whether Git tracks the goal documents and the files Seal made (`SPEC.md`, `PLAN.md`, `REVIEW.md`, `PROGRESS.md`, and `runs.jsonl` in `docs/specs/<goal>/`) depends on project policy. Both tracked records and ignored private records stay. Raw check output is under `ha/runs/` in that working tree's Git directory, which git does not track. That is usually under `.git/ha/`; in a linked worktree, where `.git` is a file, it is under the directory that `git rev-parse --absolute-git-dir` prints.
+Installation, updates and removal do not delete your project's documents, records or raw output.
 
-If you also choose to remove goal documents and records, first check whether they need preserving and whether Git tracks them. For a tracked goal, run `git rm -r docs/specs/<goal>` from that repository's root and commit. This command does not remove untracked goals; handle those separately under the project's local retention policy. Do not force ignored documents into Git.
+The goal documents and the files Seal made are `SPEC.md`, `PLAN.md`, `REVIEW.md`, `PROGRESS.md` and `runs.jsonl` in `docs/specs/<goal>/`. Whether Git tracks them depends on project policy. Both tracked records and ignored private records stay as they are.
 
-To remove the raw check output too, paste the command below in that working tree while no Jaekit check is running (while Seal is not working). It removes the raw check output of every goal in that working tree. The output of other working trees and the goal documents and run records stay.
+Raw check output is under `ha/runs/` in that working tree's Git directory. git does not track this folder. It is usually under `.git/ha/`. In a linked worktree, where `.git` is a file, it is under the directory that `git rev-parse --absolute-git-dir` prints.
+
+If you also choose to remove goal documents and records, first check whether they need preserving and whether Git tracks them. For a tracked goal, run `git rm -r docs/specs/<goal>` from that repository's root and commit. This command does not remove untracked goals. Handle those separately under the project's local retention policy. Do not force ignored documents into Git.
+
+To remove the raw check output too, paste the command below in that working tree. Run it while no Jaekit check is running, that is, while Seal is not working. It removes the raw check output of every goal in that working tree. The output of other working trees stays. The goal documents and run records stay too.
 
 ```bash
 gitdir="$(git rev-parse --absolute-git-dir)" && rm -rf "$gitdir/ha/runs"
@@ -418,7 +448,7 @@ gitdir="$(git rev-parse --absolute-git-dir)" && rm -rf "$gitdir/ha/runs"
 
 ## Move from a local path registration
 
-If you registered the `jaekit` marketplace from a repository checkout path, remove that registration and register the GitHub repository pinned to `v0.1.9` instead. Two marketplaces with the same name cannot be registered together. Removing it also removes the spec, seal and spar plugins installed from it, so install them again.
+If you registered the `jaekit` marketplace from a repository checkout path, remove that registration. Then register the GitHub repository pinned to `v0.1.9` instead. Two marketplaces with the same name cannot be registered together. Removing it also removes the spec, seal and spar plugins installed from it, so install them again.
 
 Codex:
 

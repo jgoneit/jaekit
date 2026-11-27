@@ -1,5 +1,5 @@
 /* Shared page behavior: theme, remembered language, copy buttons, the docs
-   navigation and table of contents, the search palette and mermaid diagrams.
+   navigation and table of contents, and the search palette.
    Browser storage keeps only the two choices below; nothing else is stored. */
 (function () {
   "use strict";
@@ -289,9 +289,19 @@
     var rules = RULES[code.className.slice("language-".length)];
     if (rules) paintCode(code, rules);
   });
-  // A command or name short enough for a phone's line stays on one line.
+  // The language switch line under the title is small; the paragraph after it leads.
+  Array.prototype.forEach.call(document.querySelectorAll(".markdown > h1"), function (h1) {
+    var next = h1.nextElementSibling;
+    if (next && next.tagName === "P" && /^(한국어|English) · (English|한국어)$/.test(next.textContent.trim())) {
+      next.classList.add("lang-line");
+      next = next.nextElementSibling;
+    }
+    if (next && next.tagName === "P") next.classList.add("lead");
+  });
+  // A command or name short enough for a phone's line stays on one line:
+  // 28 characters of inline code fit a list item at 360px.
   Array.prototype.forEach.call(document.querySelectorAll(".markdown :not(pre) > code"), function (code) {
-    if (code.textContent.length <= 36) code.classList.add("whole");
+    if (code.textContent.length <= 28) code.classList.add("whole");
   });
 
   /* ---------- Small marks beside states, so they read at a glance ---------- */
@@ -301,7 +311,7 @@
     d.setAttribute("aria-hidden", "true");
     return d;
   }
-  var STATES = { complete: "ok", pass: "ok", verified: "ok", degraded: "warn", needs_user: "warn", unverified: "warn",
+  var STATES = { complete: "ok", pass: "ok", verified: "ok", incomplete: "dev", degraded: "warn", needs_user: "warn", unverified: "warn",
                  blocked: "bad", fail: "bad", budget_exhausted: "bad" };
   Array.prototype.forEach.call(document.querySelectorAll(".markdown :not(pre) > code"), function (code) {
     var kind = STATES[code.textContent];
@@ -325,20 +335,19 @@
       cell.insertBefore(tier, cell.firstChild);
     }
   });
-
-  /* ---------- Mermaid diagrams, drawn in the page's theme ---------- */
-  var diagrams = Array.prototype.slice.call(document.querySelectorAll("pre.mermaid"));
-  function draw() {
-    if (!diagrams.length || !window.mermaid) return;
-    diagrams.forEach(function (pre) { pre.removeAttribute("data-processed"); pre.textContent = pre.getAttribute("data-source"); });
-    var dark = currentTheme() === "dark";
-    // The dark theme's grey edge-label box is too light for its text; use a darker one.
-    window.mermaid.initialize({ startOnLoad: false, securityLevel: "strict", theme: dark ? "dark" : "default",
-                                themeVariables: dark ? { edgeLabelBackground: "#2A2A2E" } : {}, fontFamily: "inherit" });
-    window.mermaid.run({ nodes: diagrams }).catch(function () {});
-  }
-  if (diagrams.length) {
-    window.addEventListener("load", draw);
-    themeHooks.push(draw);
-  }
+  // A table's "who" column: each actor as a badge, you in the accent color.
+  Array.prototype.forEach.call(document.querySelectorAll(".markdown table"), function (table) {
+    var col = Array.prototype.findIndex.call(table.querySelectorAll("thead th"), function (th) {
+      return /^(누가|누구|Who)$/.test(th.textContent.trim());
+    });
+    if (col < 0) return;
+    table.classList.add("has-who");
+    Array.prototype.forEach.call(table.querySelectorAll("tbody tr"), function (row) {
+      var cell = row.children[col], badge = document.createElement("span");
+      if (!cell) return;
+      badge.className = /^(나|You)$/.test(cell.textContent.trim()) ? "who you" : "who";
+      while (cell.firstChild) badge.appendChild(cell.firstChild);
+      cell.appendChild(badge);
+    });
+  });
 })();
