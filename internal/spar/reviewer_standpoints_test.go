@@ -1153,6 +1153,49 @@ func TestReviewerStandpointsAC8_NoStandpointUnchanged(rsT *testing.T) {
 	}
 }
 
+// A round recorded before standpoints, whose round.json has no standpoints
+// key and whose reviewers have no standpoint fields, is read by triage,
+// waive, cap-report and gate as the same round with "standpoints": [].
+func TestReviewerStandpointsAC11_EarlierRecords(t *testing.T) {
+	w := newRWWorld(t, true)
+	w.use(rwNative("host"), w.missingAgy())
+	got := map[bool]string{}
+	for _, earlier := range []bool{false, true} {
+		series := w.newSeries()
+		out := w.run(filepath.Join(series, "01-candidate"))
+		w.record(out, "host", rawFinding("F1", map[string]any{"link_kind": "criterion", "link": "AC-1", "location": "head/app/main.py:1"}))
+		var r map[string]any
+		data, err := os.ReadFile(filepath.Join(out, "round.json"))
+		if err != nil || json.Unmarshal(data, &r) != nil || !reflect.DeepEqual(r["standpoints"], []any{}) {
+			t.Fatalf("setup: round.json standpoints %v: %v", r["standpoints"], err)
+		}
+		if earlier {
+			delete(r, "standpoints")
+			for _, v := range rsMap(r["reviewers"]) {
+				delete(rsMap(v), "standpoint")
+				delete(rsMap(v), "standpoint_report")
+			}
+			data, _ := json.MarshalIndent(r, "", "  ")
+			w.write(filepath.Join(out, "round.json"), string(data)+"\n")
+		}
+		var results []string
+		for _, args := range [][]string{{"triage", out, "host-F1", "reject", "--evidence", "head/app/main.py already does it"},
+			{"waive", out, "agy", "--user-quote", rwQuote}, {"cap-report", series, "--format", "md", "--repo", w.repo}} {
+			code, msg := w.spar(args...)
+			results = append(results, fmt.Sprintf("%s exit %d: %s", args[0], code, msg))
+		}
+		g := w.gate(w.head, []string{out})
+		results = append(results, fmt.Sprintf("gate %s %v", g.rec.State, g.rec.Reasons))
+		got[earlier] = strings.ReplaceAll(strings.Join(results, "\n"), series, "<series>")
+	}
+	if want := "gate " + StateComplete + " []"; !strings.HasSuffix(got[false], want) || strings.Count(got[false], " exit 0:") != 3 {
+		t.Fatalf("setup: a round with standpoints [] gives\n%s\nwant three exits 0 and %s", got[false], want)
+	}
+	if got[true] != got[false] {
+		t.Errorf("a round without the standpoint fields gives\n%s\nwant as with standpoints []:\n%s", got[true], got[false])
+	}
+}
+
 // A project configuration that sets every project key loads, and keeps its
 // rules entry, a readable file inside the repository.
 func TestReviewerStandpointsAC12_Config(rsT *testing.T) {

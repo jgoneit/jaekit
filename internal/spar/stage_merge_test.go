@@ -700,6 +700,35 @@ func TestSparStageMergeAC7_LegacySeriesReadUnchanged(t *testing.T) {
 	}
 }
 
+// smLegacyGrowth is the growth line the cap report gave a recorded series
+// without a measured fixes round before the stage merge.
+const smLegacyGrowth = "- added lines: check 0, other 0; over hardening: no"
+
+// AC-7: the Markdown cap report of a recorded series with a plan-delta round
+// and no fixes round, and of one whose only fixes round is a dry run, keeps
+// that growth line rather than saying nothing was measured.
+func TestSparStageMergeAC7_LegacyCapReportGrowth(t *testing.T) {
+	for _, form := range []struct{ name, stage string }{{"03-plan-delta", "plan-delta"}, {"03-fixes", "fixes"}} {
+		f := newFixture(t)
+		c := f.revs
+		round := func(name, stage, base, head string, seq int, dry bool) string {
+			return f.round(name, &RoundRecord{Stage: stage, Base: base, Head: head, Sequence: seq, Counted: !dry, DryRun: dry,
+				RequiredReviewers: []string{"host"}, Reviewers: map[string]*ReviewerState{"host": reviewer("native", true, StatusCompleted)}}, nil, nil)
+		}
+		round("01-plan", "plan", c[0], c[0], 1, false)
+		round("02-candidate", "candidate", c[0], c[1], 2, false)
+		// The plan-delta round is a counted plan round; the fixes round, from
+		// the candidate's head, is a dry run.
+		old := round(form.name, form.stage, c[1], c[2], 3, form.stage == "fixes")
+		var stdout, stderr strings.Builder
+		code := Main("test", []string{"cap-report", filepath.Dir(old), "--format", "md", "--repo", f.repo}, strings.NewReader(""),
+			&stdout, &stderr, env(map[string]string{"HOME": f.dir}))
+		if lines := strings.Split(stdout.String(), "\n"); code != ExitOK || !slices.Contains(lines, smLegacyGrowth) || slices.Contains(lines, smNotMeasured) {
+			t.Errorf("spar cap-report --format md of a series with %s exits %d without the line %q: %s%s", form.name, code, smLegacyGrowth, stdout.String(), stderr.String())
+		}
+	}
+}
+
 // AC-8: a project configuration that still sets caps.plan_delta loads; a
 // candidate round records it, and it lends nothing to the plan or code cap:
 // with plan_delta 5 the plan cap stays 1 and the code cap 2.
