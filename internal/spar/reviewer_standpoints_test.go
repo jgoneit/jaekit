@@ -1163,10 +1163,12 @@ func TestReviewerStandpointsAC8_NoStandpointUnchanged(rsT *testing.T) {
 	rsCheck(rsW.rsOut("baseline-large", "01-candidate"), "candidate", []string{"agy"}, "--criteria", rsW.rsLargeCriteria())
 }
 
-// The schema a reviewer CLI is held to asks for what validateResult reads:
-// a result built from its required fields and first enum values passes the
-// validator, its enums are the validator's lists, and no object in it takes
-// a field it does not require.
+// The schema a reviewer CLI is held to asks for what the result contract
+// fixes (contracts/review-round.md section 3, contracts/spar-input.md G1 to
+// G6) and what validateResult reads: its enums and types are the contract's
+// literal values, a result built from its required fields passes the
+// validator, a value of another type in any field fails it, and no object in
+// it takes a field it does not require.
 func TestSparResultSchemaMatchesValidator(t *testing.T) {
 	var schema map[string]any
 	if err := json.Unmarshal(resultSchema(false), &schema); err != nil {
@@ -1175,6 +1177,7 @@ func TestSparResultSchemaMatchesValidator(t *testing.T) {
 	props := rsMap(schema["properties"])
 	finding := rsMap(rsMap(props["findings"])["items"])
 	checked, unchecked := rsMap(rsMap(props["angles_checked"])["items"]), rsMap(rsMap(props["angles_unchecked"])["items"])
+	objects := map[string]map[string]any{"result": schema, "finding": finding, "angles_checked item": checked, "angles_unchecked item": unchecked}
 	strs := func(v any) []string {
 		out := []string{}
 		for _, s := range rsList(v) {
@@ -1182,55 +1185,94 @@ func TestSparResultSchemaMatchesValidator(t *testing.T) {
 		}
 		return out
 	}
-	enum := func(object map[string]any, key string) []string {
-		return strs(rsMap(rsMap(object["properties"])[key])["enum"])
+	prop := func(object map[string]any, key string) map[string]any { return rsMap(rsMap(object["properties"])[key]) }
+
+	angles := []string{"requirement-counterexample", "side-effects", "design", "premises", "check-validity"}
+	yesNoUnknown := []string{"yes", "no", "unknown"}
+	enums := map[string][]string{
+		"result verdict":               {"no_blocking_findings", "blocking_findings", "could_not_review"},
+		"angles_checked item angle":    angles,
+		"angles_unchecked item angle":  angles,
+		"finding angle":                angles,
+		"finding proposed_class":       {"defect", "requirement-question", "hardening", "note"},
+		"finding link_kind":            {"criterion", "rule", "contract", "none"},
+		"finding introduced_by_change": yesNoUnknown,
+		"finding regression":           yesNoUnknown,
+		"finding check_impact":         {"false_pass", "meaning_inverted", "contract_violation", "none"},
+		"finding confidence":           {"high", "medium", "low"},
 	}
-	value := func(object map[string]any) map[string]any {
-		m := map[string]any{}
-		for _, key := range strs(object["required"]) {
-			if m[key] = "synthetic"; len(enum(object, key)) > 0 {
-				m[key] = enum(object, key)[0]
-			}
-		}
-		return m
-	}
-	head := strings.Repeat("a", 40)
-	angles := []any{}
-	for _, a := range Angles[1:] {
-		item := value(checked)
-		item["angle"] = a
-		angles = append(angles, item)
-	}
-	result := value(schema)
-	for key, v := range map[string]any{"reviewed_head": head, "angles_checked": angles, "angles_unchecked": []any{value(unchecked)}, "findings": []any{value(finding)}} {
-		if _, ok := result[key]; ok {
-			result[key] = v
-		}
-	}
-	if problems := validateResult(result, head, Angles); len(problems) > 0 {
-		t.Errorf("a result with the schema's required fields fails the validator: %v", problems)
-	}
-	enums := map[string][2][]string{"verdict": {enum(schema, "verdict"), verdicts}, "angles_checked angle": {enum(checked, "angle"), Angles},
-		"angles_unchecked angle": {enum(unchecked, "angle"), Angles}}
-	for key, list := range map[string][]string{"proposed_class": Classes, "angle": Angles, "link_kind": linkKinds,
-		"introduced_by_change": yesNo, "regression": yesNo, "check_impact": checkImpact, "confidence": confidences} {
-		enums["finding "+key] = [2][]string{enum(finding, key), list}
-	}
-	for key, pair := range enums {
-		if !reflect.DeepEqual(pair[0], pair[1]) {
-			t.Errorf("the schema's %s enum is %v, the validator's %v", key, pair[0], pair[1])
-		}
-	}
-	for label, object := range map[string]map[string]any{"result": schema, "finding": finding, "angles_checked item": checked, "angles_unchecked item": unchecked} {
+	arrays := map[string]bool{"result angles_checked": true, "result angles_unchecked": true, "result findings": true}
+	for label, object := range objects {
 		var keys []string
-		for k := range rsMap(object["properties"]) {
-			keys = append(keys, k)
+		for key := range rsMap(object["properties"]) {
+			keys = append(keys, key)
+			name := label + " " + key
+			want := "string"
+			if arrays[name] {
+				want = "array"
+			}
+			if got := prop(object, key)["type"]; got != want {
+				t.Errorf("the schema's %s has type %v; want %s", name, got, want)
+			}
+			if got, ok := prop(object, key)["enum"]; ok || enums[name] != nil {
+				if !reflect.DeepEqual(strs(got), enums[name]) {
+					t.Errorf("the schema's %s enum is %v; the contract's values are %v", name, got, enums[name])
+				}
+			}
 		}
 		required := strs(object["required"])
 		sort.Strings(keys)
 		sort.Strings(required)
 		if object["additionalProperties"] != false || !reflect.DeepEqual(keys, required) {
 			t.Errorf("the schema's %s takes other fields (%v) or fields it does not require: %v, required %v", label, object["additionalProperties"], keys, required)
+		}
+	}
+
+	head := strings.Repeat("a", 40)
+	value := func(object map[string]any) map[string]any {
+		m := map[string]any{}
+		for _, key := range strs(object["required"]) {
+			if m[key] = "synthetic"; len(strs(prop(object, key)["enum"])) > 0 {
+				m[key] = strs(prop(object, key)["enum"])[0]
+			}
+		}
+		return m
+	}
+	valid := func() map[string]any {
+		var checkedItems []any
+		for _, a := range Angles[1:] {
+			item := value(checked)
+			item["angle"] = a
+			checkedItems = append(checkedItems, item)
+		}
+		result := value(schema)
+		result["reviewed_head"], result["angles_checked"] = head, checkedItems
+		result["angles_unchecked"], result["findings"] = []any{value(unchecked)}, []any{value(finding)}
+		return result
+	}
+	if problems := validateResult(valid(), head, Angles); len(problems) > 0 {
+		t.Errorf("a result with the schema's required fields fails the validator: %v", problems)
+	}
+	// A value of another type than the schema's in any field of the result,
+	// a finding or an angle item fails the validator.
+	for label, object := range objects {
+		for _, key := range strs(object["required"]) {
+			result := valid()
+			target := result
+			switch label {
+			case "finding":
+				target = rsMap(rsList(result["findings"])[0])
+			case "angles_checked item":
+				target = rsMap(rsList(result["angles_checked"])[0])
+			case "angles_unchecked item":
+				target = rsMap(rsList(result["angles_unchecked"])[0])
+			}
+			if target[key] = 7; arrays[label+" "+key] {
+				target[key] = "synthetic"
+			}
+			if problems := validateResult(result, head, Angles); len(problems) == 0 {
+				t.Errorf("the validator accepts the %s field %s of another type than the schema's", label, key)
+			}
 		}
 	}
 }
