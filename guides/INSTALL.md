@@ -88,19 +88,16 @@ Claude Code를 새로 엽니다. 대화에서 `/spec:spec <요청>`으로 목표
 
 Spar는 여러 리뷰어 CLI로 독립 검토 라운드를 돌립니다. 자세한 내용은 [Spar 안내](SPAR.md)를 보세요.
 
-v0.1.7부터 `standard`·`strict` 목표에는 Spar 실행 파일과 Spar 플러그인이 필요합니다. v0.1.9의 Seal 0.1.36은 새 목표를 `run-rules/8`로 시작합니다. `run-rules/5` 이후로 시작한 `standard`·`strict` 목표는 기록된 Spar gate가 있어야 완료됩니다.
+`standard`·`strict` 목표에는 Spar 실행 파일과 Spar 플러그인이 필요합니다. 이 목표는 기록된 Spar gate가 있어야 완료됩니다.
 
 다음 목표에는 Spar가 필요 없습니다.
 
 - `light` 목표
 - `Assurance:` 줄이 없는 목표
-- `run-rules/4` 이하로 시작한 목표
 
-검토 없이 끝내려면 목표 문서를 고쳐 등급을 `light`로 낮춥니다. 이 수정은 사용자가 정합니다([검토 gate](RULES.md#검토-gate-run-rules5)). `run-rules/8` 목표에 `review` 조건이 있으면 그 기준도 바꿔야 합니다. 바꾸지 않으면 `review_tier_missing`으로 완료되지 않습니다.
+검토 없이 끝내려면 목표 문서를 고쳐 등급을 `light`로 낮춥니다. 이 수정은 사용자가 정합니다([검토 gate](RULES.md#검토-gate)). `review` 조건이 있으면 그 기준도 바꿔야 합니다. 바꾸지 않으면 `review_tier_missing`으로 완료되지 않습니다.
 
-> **이전 배포판.** v0.1.7의 Seal은 새 목표를 `run-rules/5`로 시작했습니다. v0.1.6 이하의 릴리스 파일, formula, marketplace 태그에는 Spar가 없습니다.
-
-v0.1.7부터 Homebrew formula와 Release 파일은 `ha`와 `spar`를 함께 설치합니다. 두 프로그램의 버전은 같습니다. 다음 명령으로 확인합니다.
+Homebrew formula와 Release 파일은 `ha`와 `spar`를 함께 설치합니다. 두 프로그램의 버전은 같습니다. 다음 명령으로 확인합니다.
 
 ```bash
 spar --version
@@ -122,7 +119,7 @@ claude plugin install spar@jaekit
 
 brew 대신 [v0.1.9 Release](https://github.com/jgoneit/jaekit/releases/tag/v0.1.9)의 파일 `ha_0.1.9_<os>_<arch>.tar.gz`로 설치할 수 있습니다. `<os>`는 `darwin`(macOS) 또는 `linux`입니다. `<arch>`는 `arm64`(Apple Silicon 등) 또는 `amd64`(Intel 등)입니다.
 
-아래 명령은 고치지 않고 그대로 붙여 넣습니다. 명령은 OS와 CPU를 보고 자기 플랫폼의 파일을 받습니다. 받은 파일의 checksum을 확인한 뒤, `ha`와 `spar`를 `~/.local/bin/ha`와 `~/.local/bin/spar`에 둡니다. `spar`는 v0.1.7 파일부터 들어 있습니다.
+아래 명령은 고치지 않고 그대로 붙여 넣습니다. 명령은 OS와 CPU를 보고 자기 플랫폼의 파일을 받습니다. 받은 파일의 checksum을 확인한 뒤, `ha`와 `spar`를 `~/.local/bin/ha`와 `~/.local/bin/spar`에 둡니다.
 
 지원하지 않는 OS나 CPU에서는 아무것도 받거나 설치하지 않고 멈춥니다. 압축을 푼 파일에 `spar`가 없으면, 아무것도 바꾸지 않고 메시지를 보인 뒤 멈춥니다.
 
@@ -221,19 +218,13 @@ brew 대신 [v0.1.9 Release](https://github.com/jgoneit/jaekit/releases/tag/v0.1
 | --- | --- | --- | --- | --- |
 | 현재 배포판 `v0.1.9` | `ha 0.1.9`, `spar 0.1.9` | 0.1.16 | 0.1.36 | 0.1.9 |
 | 이전 배포판 `v0.1.8` | `ha 0.1.8`, `spar 0.1.8` | 0.1.13 | 0.1.23 | 0.1.4 |
-| 이전 배포판 `v0.1.7` | `ha 0.1.7`, `spar 0.1.7` | 0.1.13 | 0.1.22 | 0.1.3 |
-| 이전 배포판 `v0.1.6` | `ha 0.1.6` | 0.1.12 | 0.1.17 | — |
-| 이전 배포판 `v0.1.5` | `ha 0.1.5` | 0.1.12 | 0.1.16 | — |
-| 이전 배포판 `v0.1.4` | `ha 0.1.4` | 0.1.12 | 0.1.12 | — |
-| 이전 배포판 `v0.1.3` | `ha 0.1.3` | 0.1.11 | 0.1.9 | — |
-| 이전 배포판 `v0.1.2` | `ha 0.1.2` | 0.1.10 | 0.1.8 | — |
 | 소스 빌드 | `ha 0.1.9-dev`, `spar 0.1.9-dev` | checkout의 버전 | checkout의 버전 | checkout의 버전 |
 
 배포판마다 들어 있는 기능은 다음과 같습니다.
 
 **현재 배포판 `v0.1.9`.** v0.1.8의 범위에 다음이 더해졌습니다.
 
-- Seal이 새 목표를 `/8`로 시작합니다. `run-rules/6`~`/8`에서는 표시한 change 조건만 baseline이 필요합니다. 검사 동결은 없습니다. 경과 시간은 참고값입니다. `review` 조건은 검토 gate로 충족합니다.
+- Seal이 새 목표를 `/8`로 시작합니다. 그래서 표시한 change 조건만 baseline이 필요하고, 검사 동결은 없습니다. 경과 시간은 참고값이고, `review` 조건은 검토 gate로 충족합니다.
 - `PROGRESS.md`에 `## 검수 요약`이 들어갑니다.
 - `ha report`가 검토 지적을 보여 줍니다.
 - Spar 상한 보고 `spar cap-report`가 생겼습니다. `spar extend --cause`는 상한을 연장한 원인을 남깁니다. `ha cost`는 그 원인을 보여 줍니다.
@@ -250,22 +241,11 @@ brew 대신 [v0.1.9 Release](https://github.com/jgoneit/jaekit/releases/tag/v0.1
 
 **소스 빌드.** 개발용 식별자입니다. 배포 파일을 설치했다는 근거가 아닙니다.
 
-<details>
-<summary>이전 배포판에 들어 있는 기능</summary>
-
-- **이전 배포판 `v0.1.8`**: v0.1.7의 범위에 더해 `ha cost`(목표 하나의 검증·검토 비용 요약), Seal이 미리 알 수 있는 결정을 첫 baseline 전에 한 메시지로 묻기, Spar 지적의 가장 작은 수정 방향, `spar`가 없으면 멈추는 직접 설치
-- **이전 배포판 `v0.1.7`**: 기본 규칙 `/3`, Seal의 새 목표는 `/5`(`standard`·`strict` 목표는 기록된 Spar gate가 있어야 완료), Spar 검토 라운드와 gate, 러너 어댑터, `ha report`·`ha doctor`·자동 예산, 시작 때 Core 지원 확인(`--check-skill`), 에이전트가 부르는 Spec
-- **이전 배포판 `v0.1.6`**: 기본 규칙 `/3`, Seal의 새 목표는 `/4`(기록된 권한 안의 자율 처리), 실행 시간 보기, 검사 작성 안내, 최종 후보 근거, 완료 뒤 발견·검증 근거와 보증 정책 보고; Spar·`/5` 없음
-- **이전 배포판 `v0.1.5`**: v0.1.6과 같은 Core 동작; `/4` 재개 창의 횟수 상한을 계약에 연결하기 전의 Seal
-- **이전 배포판 `v0.1.4`**: 기본 규칙 `/3`, 완료 뒤 발견·검증 근거와 보증 정책 보고; `/4`·실행 시간 보기 없음
-- **이전 배포판 `v0.1.3`**: 기본 규칙 `/3`, 지원 조회·횟수 추정·총상한 변경; 완료 뒤 발견 확장 없음
-- **이전 배포판 `v0.1.2`**: 기본 규칙 `/2`; 새 Seal의 지원 요구를 충족하지 않음
-
-</details>
+이전 배포판의 내용은 [릴리스 목록](https://github.com/jgoneit/jaekit/releases)에 있습니다.
 
 이 문서의 태그 고정 설치 명령은 v0.1.9를 받습니다. Seal은 실제로 쓸 Core의 지원 정보를 확인합니다. 지원 정보를 확인할 수 없거나 지원이 부족하면, 기록하기 전에 멈춥니다. 버전 숫자만 맞추거나 이전 규칙으로 바꿔서 진행하지 않습니다. 지원 조건은 [Core 지원 정보 계약](../contracts/core-capabilities.md)에 있습니다.
 
-Spec은 Core를 설치하거나 지원 정보를 조회하지 않고도 문서를 씁니다. Spec 0.1.16이 새로 쓰는 문서는 `nested/1` 형식입니다. 그래서 구현을 맡길 때는 이 형식을 지원하는 Core가 필요합니다. 업데이트는 기존 목표의 형식, `/1`·`/2`·`/3` 기록, 사용량과 시간 한도를 바꾸지 않습니다. 실제 호스트에서 확인한 범위는 [v0.1.9 릴리스 노트](https://github.com/jgoneit/jaekit/releases/tag/v0.1.9)를 따릅니다.
+Spec은 Core를 설치하거나 지원 정보를 조회하지 않고도 문서를 씁니다. Spec 0.1.16이 새로 쓰는 문서는 `nested/1` 형식입니다. 그래서 구현을 맡길 때는 이 형식을 지원하는 Core가 필요합니다. 업데이트는 기존 목표의 형식, 기록, 사용량과 시간 한도를 바꾸지 않습니다. 실제 호스트에서 확인한 범위는 [v0.1.9 릴리스 노트](https://github.com/jgoneit/jaekit/releases/tag/v0.1.9)를 따릅니다.
 
 ## 참조 검사 가져오기
 
@@ -422,7 +402,7 @@ Release 파일로 설치한 `ha`:
 rm ~/.local/bin/ha
 ```
 
-v0.1.7부터는 직접 설치가 `spar`도 함께 두었습니다. 이것도 지웁니다.
+직접 설치는 `spar`도 함께 둡니다. 이것도 지웁니다.
 
 ```bash
 rm ~/.local/bin/spar

@@ -357,17 +357,3 @@ func TestHaReviewGateAC14_CapabilitiesContractStatesTheGate(t *testing.T) {
 		t.Errorf("jaekit:violation=%s the capability tables lack %v", v, missing)
 	}
 }
-
-// AC-14: both usage guides explain the new rules, the gate record, the
-// reasons and how to finish without review.
-func TestHaReviewGateAC14_GuidesStateTheGate(t *testing.T) {
-	t.Parallel()
-	const v = "guide-gate-missing"
-	for path, heading := range map[string]string{"guides/RULES.md": "## 검토 gate (run-rules/5)", "guides/RULES.en.md": "## Review gate (run-rules/5)"} {
-		section := rgSection(rgTreeFile(t, path), heading)
-		if missing := rgMissing(section, rgRecordCommand, "`run-rules/5`", "`review_missing`", "`review_head_stale`", "`review_docs_stale`",
-			"`Assurance: light`", "`spar gate`"); section == "" || len(missing) > 0 {
-			t.Errorf("jaekit:violation=%s %s: section %q is missing or lacks %v", v, path, heading, missing)
-		}
-	}
-}

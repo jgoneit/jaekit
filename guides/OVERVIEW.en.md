@@ -88,7 +88,7 @@ Each goal gets one folder in your project. They are all ordinary files.
 | `PROGRESS.md` | Seal | Progress, the review summary and the completion report |
 | `runs.jsonl` | `ha` | The append-only run record |
 
-**Review summary.** For a finished goal, start with `## 검수 요약` in `PROGRESS.md`. Its top lines give the completion record, the assurance tier, how many required conditions are satisfied and the review result. Below them come what changed, evidence, what to inspect and what was not observed, in that order. Goals started before Seal 0.1.24, and how the summary is written, are covered in the [usage guide](USAGE.en.md#reading-the-completion-report).
+**Review summary.** For a finished goal, start with `## 검수 요약` in `PROGRESS.md`. Its top lines give the completion record, the assurance tier, how many required conditions are satisfied and the review result. Below them come what changed, evidence, what to inspect and what was not observed, in that order. How the summary is written is in the [usage guide](USAGE.en.md#reading-the-completion-report).
 
 The first five lines of the completion report are computed by `ha` from the run record, Git and the goal documents. The agent does not rewrite them. Read the words in the report like this:
 

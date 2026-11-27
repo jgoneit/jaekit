@@ -60,6 +60,8 @@ If the conversation ends, open a new one in the same project folder and send the
 continue docs/specs/<goal>
 ```
 
+> **Goals started with an earlier release.** This guide describes goals started with v0.1.9. A goal started earlier keeps being judged under the rules it started with. The differences between rules are in [Details and rules](RULES.en.md) and the [run record contract](../contracts/run-record.md).
+
 ## Seal's pre-start checks and review order
 
 Seal asks the decisions it can foresee once, before it starts. During work it asks only questions that come up new. Below is when it asks what, and in what order independent review comes for each review tier.
@@ -70,7 +72,7 @@ Seal asks the decisions it can foresee once, before it starts. During work it as
   - The number you give goes into PLAN, and the same PLAN never gets the question again.
   - Seal does not write or change `ha.json`.
 - **Environment check before the start.** When checks use a browser, database, container or external service, Seal lists it in the PLAN section `## 실행 환경`. It runs `ha doctor` before recording any baseline and, after a resume, before the next check. It gathers unavailable tools into one question. It never widens permissions or settings on its own.
-- **Questions before the start, in one message.** From Seal 0.1.23, before recording any baseline, Seal gathers the decisions that need your words and asks them in one message. These are decisions it can foresee from the goal documents, the plan, the project instructions and the code. When there is nothing to ask, Seal asks nothing and starts the work.
+- **Questions before the start, in one message.** Before recording any baseline, Seal gathers the decisions that need your words and asks them in one message. These are decisions it can foresee from the goal documents, the plan, the project instructions and the code. When there is nothing to ask, Seal asks nothing and starts the work.
   - Examples are a plan that changes a file on a protected path, a change to an existing test that the request does not authorize, a place where the goal documents and the code seem to disagree, unusable tools and a budget that needs approval.
   - Each question gives its options, the recommended one leading, and what the answer changes.
   - When a condition can be met only by your confirmation, the same message names it and what you will be asked to confirm at the end.
@@ -82,8 +84,8 @@ Seal asks the decisions it can foresee once, before it starts. During work it as
   - Having asked early does not by itself confirm a change outside Seal's authority or one that weakens a check.
   - Once the change an up-front answer allows is committed, Seal records that answer as the confirmation, quoting it. It does not ask about that change again.
   - When the confirmed content changes later, that is a new change and Seal asks again.
-- **Five-line report.** Goals started with Seal 0.1.20 or later use `ha report` in `PROGRESS.md`. `## 현재` opens with the `ha report` stamp, pasted unchanged. Seal does not type the time.
-  - In `## 완료 보고`, start with the five lines at the top (`Changed`, `Checked`, `To review`, `Remaining limits`, `Next step`). The completion record and Seal's judgment are below them. In a finished goal started with Seal 0.1.24 or later, the judgment is in `## 검수 요약`.
+- **Five-line report.** `PROGRESS.md` uses `ha report`. `## 현재` opens with the `ha report` stamp, pasted unchanged. Seal does not type the time.
+  - In `## 완료 보고`, start with the five lines at the top (`Changed`, `Checked`, `To review`, `Remaining limits`, `Next step`). The completion record and Seal's judgment are below them. In a finished goal, the judgment is in `## 검수 요약`.
   - A Korean request gets `--lang ko`.
 
 ### Review order by tier
@@ -102,18 +104,11 @@ The **cumulative round** is a candidate round over the whole change, from the go
 - A goal without the line keeps the selected assurance policy as before.
 - When you ask for remote review comments to be applied after completion, Seal records `reopen`, fixes, runs one cumulative round, re-records stale checks and runs `ha done` again.
 
-<details>
-<summary>The Core support check from Seal 0.1.20</summary>
-
-Seal 0.1.20 declares the Core support it needs in `core-requirements.json` in its skill folder, and starts with `ha start --check-skill`. When the executable lacks support such as `ha report`, `ha doctor`, the automatic budget or the assurance tier check, `ha` refuses the start without a record. Seal then reports the executable and the message and stops. It does not install tools or fall back to older rules. The `ha` of release v0.1.7 has all of this support. The `ha` of v0.1.6 and earlier does not accept this start.
-
-</details>
-
 ## Reading the completion report
 
 Start with what changed and what was verified. The report appears in the conversation and in `PROGRESS.md` in the goal folder.
 
-**Review summary.** In goals started with Seal 0.1.24 or later, after completion, `## 검수 요약` right after `## 현재` is where you start reviewing.
+**Review summary.** After completion, `## 검수 요약` right after `## 현재` is where you start reviewing.
 
 - Top lines: the completion record, the assurance tier, how many required conditions are satisfied, the review gate result, what the change does and where to start looking.
 - Below them: what changed, evidence, what to inspect and what was not observed, in that order. A heading with nothing to list says `없음`.
@@ -122,7 +117,7 @@ Start with what changed and what was verified. The report appears in the convers
 - Seal's judgment is only there. `## 완료 보고` holds the `ha report` output and one line pointing to it.
 - After a reopen, the section is rewritten as of the new completion record.
 
-For a finished goal, read `## 검수 요약` first. For a goal that stopped, or one started with an earlier Seal, read `## 완료 보고` as before.
+For a finished goal, read `## 검수 요약` first. For a goal that stopped, read `## 완료 보고`.
 
 - Required completion conditions need recorded checks, necessary user confirmations or, for a `review` condition, the review gate.
 - Optional conditions do not block completion and are identified separately.
@@ -185,7 +180,6 @@ Find the goal and its records in `docs/specs/<goal>/`:
 - **Linked worktrees:** in a separate working folder sharing the same Git history, output is under `ha/` in the Git directory printed by `git rev-parse --absolute-git-dir`.
 - **Read output:** run `ha log <goal> <seq>` in Terminal. Here `<goal>` is the goal path, and `<seq>` is the record number from the report.
 - **Run timing:** use `ha timing <goal>` to see which checks took long and how close they came to their time limit. It requires a Core with capability `run-timing/v1`. Measurement details are below.
-- **Earlier decision records:** Decision records an earlier release left under `ha/history/` in the common Git directory are not deleted. To read them, use `v0.1.8`, the last release with that feature.
 
 <details>
 <summary>Run timing: measurements and limits</summary>
@@ -246,10 +240,9 @@ Replace `<plugin>` with the old installation's ID; keep `spec@jaekit`, `seal@jae
 <details>
 <summary>Budget changes and reopening</summary>
 
-- `/3` can change the total run limit with your words and context, retaining usage and the time limit.
+- The total run limit can change with your words and context. Runs used and the time limit stay as they are.
 - Changing the elapsed-time limit is unsupported.
 - Request an explicit reopen when a new window is needed.
-- Existing `/1` or `/2` goals retain their reopen behavior with the original limits.
 
 </details>
 

@@ -88,19 +88,16 @@ Reopen Claude Code. In the conversation, define the goal with `/spec:spec <reque
 
 Spar runs independent review rounds with several reviewer CLIs. See the [Spar guide](SPAR.en.md) for details.
 
-From v0.1.7, `standard` and `strict` goals need the Spar executable and the Spar plugin. Seal 0.1.36 in v0.1.9 starts new goals under `run-rules/8`. A `standard` or `strict` goal started under `run-rules/5` or later completes only with a recorded Spar gate.
+`standard` and `strict` goals need the Spar executable and the Spar plugin. Such a goal completes only with a recorded Spar gate.
 
 These goals do not need Spar:
 
 - `light` goals
 - Goals without an `Assurance:` line
-- Goals started under `run-rules/4` or earlier
 
-To finish without review, change the goal document to lower the tier to `light`. The user decides this change ([Review gate](RULES.en.md#review-gate-run-rules5)). A `run-rules/8` goal with a `review` condition also needs that criterion changed. Otherwise it stops at `review_tier_missing` and does not complete.
+To finish without review, change the goal document to lower the tier to `light`. The user decides this change ([Review gate](RULES.en.md#review-gate)). A goal with a `review` condition also needs that criterion changed. Otherwise it stops at `review_tier_missing` and does not complete.
 
-> **Earlier releases.** The v0.1.7 Seal started new goals under `run-rules/5`. Release files, formulas and marketplace tags of v0.1.6 and earlier do not contain Spar.
-
-From v0.1.7, the Homebrew formula and the Release file install `ha` and `spar` together. Both have the same version. Check them with these commands:
+The Homebrew formula and the Release file install `ha` and `spar` together. Both have the same version. Check them with these commands:
 
 ```bash
 spar --version
@@ -122,7 +119,7 @@ Then reopen the host. Before the first round, list only the CLIs you have as rev
 
 Instead of brew, you can install from the file `ha_0.1.9_<os>_<arch>.tar.gz` in the [v0.1.9 Release](https://github.com/jgoneit/jaekit/releases/tag/v0.1.9). `<os>` is `darwin` (macOS) or `linux`. `<arch>` is `arm64` (Apple Silicon and others) or `amd64` (Intel and others).
 
-Paste the commands below as they are. They pick the file for your OS and CPU and download it. They verify its checksum, then put `ha` and `spar` at `~/.local/bin/ha` and `~/.local/bin/spar`. `spar` is in the files from v0.1.7.
+Paste the commands below as they are. They pick the file for your OS and CPU and download it. They verify its checksum, then put `ha` and `spar` at `~/.local/bin/ha` and `~/.local/bin/spar`.
 
 On an unsupported OS or CPU, the commands stop without downloading or installing anything. If the extracted file has no `spar`, they print a message and stop without changing anything.
 
@@ -221,19 +218,13 @@ If `~/.local/bin` is not on your PATH, add `export PATH="$HOME/.local/bin:$PATH"
 | --- | --- | --- | --- | --- |
 | Current release `v0.1.9` | `ha 0.1.9`, `spar 0.1.9` | 0.1.16 | 0.1.36 | 0.1.9 |
 | Previous release `v0.1.8` | `ha 0.1.8`, `spar 0.1.8` | 0.1.13 | 0.1.23 | 0.1.4 |
-| Previous release `v0.1.7` | `ha 0.1.7`, `spar 0.1.7` | 0.1.13 | 0.1.22 | 0.1.3 |
-| Previous release `v0.1.6` | `ha 0.1.6` | 0.1.12 | 0.1.17 | — |
-| Previous release `v0.1.5` | `ha 0.1.5` | 0.1.12 | 0.1.16 | — |
-| Previous release `v0.1.4` | `ha 0.1.4` | 0.1.12 | 0.1.12 | — |
-| Previous release `v0.1.3` | `ha 0.1.3` | 0.1.11 | 0.1.9 | — |
-| Previous release `v0.1.2` | `ha 0.1.2` | 0.1.10 | 0.1.8 | — |
 | Source build | `ha 0.1.9-dev`, `spar 0.1.9-dev` | Checkout version | Checkout version | Checkout version |
 
 What each release includes:
 
 **Current release `v0.1.9`.** It adds the following to everything in v0.1.8.
 
-- Seal starts new goals under `/8`. Under `run-rules/6` to `/8`, only marked change conditions need a baseline. There is no check freeze. Elapsed time is informational. `review` conditions are met by the review gate.
+- Seal starts new goals under `/8`. So only marked change conditions need a baseline, and there is no check freeze. Elapsed time is informational, and `review` conditions are met by the review gate.
 - `PROGRESS.md` has the `## 검수 요약` review summary.
 - `ha report` shows review findings.
 - Spar has a cap report, `spar cap-report`. `spar extend --cause` records why a cap was extended. `ha cost` shows that cause.
@@ -250,22 +241,11 @@ These changed or were removed:
 
 **Source build.** A development identity. It is not evidence of installing a release artifact.
 
-<details>
-<summary>What earlier releases include</summary>
-
-- **Previous release `v0.1.8`**: Everything in v0.1.7, plus `ha cost` (one goal's verification and review cost summary), Seal asking the decisions it can foresee in one message before the first baseline, the smallest fix direction on Spar findings, and a direct installation that stops when `spar` is missing
-- **Previous release `v0.1.7`**: Default rules `/3`; Seal starts new goals under `/5` (a `standard` or `strict` goal completes only with a recorded Spar gate), Spar review rounds and gate, runner adapters, `ha report`, `ha doctor` and the automatic budget, Core support check at start (`--check-skill`), Spec that the agent can call
-- **Previous release `v0.1.6`**: Default rules `/3`; Seal starts new goals under `/4` (proceeding within recorded authority), run timing, check-authoring guidance, final-candidate evidence, post-completion findings, evidence and assurance-policy reporting; no Spar or `/5`
-- **Previous release `v0.1.5`**: Same Core behavior as v0.1.6; Seal before the run limit of a reopened `/4` window was linked to its contract
-- **Previous release `v0.1.4`**: Default rules `/3`, post-completion findings, evidence and assurance-policy reporting; no `/4` or run timing
-- **Previous release `v0.1.3`**: Default rules `/3`, capabilities, run estimation and total-limit changes; no post-completion findings extension
-- **Previous release `v0.1.2`**: Default rules `/2`; does not meet the new Seal's support requirements
-
-</details>
+What earlier releases contain is in the [release list](https://github.com/jgoneit/jaekit/releases).
 
 The tag-pinned installation commands in this guide install v0.1.9. Seal checks the capabilities of the Core executable it will actually use. If support is missing or cannot be established, Seal stops before recording. Matching version numbers or switching to older rules does not establish compatibility. See the [Core capabilities contract](../contracts/core-capabilities.md) for the required support.
 
-Spec writes documents without installing Core or querying capabilities. New documents from Spec 0.1.16 use `nested/1`. So implementation needs a Core that supports that format. Updates do not change existing goal formats, `/1`, `/2` or `/3` records, or usage and time limits. See the [v0.1.9 release notes](https://github.com/jgoneit/jaekit/releases/tag/v0.1.9) for the scope of actual host checks.
+Spec writes documents without installing Core or querying capabilities. New documents from Spec 0.1.16 use `nested/1`. So implementation needs a Core that supports that format. Updates do not change existing goal formats, records, or usage and time limits. See the [v0.1.9 release notes](https://github.com/jgoneit/jaekit/releases/tag/v0.1.9) for the scope of actual host checks.
 
 ## Get the reference check
 
@@ -422,7 +402,7 @@ For an `ha` installed from a Release file:
 rm ~/.local/bin/ha
 ```
 
-From v0.1.7, the direct installation also put `spar` there. Remove it too.
+The direct installation also puts `spar` there. Remove it too.
 
 ```bash
 rm ~/.local/bin/spar

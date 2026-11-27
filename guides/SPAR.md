@@ -8,15 +8,13 @@ Spar는 독립 검토 도구입니다. 작업한 에이전트가 놓친 문제�
 
 Spar는 두 커밋에 고정한 검토 패킷 하나를 여러 리뷰어에게 한꺼번에 보냅니다. 그리고 리뷰어들이 찾은 것과 그 처리를 기록합니다. 라운드는 `spar` 실행 파일이 돌립니다. `spar` 플러그인은 언제 라운드를 돌리고 지적을 어떻게 닫는지 에이전트에게 알려 줍니다.
 
-v0.1.9의 Seal 0.1.36은 새 목표를 `run-rules/8`로 시작합니다. v0.1.7부터 `run-rules/5` 이후로 시작한 `standard`·`strict` 목표는 기록된 Spar gate가 있어야 완료됩니다. `light` 목표와 `Assurance:` 줄이 없는 목표에는 Spar가 필요 없습니다.
+`standard`·`strict` 목표는 기록된 Spar gate가 있어야 완료됩니다. `light` 목표와 `Assurance:` 줄이 없는 목표에는 Spar가 필요 없습니다.
 
-> `run-rules/4` 이하로 시작한 목표에도 Spar가 필요 없습니다.
+> 이전 배포판으로 시작한 목표가 언제 Spar gate를 요구하는지는 [검토 gate](RULES.md#검토-gate)에 있습니다.
 
-검토 없이 끝내려면 목표 문서에서 등급을 `light`로 낮춰야 합니다. 이 수정은 사용자가 정합니다([검토 gate](RULES.md#검토-gate-run-rules5)). `run-rules/8` 목표에 `review` 조건이 있으면 그 기준도 바꿔야 합니다. 바꾸지 않으면 `review_tier_missing`으로 완료되지 않습니다.
+검토 없이 끝내려면 목표 문서에서 등급을 `light`로 낮춰야 합니다. 이 수정은 사용자가 정합니다([검토 gate](RULES.md#검토-gate)). `run-rules/8` 목표에 `review` 조건이 있으면 그 기준도 바꿔야 합니다. 바꾸지 않으면 `review_tier_missing`으로 완료되지 않습니다.
 
 `spar`는 릴리스 파일과 Homebrew formula에 `ha`와 함께 들어 있습니다. [설치 안내](INSTALL.md)를 보세요.
-
-> `spar`는 v0.1.7부터 들어 있습니다. v0.1.6 이하의 릴리스 파일과 formula에는 없습니다.
 
 ## 컴퓨터 밖으로 나가는 것
 
@@ -301,7 +299,7 @@ spar run --stage candidate --base 1111111 --head 2222222 \
 
 ## 지적과 gate
 
-gate는 검토 기록이지 완료 근거가 아닙니다. Seal의 완료는 여전히 `ha done`에서만 나옵니다. `run-rules/5` 이후로 시작한 `standard`·`strict` 목표에서는 Seal이 gate 파일을 `ha note <goal> review --gate <file>`로 기록합니다. 기록된 gate가 지금 HEAD와 목표 문서를 덮어야 `ha done`이 완료를 기록합니다([검토 gate](RULES.md#검토-gate-run-rules5)). 그래서 라운드에는 SPEC.md와, 목표 폴더 안에서 SPEC.md가 직접 또는 다른 링크된 문서를 거쳐 링크하는 Markdown 문서를 모두 `--criteria`로 줍니다.
+gate는 검토 기록이지 완료 근거가 아닙니다. Seal의 완료는 여전히 `ha done`에서만 나옵니다. `run-rules/5` 이후로 시작한 `standard`·`strict` 목표에서는 Seal이 gate 파일을 `ha note <goal> review --gate <file>`로 기록합니다. 기록된 gate가 지금 HEAD와 목표 문서를 덮어야 `ha done`이 완료를 기록합니다([검토 gate](RULES.md#검토-gate)). 그래서 라운드에는 SPEC.md와, 목표 폴더 안에서 SPEC.md가 직접 또는 다른 링크된 문서를 거쳐 링크하는 Markdown 문서를 모두 `--criteria`로 줍니다.
 
 ### 지적의 분류
 

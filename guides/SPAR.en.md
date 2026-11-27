@@ -8,15 +8,13 @@ Read this guide before your first `standard` or `strict` goal. Read it also when
 
 Spar sends one review packet, pinned to two commits, to several reviewers at once. It then keeps what they found and what was done about it. The `spar` binary runs the rounds. The `spar` plugin tells your agent when to run them and how findings may be closed.
 
-Seal 0.1.36 in v0.1.9 starts new goals under `run-rules/8`. From v0.1.7, a `standard` or `strict` goal started under `run-rules/5` or later completes only with a recorded Spar gate. `light` goals and goals without an `Assurance:` line do not need Spar.
+A `standard` or `strict` goal completes only with a recorded Spar gate. `light` goals and goals without an `Assurance:` line do not need Spar.
 
-> Goals started under `run-rules/4` or earlier do not need Spar either.
+> When a goal started with an earlier release needs a Spar gate is in [Review gate](RULES.en.md#review-gate).
 
-To finish without review, the goal document must lower the tier to `light`. You decide that change ([Review gate](RULES.en.md#review-gate-run-rules5)). A `run-rules/8` goal with a `review` condition also needs that criterion changed. Otherwise it stops at `review_tier_missing`.
+To finish without review, the goal document must lower the tier to `light`. You decide that change ([Review gate](RULES.en.md#review-gate)). A `run-rules/8` goal with a `review` condition also needs that criterion changed. Otherwise it stops at `review_tier_missing`.
 
 `spar` ships next to `ha` in the release files and the Homebrew formula. See the [install guide](INSTALL.en.md).
-
-> `spar` ships from v0.1.7. Release files and formulas of v0.1.6 and earlier do not contain it.
 
 ## What leaves your computer
 
@@ -301,7 +299,7 @@ Standpoints do not change angles, classification, dispositions, caps or the gate
 
 ## Findings and the gate
 
-The gate is a review record, not evidence of completion. Seal's completion still comes only from `ha done`. For a `standard` or `strict` goal started under `run-rules/5` or later, Seal records the gate file with `ha note <goal> review --gate <file>`. `ha done` then records completion only when the recorded gate covers the current HEAD and goal documents ([Review gate](RULES.en.md#review-gate-run-rules5)). So the rounds get as `--criteria` SPEC.md and every Markdown document in the goal folder that it links, directly or through another linked document.
+The gate is a review record, not evidence of completion. Seal's completion still comes only from `ha done`. For a `standard` or `strict` goal started under `run-rules/5` or later, Seal records the gate file with `ha note <goal> review --gate <file>`. `ha done` then records completion only when the recorded gate covers the current HEAD and goal documents ([Review gate](RULES.en.md#review-gate)). So the rounds get as `--criteria` SPEC.md and every Markdown document in the goal folder that it links, directly or through another linked document.
 
 ### How findings are classified
 

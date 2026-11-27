@@ -113,11 +113,11 @@ func TestCompatibilityAC11_ReleaseAndDevelopmentGuidance(t *testing.T) {
 		})
 	}
 	for path, capabilities := range map[string]string{"../guides/INSTALL.md": "contracts/core-capabilities.md", "../guides/INSTALL.en.md": "contracts/core-capabilities.md"} {
-		compatibilityContains(t, path, read(t, path), "jaekit@v0.1.9", "jaekit#v0.1.9", "ha_0.1.9_${os}_${arch}", capabilities, "ha 0.1.9-dev", "v0.1.2")
+		compatibilityContains(t, path, read(t, path), "jaekit@v0.1.9", "jaekit#v0.1.9", "ha_0.1.9_${os}_${arch}", capabilities, "ha 0.1.9-dev")
 	}
 	// The operations guide points to the contract for what /4 adds to the /3
 	// budget rules.
-	compatibilityContains(t, "operations guide", read(t, "../guides/OPERATIONS.md"), "RULES.md#자율-처리-run-rules4", "run-record.md#47-run-rules4")
+	compatibilityContains(t, "operations guide", read(t, "../guides/OPERATIONS.md"), "RULES.md#자율-처리", "run-record.md#47-run-rules4")
 }
 
 // The Seal reference's rules section points to run-record.md §4.7 for the
