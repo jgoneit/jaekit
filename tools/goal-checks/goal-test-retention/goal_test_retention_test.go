@@ -38,7 +38,9 @@ func counted(path string, deleted map[string]bool) bool {
 
 func TestGoalTestRetentionAC3(t *testing.T) {
 	if *base == "" {
-		t.Fatal("AC-3 reads the goal's change and needs -base")
+		// Full verification runs this package without the goal's start
+		// commit; the AC-3 command always passes it, and a skip is no pass.
+		t.Skip("AC-3 reads the goal's change and needs -base")
 	}
 	git := func(args ...string) string {
 		out, err := exec.Command("git", append([]string{"-C", root}, args...)...).Output()
