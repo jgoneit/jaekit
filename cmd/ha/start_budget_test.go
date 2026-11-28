@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -264,6 +265,32 @@ func TestNativeStartBudgetAndSkill(t *testing.T) {
 		code, text := estimateTestCLI("start", startBudgetGoal, "--request", "synthetic", "--skill", skill, "--check-skill")
 		if code != 0 || len(startBudgetRecords(t, root)) != 1 {
 			t.Fatalf("supported declaration: exit %d: %s", code, text)
+		}
+	})
+	// The status JSON gives the start's Skill as claimed, or null when the
+	// goal was started without --skill (contracts/run-record.md).
+	t.Run("status_skill", func(t *testing.T) {
+		for _, withSkill := range []bool{false, true} {
+			startBudgetFixture(t, 1, "60")
+			args := []string{"start", startBudgetGoal, "--request", "synthetic"}
+			if withSkill {
+				args = append(args, "--skill", writeSkill(t, ""))
+			}
+			if code, text := estimateTestCLI(args...); code != 0 {
+				t.Fatalf("start (skill %v): exit %d: %s", withSkill, code, text)
+			}
+			var out, errb bytes.Buffer
+			var status map[string]any
+			if code := runMain([]string{"status", startBudgetGoal, "--format", "json"}, &out, &errb); code == exitInternal || json.Unmarshal(out.Bytes(), &status) != nil {
+				t.Fatalf("status (skill %v): exit %d: %s%s", withSkill, code, out.String(), errb.String())
+			}
+			skill, present := status["skill"]
+			if got, _ := skill.(map[string]any); withSkill && (got["name"] != "synthetic" || got["version"] != "1.0.0") {
+				t.Errorf("a goal started with --skill shows skill %v; want synthetic 1.0.0", skill)
+			}
+			if !withSkill && (!present || skill != nil) {
+				t.Errorf("a goal started without --skill shows skill %v (present %v); want null", skill, present)
+			}
 		}
 	})
 }

@@ -508,7 +508,10 @@ func Compute(in Input) (*Report, error) {
 		commandDigests: map[string]string{}, judged: map[string]JudgedRecord{},
 		freshBaselines: map[string]bool{}, confirmations: map[string]int{},
 	}
-	if e.start != nil && e.start.Skill != nil {
+	// A start without --skill records an empty Skill; the status gives null
+	// for it (contracts/run-record.md), as the Markdown status says "not
+	// recorded".
+	if e.start != nil && e.start.Skill != nil && *e.start.Skill != (record.Skill{}) {
 		rep.Skill = e.start.Skill
 	}
 	if n := len(in.Lines); n > 0 {
