@@ -792,10 +792,7 @@ func onboardSlug(heading string) string {
 	return b.String()
 }
 
-const (
-	rel011Tag     = "v0.1.9"
-	rel011Version = "0.1.9"
-)
+const rel011Tag = "v0.1.9"
 
 type rel011Lang struct {
 	readme, install            string // paths from this package

@@ -32,7 +32,6 @@ const (
 	costNotRecorded   = "not_recorded"   // no record holds the value
 	costCannotCompare = "cannot_compare" // Git cannot compare the base with HEAD
 	costNotComputed   = "not_computed"   // the record's budget cannot be computed
-	costNotFinished   = "not_finished"   // the round has no finished_at
 )
 
 type costDoc struct {

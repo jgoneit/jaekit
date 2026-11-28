@@ -959,11 +959,6 @@ func prepareNative(out, template string, packet []byte, r *RoundRecord, st *Revi
 	return nil
 }
 
-// Config prints the configuration a run would apply.
-func ShowConfig(repo string, getenv func(string) string, override []string, w io.Writer) error {
-	return ShowConfigWith(repo, getenv, override, nil, w)
-}
-
 // ShowConfigWith prints the configuration a run with the agent's values
 // would apply.
 func ShowConfigWith(repo string, getenv func(string) string, override []string, choices []Choice, w io.Writer) error {
@@ -994,5 +989,3 @@ func sortedKeys[V any](m map[string]V) []string {
 	sort.Strings(keys)
 	return keys
 }
-
-var errNotFound = errors.New("not found")

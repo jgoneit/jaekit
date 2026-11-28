@@ -70,12 +70,6 @@ func envCommand(dir string, env []string, name string, args ...string) *exec.Cmd
 	return cmd
 }
 
-// envLookPath is exec.LookPath through env's PATH.
-func envLookPath(env []string, name string) (string, error) {
-	dir, _ := os.Getwd()
-	return run.Environment{Dir: dir, Env: env}.LookPath(name)
-}
-
 // haIn runs ha in dir with env and returns its exit code, standard output
 // and standard error, as runMain would after t.Chdir(dir) and t.Setenv.
 func haIn(dir string, env []string, args ...string) (int, string, string) {
