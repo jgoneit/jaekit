@@ -531,10 +531,10 @@ func TestHaReviewGateAC2_StandardGoalCompletesWithACoveringGate(t *testing.T) {
 	// The check freeze is a run-rules/7 display: a gated run-rules/5 goal
 	// shows it neither in the status JSON nor in the Markdown status.
 	if fz, ok := f.status().value["check_freeze"]; ok {
-		t.Errorf("a gated run-rules/5 status has check_freeze %v; want none", fz)
+		t.Errorf("jaekit:violation=%s a gated run-rules/5 status has check_freeze %v; want none", v, fz)
 	}
 	if _, out := f.ha("status", rgGoal); strings.Contains(out, "- check freeze:") {
-		t.Errorf("a gated run-rules/5 Markdown status shows a check freeze line: %s", out)
+		t.Errorf("jaekit:violation=%s a gated run-rules/5 Markdown status shows a check freeze line: %s", v, out)
 	}
 
 	// A linked goal document that is a symbolic link to a file elsewhere in
