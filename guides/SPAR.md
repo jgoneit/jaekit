@@ -39,22 +39,15 @@ Spar는 두 커밋에 고정한 검토 패킷 하나를 여러 리뷰어에게 �
 
 ## 리뷰어 설정
 
-리뷰어는 사용자 설정에서만 옵니다. Spar는 `$SPAR_CONFIG`, `$XDG_CONFIG_HOME/jaekit/spar.toml`, `~/.config/jaekit/spar.toml` 가운데 처음 찾은 파일을 읽습니다. 없으면 이미 있는 clean-review `config.json`의 `reviewers` 목록을 씁니다. 그것도 없으면 `claude`, `codex`, `agy`를 씁니다. 빈 목록(`reviewers = []`)은 `native` 리뷰어 하나입니다.
+리뷰어는 사용자 설정에서만 옵니다. Spar는 `$SPAR_CONFIG`, `$XDG_CONFIG_HOME/jaekit/spar.toml`, `~/.config/jaekit/spar.toml` 가운데 처음 찾은 파일을 읽습니다. 없으면 이미 있는 clean-review `config.json`의 `reviewers` 목록을 씁니다. 그것도 없으면 `claude` 하나만 씁니다. 빈 목록(`reviewers = []`)은 `native` 리뷰어 하나입니다.
 
-이런 사용자 설정이 하나도 없으면 `claude`, `codex`, `agy` 셋이 모두 필수 리뷰어입니다. 필수 리뷰어의 CLI가 없거나 그 리뷰어가 라운드를 끝내지 못하면 gate는 `degraded`입니다. 그 라운드에 사용자의 결정(`spar waive`)이 있으면 예외입니다. gate가 `degraded`이면 `standard`·`strict` 목표가 완료되지 않습니다. 첫 라운드 전에, 가진 CLI만 리뷰어로 적은 사용자 설정을 `~/.config/jaekit/spar.toml`에 만드세요. 예를 들어 claude CLI만 있으면 그 리뷰어 하나만 적습니다.
-
-```toml
-[[reviewers]]
-preset = "claude"
-```
-
-리뷰어를 하나만 적으면 그 리뷰어가 유일한 필수 리뷰어입니다. 그 리뷰어가 끝낸 라운드는 `complete`가 될 수 있습니다. 리뷰어 CLI가 하나도 없으면 빈 목록으로 `native` 리뷰어 하나를 씁니다. 그러면 지금 쓰는 에이전트의 clean-context 하위 에이전트가 검토합니다.
+필수 리뷰어의 CLI가 없거나 그 리뷰어가 라운드를 끝내지 못하면 gate는 `degraded`입니다. 그 라운드에 사용자의 결정(`spar waive`)이 있으면 예외입니다. gate가 `degraded`이면 `standard`·`strict` 목표가 완료되지 않습니다. 사용자 설정이 하나도 없으면 `claude`가 유일한 필수 리뷰어이고, 그 리뷰어가 끝낸 라운드는 `complete`가 될 수 있습니다. 리뷰어 CLI가 하나도 없으면 첫 라운드 전에 `~/.config/jaekit/spar.toml`에 빈 목록을 적어 `native` 리뷰어 하나를 씁니다. 그러면 지금 쓰는 에이전트의 clean-context 하위 에이전트가 검토합니다.
 
 ```toml
 reviewers = []
 ```
 
-세 CLI가 모두 있으면 이렇게 적을 수 있습니다.
+`codex`·`agy`는 사용자 설정에 적었을 때만 돕니다. 세 CLI를 모두 쓰려면 이렇게 적습니다.
 
 ```toml
 timeout_seconds = 1800

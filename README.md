@@ -203,7 +203,7 @@ docs/reviews/
 
 To use another folder or `.git/info/exclude` instead, see [Set up a project](guides/SPAR.en.md#set-up-a-project) in the Spar guide.
 
-**2. List the reviewer CLIs you have.** Without a user configuration, Spar requires the `claude`, `codex` and `agy` CLIs, and a goal whose required reviewer cannot run does not complete. Write `~/.config/jaekit/spar.toml` that lists only the CLIs you have: see [Configure reviewers](guides/SPAR.en.md#configure-reviewers).
+**2. Choose the reviewer CLIs.** Without a user configuration, Spar requires the `claude` CLI, and a goal whose required reviewer cannot run does not complete. To add `codex` and `agy`, or to review without the claude CLI, write `~/.config/jaekit/spar.toml`: see [Configure reviewers](guides/SPAR.en.md#configure-reviewers).
 
 ### Your first task
 

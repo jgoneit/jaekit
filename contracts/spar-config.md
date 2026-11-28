@@ -10,7 +10,7 @@ The reviewer list comes only from the first source found.
 2. `$XDG_CONFIG_HOME/jaekit/spar.toml`
 3. `~/.config/jaekit/spar.toml`
 4. When none of these three exists, the `reviewers` list of the one `config.json` that clean-review reads. That file is chosen the same way clean-review chooses it: the file in the environment variable `CLEAN_REVIEW_CONFIG` when it is set, otherwise `$XDG_CONFIG_HOME/clean-review/config.json`, and `~/.config/clean-review/config.json` when `XDG_CONFIG_HOME` is not set either. When the chosen file does not exist, no other path is searched and the next source is used. Each name is the preset of the same name (`claude`, `codex`, `agy`, `native`).
-5. Without that either, `claude`, `codex`, `agy`
+5. Without that either, `claude` alone. `codex` and `agy` run only when a source above names them (format below)
 
 - Source files (G16): when the path does not exist (a broken symbolic link included), the next source is used and the skipped path is kept in `source.skipped`. When an existing path is not a regular file (a folder, a FIFO and so on) or the file is invalid, spar does not move on and ends with a configuration error. The clean-review `config.json` (G18) is a JSON object, and `reviewers` is an array of name strings (`null` is also an invalid value).
 - When the source file has no `reviewers` key, the default list applies; when the list is empty, `native` alone. The file's top-level `timeout_seconds` is the default for every reviewer in these cases too (G19).
