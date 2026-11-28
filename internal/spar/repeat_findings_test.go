@@ -30,11 +30,10 @@ import (
 const (
 	rptBoundaryHeading = "## Check boundaries"
 	rptEarlierHeading  = "## Findings of earlier rounds"
-	// rptRereport and rptFixed, rptNotFixed are the guidance that a packet with
-	// a recorded disposition carries.
+	// rptRereport and rptFixed are the guidance that a packet with a recorded
+	// disposition carries.
 	rptRereport = "only with a failure scenario that the recorded disposition does not answer"
 	rptFixed    = "recorded as fixed"
-	rptNotFixed = "recorded as rejected, deferred, duplicate or answered"
 	// rptCandidate is the stage text of a candidate packet, with or without
 	// dispositions.
 	rptCandidate = "The head is a candidate implementation of the criteria. Review the whole change from base to head."

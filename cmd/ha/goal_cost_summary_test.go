@@ -307,8 +307,6 @@ func gcBuild(t *testing.T) *gcFixture {
 	return f
 }
 
-func gcBool(b bool) *bool { return &b }
-
 // gcReviewer is a reviewer entry of round.json as spar writes it.
 func gcReviewer(status string, elapsed float64, attempts int, fallback bool) map[string]any {
 	list := []any{}

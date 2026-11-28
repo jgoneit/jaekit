@@ -491,13 +491,6 @@ func costText(s, none string) string {
 	return s
 }
 
-func costInt(n *int) int {
-	if n == nil {
-		return 0
-	}
-	return *n
-}
-
 func costIntText(n *int, none string) string {
 	if n == nil {
 		return none
