@@ -431,7 +431,7 @@ func TestSparAgentModelAC2_AgentChoiceReachesCLI(t *testing.T) {
 		{"the default list", func() {
 			delete(w.env, "SPAR_CONFIG")
 			delete(w.env, "CLEAN_REVIEW_CONFIG")
-		}, nil, []string{"claude", "codex", "agy"}},
+		}, nil, []string{"claude"}},
 		{"a --reviewers name outside the configuration", func() {
 			w.use(amNative("host"))
 		}, []string{"--reviewers", "codex"}, []string{"codex"}},

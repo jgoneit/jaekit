@@ -522,13 +522,10 @@ func TestSparAgyReadonlyAC7_RecordedRoundsKeepTheirGate(t *testing.T) {
 	}
 }
 
-// AC-8 (kept): without configuration the reviewers are claude, codex and
-// agy, and the sources keep their order: SPAR_CONFIG, XDG_CONFIG_HOME,
-// HOME, then the clean-review list, then the default list.
+// AC-8 (kept): without configuration the reviewer is claude alone, and the
+// sources keep their order: SPAR_CONFIG, XDG_CONFIG_HOME, HOME, then the
+// clean-review list, then the default list.
 func TestSparAgyReadonlyAC8_DefaultReviewers(t *testing.T) {
-	if !slices.Equal(DefaultReviewers, []string{"claude", "codex", "agy"}) {
-		t.Errorf("the default list is %v", DefaultReviewers)
-	}
 	dir := t.TempDir()
 	repo := filepath.Join(dir, "repo")
 	if err := os.MkdirAll(repo, 0o755); err != nil {
@@ -562,7 +559,7 @@ func TestSparAgyReadonlyAC8_DefaultReviewers(t *testing.T) {
 		want        []string
 		set         func()
 	}{
-		{"no configuration", "default", []string{"claude", "codex", "agy"}, func() {}},
+		{"no configuration", "default", []string{"claude"}, func() {}},
 		{"a clean-review list", "clean-review", []string{"codex"}, func() {
 			write(filepath.Join(dir, "home", ".config", "clean-review", "config.json"), `{"reviewers": ["codex"]}`)
 		}},
