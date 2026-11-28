@@ -67,6 +67,10 @@ class WindowsNativeReportTests(unittest.TestCase):
     def test_complete_current_shell_and_server_observations(self):
         native.validate_package_report(self.valid(), "5.1.1", True)
 
+    def test_each_package_check_is_required_once(self):
+        # The package script reports each check once; a repeated name would reject every real report.
+        self.assertEqual(len(native.PACKAGE_CHECKS), len(set(native.PACKAGE_CHECKS)))
+
     def test_missing_duplicate_checks_and_wrong_shell_cannot_pass(self):
         for mutation in (lambda r: r["package_checks"].pop(),
                          lambda r: r["package_checks"].append(r["package_checks"][0]),
