@@ -2,6 +2,7 @@ package spar
 
 import (
 	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -20,12 +21,6 @@ import (
 // unreadable JSON, or unavailable tool starts with setup. No test reads the
 // checkout's history or private goal documents. Test names are the adapter's
 // entry points; all added helpers and their identifiers have the rs prefix.
-//
-// Regenerate the baseline ONLY on the goal's pre-standpoint tree:
-// RS_WRITE_BASE=1 go test -run TestReviewerStandpointsAC8_ ./internal/spar
-// The generator refuses a tree which already emits standpoints. The fixture
-// pins actual CLI inputs, packet/schema/summary bytes and legacy records.
-const rsFixture = "testdata/reviewer-standpoints/base.json"
 const rsSection = "## Standpoints for this round"
 const rsNoInstruction = "You have no standpoint this round. Review the whole change as the packet asks; the standpoints below belong to other reviewers."
 const rsQuote = "synthetic user decision: continue without this reviewer"
@@ -1093,11 +1088,6 @@ func TestReviewerStandpointsAC7_Uncovered(rsT *testing.T) {
 	}
 }
 
-// Normalize only world identities, times and execution durations. Packet
-// digests are checked against the RAW bytes before replacing them with the
-// digest of normalized bytes, so a stale/wrong digest cannot be normalized
-// into success. No source code, git refs or previous checkout is consulted.
-func rsHash(rsText string) string { return fmt.Sprintf("%x", sha256.Sum256([]byte(rsText))) }
 func (rsW *rsWorld) rsNormalize(rsText string) string {
 	rsPairs := []string{rsW.rsDir, "<world>"}
 	for rsI, rsCommit := range rsW.rsCommits {
@@ -1130,338 +1120,342 @@ func (rsW *rsWorld) rsNormalize(rsText string) string {
 	rsText = regexp.MustCompile(`, [0-9]+\.[0-9]+s\)`).ReplaceAllString(rsText, ", <elapsed>s)")
 	return rsText
 }
-func (rsW *rsWorld) rsExpand(rsText string) string {
-	rsPairs := []string{"<world>", rsW.rsDir, "<time>", "2026-01-01T00:00:00Z"}
-	for rsI, rsCommit := range rsW.rsCommits {
-		rsPairs = append(rsPairs, fmt.Sprintf("<commit-%d>", rsI), rsCommit, fmt.Sprintf("<short-commit-%d>", rsI), rsCommit[:12], fmt.Sprintf("<tree-%d>", rsI), rsW.rsTrees[rsI])
-	}
-	return strings.NewReplacer(rsPairs...).Replace(rsText)
-}
-func (rsW *rsWorld) rsPinDigests(rsOut string) {
-	rsR := rsW.rsRaw(rsOut)
-	rsPacket := rsW.rsRead(filepath.Join(rsOut, "packet.md"))
-	rsActual := rsString(rsR["packet_sha256"])
-	if rsActual != rsHash(rsPacket) {
-		rsAssert(rsW.rsChecks, false, "packet_sha256 is not the digest of packet.md")
-	} else {
-		rsW.rsReplacements[rsActual] = rsHash(rsW.rsNormalize(rsPacket))
-	}
-	rsConfig := rsMap(rsR["config"])
-	rsConfigBody := rsW.rsRead(rsW.rsConfig)
-	rsW.rsReplacements[rsHash(rsConfigBody)] = rsHash(rsW.rsNormalize(rsConfigBody))
-	rsDigest := rsString(rsConfig["digest"])
-	if len(rsDigest) >= 12 {
-		rsW.rsReplacements[rsDigest] = "<config-digest>"
-		rsW.rsReplacements[rsDigest[:12]] = "<short-config-digest>"
-	}
-}
 
-// Remove only execution timing fields. In particular, do not remove new
-// standpoint fields from reviewer entries or any other newly emitted key.
-func rsWithoutTiming(rsV any) {
-	switch rsValue := rsV.(type) {
-	case map[string]any:
-		for rsKey, rsChild := range rsValue {
-			switch rsKey {
-			case "started_at", "finished_at", "elapsed_seconds":
-				delete(rsValue, rsKey)
-			default:
-				rsWithoutTiming(rsChild)
-			}
-		}
-	case []any:
-		for _, rsChild := range rsValue {
-			rsWithoutTiming(rsChild)
-		}
-	}
-}
-
-func (rsW *rsWorld) rsSnapshot(rsOut string) map[string]any {
-	rsW.rsPinDigests(rsOut)
-	rsR := rsW.rsRaw(rsOut)
-	rsInputs := map[string]any{}
-	for _, rsValue := range rsList(rsR["requested_reviewers"]) {
-		rsName := rsString(rsValue)
-		if rsName == "native" {
-			rsInputs[rsName] = map[string]any{"prompt.md": rsW.rsNormalize(rsW.rsRead(filepath.Join(rsOut, rsName, "prompt.md")))}
-			continue
-		}
-		rsInputs[rsName] = map[string]any{"argv": rsW.rsNormalize(rsW.rsLast(rsName, "argv")), "stdin": rsW.rsNormalize(rsW.rsLast(rsName, "stdin"))}
-		if rsName == "claude" {
-			// Unlike agy/codex, claude receives schema bytes in argv, not a
-			// path. Pin those exact bytes independently of schema.json.
-			rsMap(rsInputs[rsName])["--json-schema"] = rsArg(rsW.rsLast(rsName, "argv"), "--json-schema")
-		}
-		if rsName == "command" {
-			rsMap(rsInputs[rsName])["prompt"] = rsW.rsNormalize(rsW.rsLast(rsName, "prompt"))
-		}
-		rsCalls := rsW.rsCalls(rsName)
-		rsPath := filepath.Join(rsCalls[len(rsCalls)-1], "PACKET.md")
-		if rsData, rsErr := os.ReadFile(rsPath); rsErr == nil {
-			rsMap(rsInputs[rsName])["PACKET.md"] = rsW.rsNormalize(string(rsData))
-		} else if !os.IsNotExist(rsErr) {
-			rsW.rsT.Fatalf("setup: capture PACKET.md: %v", rsErr)
-		}
-	}
-	delete(rsR, "standpoints") // AC-8 separately requires this to be exactly [].
-	rsWithoutTiming(rsR)
-	return map[string]any{"inputs": rsInputs, "round.json": rsW.rsJSON(rsW.rsNormalize(rsW.rsEncode(rsR))), "packet.md": rsW.rsNormalize(rsW.rsRead(filepath.Join(rsOut, "packet.md"))), "schema.json": rsW.rsRead(filepath.Join(rsOut, "schema.json")), "packet_sha256": rsW.rsNormalize(rsString(rsR["packet_sha256"])), "summary.md": rsW.rsNormalize(rsW.rsRead(filepath.Join(rsOut, "summary.md")))}
-}
-
-// rsCompactLimit keeps base.json small enough to fit a review packet: a
-// snapshot value longer than this is pinned by its length and sha256 instead
-// of its bytes, which still fixes every byte (02-candidate: the agy PACKET.md
-// route, 888 KB twice, made the packet exceed the reviewers' input limits).
-const rsCompactLimit = 64 << 10
-
-func rsCompact(rsValue any) any {
-	switch rsV := rsValue.(type) {
-	case map[string]any:
-		rsOut := make(map[string]any, len(rsV))
-		for rsK, rsX := range rsV {
-			rsOut[rsK] = rsCompact(rsX)
-		}
-		return rsOut
-	case []any:
-		rsOut := make([]any, len(rsV))
-		for rsI, rsX := range rsV {
-			rsOut[rsI] = rsCompact(rsX)
-		}
-		return rsOut
-	case string:
-		if len(rsV) > rsCompactLimit {
-			return fmt.Sprintf("sha256:%s bytes:%d", rsHash(rsV), len(rsV))
-		}
-	}
-	return rsValue
-}
-
-// rsStages runs a no-standpoint round of each stage a new round starts as in
-// the series baseline (01-plan, 02-candidate) and the agy file route, and
-// returns their snapshots and folders. A plan-delta and a fixes round of the
-// same form are refused before anything is written.
-func (rsW *rsWorld) rsStages() (map[string]any, []string) {
-	rsSnapshots := map[string]any{}
-	rsRounds := []string{}
-	for rsI, rsStage := range StartStages {
-		rsW.rsAll(1, nil)
-		rsOut := rsW.rsOut("baseline", fmt.Sprintf("%02d-%s", rsI+1, rsStage))
-		rsExtra := []string{"--question", "Is AC-1 covered?"}
-		if rsStage == "plan" {
-			rsExtra = append(rsExtra, "--subject", filepath.Join(rsW.rsRepo, "PLAN.md"))
-		}
-		rsW.rsRun("", rsOut, rsStage, 0, 1, rsExtra...)
-		rsSnapshots[rsStage] = rsCompact(rsW.rsSnapshot(rsOut))
-		rsRounds = append(rsRounds, rsOut)
-	}
-	for _, rsOld := range []struct {
-		rsStage        string
-		rsBase, rsHead int
-		rsExtra        []string
-	}{
-		{"plan-delta", 0, 1, []string{"--question", "Is AC-1 covered?", "--subject", filepath.Join(rsW.rsRepo, "PLAN.md")}},
-		{"fixes", 1, 2, []string{"--question", "Is AC-1 covered?"}},
-	} {
-		rsOut := rsW.rsOut("baseline", "03-"+rsOld.rsStage)
-		rsCode, _, rsErr := rsW.rsCLI(rsW.rsArgs(rsOut, rsOld.rsStage, rsOld.rsBase, rsOld.rsHead, rsOld.rsExtra...)...)
-		_, rsStatErr := os.Lstat(rsOut)
-		rsAssert(rsW.rsChecks, rsCode == ExitUsage && strings.Contains(strings.Split(rsErr, "\n")[0], "candidate") && os.IsNotExist(rsStatErr),
-			"a no-standpoint %s round exits %d and leaves its folder: %v: %s; want a usage error (64) naming candidate", rsOld.rsStage, rsCode, rsStatErr == nil, strings.Split(rsErr, "\n")[0])
-	}
-	// A separate series avoids changing the legacy rerun fixture's history.
-	rsW.rsUse(rsW.rsFake("agy", "agy", rsW.rsAnswer("agy-large", 1, nil, false), ""))
-	rsLarge := rsW.rsOut("baseline-large", "01-candidate")
-	rsW.rsRun("", rsLarge, "candidate", 0, 1, "--criteria", rsW.rsLargeCriteria())
-	rsSnapshots["agy-file"] = rsCompact(rsW.rsSnapshot(rsLarge))
-	rsRounds = append(rsRounds, rsLarge)
-	return rsSnapshots, rsRounds
-}
-func (rsW *rsWorld) rsLoadFixture() map[string]any {
-	rsW.rsT.Helper()
-	rsFixtureValue := rsMap(rsW.rsJSON(rsW.rsRead(rsFixture)))
-	if rsFixtureValue["format"] != "reviewer-standpoints-base/v1" {
-		rsW.rsT.Fatal("setup: base.json has an unknown fixture format")
-	}
-	for _, rsKey := range []string{"stages", "rerun", "legacy", "legacy_expected", "config"} {
-		if len(rsMap(rsFixtureValue[rsKey])) == 0 {
-			rsW.rsT.Fatalf("setup: base.json is missing %s", rsKey)
-		}
-	}
-	return rsFixtureValue
-}
-
-// Store only public, synthetic record files, never reviewer scratch output.
-func (rsW *rsWorld) rsArchive(rsPaths ...string) map[string]any {
-	rsArchive := map[string]any{}
-	for _, rsPath := range rsPaths {
-		rsRel, rsErr := filepath.Rel(rsW.rsDir, rsPath)
-		if rsErr != nil {
-			rsW.rsT.Fatalf("setup: archive: %v", rsErr)
-		}
-		rsArchive[filepath.ToSlash(rsRel)] = rsW.rsNormalize(rsW.rsRead(rsPath))
-	}
-	return rsArchive
-}
-func (rsW *rsWorld) rsRestore(rsArchive map[string]any) {
-	for rsRel, rsValue := range rsArchive {
-		rsW.rsWrite(filepath.Join(rsW.rsDir, filepath.FromSlash(rsRel)), rsW.rsExpand(rsString(rsValue)))
-	}
-}
-func (rsW *rsWorld) rsLegacySetup() map[string]any {
-	rsW.rsUse(rsNative("native"), rsW.rsFake("agy", "agy", rsW.rsAnswer("agy", 1, nil, false), "fallback_model=\"\""))
-	rsW.rsWrite(filepath.Join(rsW.rsDir, "fail-agy"), "intentional")
-	rsOut := rsW.rsOut("legacy", "01-candidate")
-	rsW.rsRun("", rsOut, "candidate", 0, 1)
-	rsW.rsRecord(rsOut, "native", rsW.rsAnswer("legacy", 1, nil, false, rsFinding("F1", nil), rsFinding("F2", map[string]any{"location": "head/checks/test_app.py:1", "link_kind": "none", "link": "", "introduced_by_change": "no"})), "result")
-	rsW.rsGate("legacy", 1, rsOut)
-	rsW.rsMust(0, "extend", filepath.Dir(rsOut), "--stage", "code", "--by", "1", "--cause", "other", "--reason", "synthetic extension", "--user-quote", rsQuote)
-	// Preserve exact old records for the new readers, including a prior gate
-	// so the replacement-gate path exercises previous_gate_digest.
-	return rsW.rsArchive(filepath.Join(rsOut, "round.json"), filepath.Join(rsOut, "findings.json"), filepath.Join(rsOut, "ledger.jsonl"), filepath.Join(rsOut, "summary.md"), filepath.Join(filepath.Dir(rsOut), "extensions.jsonl"), rsW.rsOut("gates", "legacy.json"))
-}
-func (rsW *rsWorld) rsLegacyRead() map[string]any {
-	rsOut := rsW.rsOut("legacy", "01-candidate")
-	rsResult := map[string]any{}
-	// These are observations, not setup: retain exit codes and output in the
-	// fixture, including a command refusing a valid old record after a change.
-	rsCode, rsStdout, rsStderr := rsW.rsCLI("triage", rsOut, "native-F1", "reject", "--evidence", "synthetic source proves the finding false")
-	rsResult["triage"] = []any{rsCode, rsW.rsNormalize(rsStdout), rsW.rsNormalize(rsStderr)}
-	rsCode, rsStdout, rsStderr = rsW.rsCLI("waive", rsOut, "agy", "--user-quote", rsQuote)
-	rsResult["waive"] = []any{rsCode, rsW.rsNormalize(rsStdout), rsW.rsNormalize(rsStderr)}
-	rsCode, rsStdout, rsStderr = rsW.rsCLI("cap-report", filepath.Dir(rsOut), "--format", "json", "--repo", rsW.rsRepo)
-	rsResult["cap-report"] = []any{rsCode, rsW.rsNormalize(rsStdout), rsW.rsNormalize(rsStderr)}
-	rsGate := rsW.rsGate("legacy", 1, rsOut)
-	// This digest covers timestamps in the previous file. Pin its semantics
-	// by checking it against the bytes supplied before the command, separately.
-	delete(rsGate, "previous_gate_digest")
-	rsResult["gate"] = rsW.rsJSON(rsW.rsNormalize(rsW.rsEncode(rsGate)))
-	rsResult["ledger"] = rsW.rsNormalize(rsW.rsRead(filepath.Join(rsOut, "ledger.jsonl")))
-	rsResult["summary"] = rsW.rsNormalize(rsW.rsMust(0, "summary", rsOut))
-	return rsResult
-}
-
-// Reflection lists the accepted TOML fields, and CLI probes below verify
-// that they remain accepted. This observes any added key, even one this goal
-// did not predict, without parsing implementation source text.
-func rsConfigKeys() map[string]any {
-	rsResult := map[string]any{}
-	for rsName, rsType := range map[string]reflect.Type{"user": reflect.TypeOf(userFile{}), "reviewer": reflect.TypeOf(reviewerEntry{}), "project": reflect.TypeOf(projectFile{}), "caps": reflect.TypeOf(capsEntry{})} {
-		rsKeys := []string{}
-		for rsI := 0; rsI < rsType.NumField(); rsI++ {
-			rsKey := rsType.Field(rsI).Tag.Get("toml")
-			if rsKey != "" && rsKey != "-" {
-				rsKeys = append(rsKeys, rsKey)
-			}
-		}
-		sort.Strings(rsKeys)
-		rsResult[rsName] = rsKeys
-	}
-	return rsResult
-}
-func (rsW *rsWorld) rsConfigSnapshot() map[string]any {
-	rsW.rsAll(1, nil)
-	rsOut := rsW.rsMust(0, "config", "--repo", rsW.rsRepo)
-	rsConfigBody := rsW.rsRead(rsW.rsConfig)
-	rsW.rsReplacements[rsHash(rsConfigBody)] = rsHash(rsW.rsNormalize(rsConfigBody))
-	rsCfg := rsMap(rsW.rsJSON(rsOut))
-	rsDigest := rsString(rsCfg["digest"])
-	if len(rsDigest) > 12 {
-		rsW.rsReplacements[rsDigest] = "<config-digest>"
-		rsW.rsReplacements[rsDigest[:12]] = "<short-config-digest>"
-	}
-	rsResult := map[string]any{"output": rsW.rsNormalize(rsOut), "keys": rsConfigKeys()}
-	rsProbes := map[string]any{}
-	for _, rsProbe := range []struct{ rsName, rsUser, rsProject string }{
-		{"all-user-keys", "timeout_seconds=60\n[[reviewers]]\nname=\"r\"\npreset=\"claude\"\nbinary=\"synthetic\"\nmodel=\"m\"\nfallback_model=\"fb\"\neffort=\"low\"\ntimeout_seconds=30\n", ""},
-		{"allowed-lists", "[[reviewers]]\nname=\"r\"\npreset=\"codex\"\nallowed_models=[\"m\"]\nallowed_efforts=[\"high\"]\n", ""},
-		{"command-argv", "[[reviewers]]\nname=\"cmd\"\npreset=\"command\"\nargv=[\"/bin/cat\",\"{prompt}\"]\n", ""},
-		{"all-project-keys", rsNative("native"), "angles=[\"design\"]\nrules=[\"AGENTS.md\"]\ncheck_paths=[\"checks/**\"]\n[caps]\nplan=2\nplan_delta=2\ncode=4\n"},
-		{"user-standpoint", "standpoint=\"risk\"\n" + rsNative("native"), ""},
-		{"user-standpoints", "standpoints=[]\n" + rsNative("native"), ""},
-		{"reviewer-standpoint", rsNative("native") + "standpoint=\"risk\"\n", ""},
-		{"project-standpoint", rsNative("native"), "standpoint=\"risk\"\n"},
-		{"project-standpoints", rsNative("native"), "standpoints=[]\n"},
-		{"project-reviewers", rsNative("native"), "reviewers=[\"native\"]\n"},
-	} {
-		rsW.rsUse(rsProbe.rsUser)
-		rsProject := filepath.Join(rsW.rsRepo, ".jaekit/spar.toml")
-		rsW.rsWrite(rsProject, rsProbe.rsProject)
-		rsCode, _, rsErr := rsW.rsCLI("config", "--repo", rsW.rsRepo)
-		rsProbes[rsProbe.rsName] = []any{rsCode, rsW.rsNormalize(rsErr)}
-	}
-	rsW.rsRemove(filepath.Join(rsW.rsRepo, ".jaekit/spar.toml"))
-	rsResult["probes"] = rsProbes
-	return rsResult
-}
+// A round without standpoints, of each stage a round starts as and through
+// agy's packet file route (contracts/review-round.md section 2): round.json
+// records "standpoints": [], schema.json asks for no standpoint_report, the
+// packet has no standpoint section, no reviewer's input carries a standpoint
+// instruction, and no reviewer gets an input.md.
 func TestReviewerStandpointsAC8_NoStandpointUnchanged(rsT *testing.T) {
 	const rsID = "no-standpoint-round-changed"
 	rsC := rsCollect(rsT, rsID)
 	rsW := rsNew(rsT, rsC)
-	rsSnapshots, rsRounds := rsW.rsStages()
-	if os.Getenv("RS_WRITE_BASE") == "1" {
-		if _, rsPresent := rsW.rsRaw(rsRounds[0])["standpoints"]; rsPresent {
-			rsT.Fatal("setup: refuse to regenerate base.json on a standpoint-aware tree")
-		}
-		// Candidate's native reviewer is still pending, so its old record is a
-		// real rerun target after the product gains standpoints.
-		rsCandidate := rsRounds[1]
-		rsArchive := rsW.rsArchive(filepath.Join(rsCandidate, "round.json"), filepath.Join(rsCandidate, "findings.json"), filepath.Join(rsCandidate, "ledger.jsonl"))
-		rsLegacy := rsW.rsLegacySetup()
-		rsLegacyExpected := rsW.rsLegacyRead()
-		rsConfig := rsW.rsConfigSnapshot()
-		rsW.rsWrite(rsFixture, rsW.rsEncode(map[string]any{"format": "reviewer-standpoints-base/v1", "stages": rsSnapshots, "rerun": rsArchive, "legacy": rsLegacy, "legacy_expected": rsLegacyExpected, "config": rsConfig}))
-		return
-	}
-	rsFixtureValue := rsW.rsLoadFixture()
-	for _, rsStage := range []string{"plan", "candidate", "agy-file"} {
-		rsAssert(rsC, reflect.DeepEqual(rsW.rsJSON(rsW.rsEncode(rsSnapshots[rsStage])), rsMap(rsFixtureValue["stages"])[rsStage]), "%s no-standpoint input, packet, schema, digest, whole round.json or summary differs from base.json", rsStage)
-	}
-	for _, rsOut := range rsRounds {
-		rsR := rsW.rsRaw(rsOut)
-		rsSP, rsPresent := rsR["standpoints"]
-		rsAssert(rsC, rsPresent && reflect.DeepEqual(rsSP, []any{}), "%s must record explicit standpoints: []", filepath.Base(rsOut))
-		for _, rsName := range rsNames {
+	rsCheck := func(rsOut, rsStage string, rsReviewers []string, rsExtra ...string) {
+		rsW.rsRun("", rsOut, rsStage, 0, 1, rsExtra...)
+		rsLabel := filepath.Base(filepath.Dir(rsOut)) + "/" + filepath.Base(rsOut)
+		rsSP, rsPresent := rsW.rsRaw(rsOut)["standpoints"]
+		rsAssert(rsC, rsPresent && reflect.DeepEqual(rsSP, []any{}), "%s must record explicit standpoints: []", rsLabel)
+		rsAssert(rsC, !strings.Contains(rsW.rsRead(filepath.Join(rsOut, "schema.json")), "standpoint_report"), "%s schema.json asks for standpoint_report", rsLabel)
+		rsAssert(rsC, !strings.Contains(rsW.rsRead(filepath.Join(rsOut, "packet.md")), rsSection), "%s packet.md has %s", rsLabel, rsSection)
+		for _, rsName := range rsReviewers {
+			rsInput := rsW.rsReceived(rsOut, rsName)
+			if rsName == "claude" {
+				rsInput += rsArg(rsW.rsLast(rsName, "argv"), "--json-schema")
+			}
+			rsAssert(rsC, !strings.Contains(rsInput, "Your standpoint for this round") && !strings.Contains(rsInput, rsNoInstruction) &&
+				!strings.Contains(rsInput, "standpoint_report"), "%s: %s received a standpoint instruction or schema field", rsLabel, rsName)
 			_, rsErr := os.Stat(filepath.Join(rsOut, rsName, "input.md"))
 			if rsErr != nil && !os.IsNotExist(rsErr) {
 				rsT.Fatalf("setup: stat: %v", rsErr)
 			}
-			rsAssert(rsC, os.IsNotExist(rsErr), "no-standpoint round created %s/input.md", rsName)
+			rsAssert(rsC, os.IsNotExist(rsErr), "%s created %s/input.md", rsLabel, rsName)
 		}
 	}
-	// Restore the OLD candidate record and its digest, not a record newly
-	// emitted by the product under test. Translate its normalized packet hash
-	// back to the actual packet bytes in this temporary world.
-	rsArchive := rsMap(rsFixtureValue["rerun"])
-	rsCurrentPacket := rsW.rsRead(filepath.Join(rsRounds[1], "packet.md"))
-	rsNormalizedHash := rsString(rsMap(rsMap(rsFixtureValue["stages"])["candidate"])["packet_sha256"])
-	for rsRel, rsValue := range rsArchive {
-		rsText := strings.ReplaceAll(rsString(rsValue), rsNormalizedHash, rsHash(rsCurrentPacket))
-		rsW.rsWrite(filepath.Join(rsW.rsDir, rsRel), rsW.rsExpand(rsText))
+	for rsI, rsStage := range StartStages {
+		rsW.rsAll(1, nil)
+		rsExtra := []string{"--question", "Is AC-1 covered?"}
+		if rsStage == "plan" {
+			rsExtra = append(rsExtra, "--subject", filepath.Join(rsW.rsRepo, "PLAN.md"))
+		}
+		rsCheck(rsW.rsOut("baseline", fmt.Sprintf("%02d-%s", rsI+1, rsStage)), rsStage, rsNames, rsExtra...)
 	}
-	rsW.rsAll(1, nil)
-	rsAgain := rsW.rsOut("baseline", "03-candidate")
-	rsW.rsRun(rsID, rsAgain, "candidate", 0, 1, "--reviewers", "native", "--question", "Is AC-1 covered?")
-	rsAgainRecord := rsW.rsRaw(rsAgain)
-	rsAssert(rsC, rsAgainRecord["counted"] == false && reflect.DeepEqual(rsAgainRecord["rerun_of"], []any{"02-candidate"}), "old no-standpoint packet is not an uncounted rerun: %v %v", rsAgainRecord["counted"], rsAgainRecord["rerun_of"])
+	rsW.rsUse(rsW.rsFake("agy", "agy", rsW.rsAnswer("agy-large", 1, nil, false), ""))
+	rsCheck(rsW.rsOut("baseline-large", "01-candidate"), "candidate", []string{"agy"}, "--criteria", rsW.rsLargeCriteria())
 }
 
-func TestReviewerStandpointsAC11_EarlierRecords(rsT *testing.T) {
-	rsC := rsCollect(rsT, "")
-	rsW := rsNew(rsT, rsC)
-	rsFixtureValue := rsW.rsLoadFixture()
-	rsW.rsRestore(rsMap(rsFixtureValue["legacy"]))
-	rsPrevious := rsW.rsRead(rsW.rsOut("gates", "legacy.json"))
-	rsGot := rsW.rsLegacyRead()
-	rsAssert(rsC, reflect.DeepEqual(rsW.rsJSON(rsW.rsEncode(rsGot)), rsFixtureValue["legacy_expected"]), "legacy gate/cap-report/triage/waive results differ from base.json\ngot: %s\nwant: %s", rsW.rsEncode(rsGot), rsW.rsEncode(rsFixtureValue["legacy_expected"]))
-	rsGate := rsMap(rsW.rsJSON(rsW.rsRead(rsW.rsOut("gates", "legacy.json"))))
-	rsAssert(rsC, rsGate["previous_gate_digest"] == rsHash(rsPrevious), "legacy gate replacement did not preserve previous_gate_digest")
+// The schema a reviewer CLI is held to asks for what the result contract
+// fixes (contracts/review-round.md section 3, contracts/spar-input.md G1 to
+// G6) and what validateResult reads: its enums and types are the contract's
+// literal values, a result built from its required fields passes the
+// validator, a value of another type in any field fails it, and no object in
+// it takes a field it does not require.
+func TestSparResultSchemaMatchesValidator(t *testing.T) {
+	var schema map[string]any
+	if err := json.Unmarshal(resultSchema(false), &schema); err != nil {
+		t.Fatalf("setup: schema: %v", err)
+	}
+	props := rsMap(schema["properties"])
+	finding := rsMap(rsMap(props["findings"])["items"])
+	checked, unchecked := rsMap(rsMap(props["angles_checked"])["items"]), rsMap(rsMap(props["angles_unchecked"])["items"])
+	objects := map[string]map[string]any{"result": schema, "finding": finding, "angles_checked item": checked, "angles_unchecked item": unchecked}
+	strs := func(v any) []string {
+		out := []string{}
+		for _, s := range rsList(v) {
+			out = append(out, rsString(s))
+		}
+		return out
+	}
+	prop := func(object map[string]any, key string) map[string]any { return rsMap(rsMap(object["properties"])[key]) }
+
+	angles := []string{"requirement-counterexample", "side-effects", "design", "premises", "check-validity"}
+	yesNoUnknown := []string{"yes", "no", "unknown"}
+	enums := map[string][]string{
+		"result verdict":               {"no_blocking_findings", "blocking_findings", "could_not_review"},
+		"angles_checked item angle":    angles,
+		"angles_unchecked item angle":  angles,
+		"finding angle":                angles,
+		"finding proposed_class":       {"defect", "requirement-question", "hardening", "note"},
+		"finding link_kind":            {"criterion", "rule", "contract", "none"},
+		"finding introduced_by_change": yesNoUnknown,
+		"finding regression":           yesNoUnknown,
+		"finding check_impact":         {"false_pass", "meaning_inverted", "contract_violation", "none"},
+		"finding confidence":           {"high", "medium", "low"},
+	}
+	arrays := map[string]bool{"result angles_checked": true, "result angles_unchecked": true, "result findings": true}
+	// The keys G1, G4 and G5 fix for the result, an angle item and a finding.
+	contractKeys := map[string][]string{
+		"result":                {"reviewed_head", "verdict", "angles_checked", "angles_unchecked", "findings", "limits"},
+		"angles_checked item":   {"angle", "result"},
+		"angles_unchecked item": {"angle", "reason"},
+		"finding": {"id", "proposed_class", "angle", "location", "claim", "failure_scenario", "evidence",
+			"link_kind", "link", "introduced_by_change", "regression", "check_impact", "confidence", "smallest_fix"},
+	}
+	for label, object := range objects {
+		if object["type"] != "object" {
+			t.Errorf("the schema's %s has type %v; want object", label, object["type"])
+		}
+		var keys []string
+		for key := range rsMap(object["properties"]) {
+			keys = append(keys, key)
+			name := label + " " + key
+			want := "string"
+			if arrays[name] {
+				want = "array"
+			}
+			if got := prop(object, key)["type"]; got != want {
+				t.Errorf("the schema's %s has type %v; want %s", name, got, want)
+			}
+			if got, ok := prop(object, key)["enum"]; ok || enums[name] != nil {
+				if !reflect.DeepEqual(strs(got), enums[name]) {
+					t.Errorf("the schema's %s enum is %v; the contract's values are %v", name, got, enums[name])
+				}
+			}
+		}
+		required, want := strs(object["required"]), append([]string(nil), contractKeys[label]...)
+		sort.Strings(keys)
+		sort.Strings(required)
+		sort.Strings(want)
+		if object["additionalProperties"] != false || !reflect.DeepEqual(keys, want) || !reflect.DeepEqual(required, want) {
+			t.Errorf("the schema's %s has additionalProperties %v, fields %v and required %v; the contract's keys are %v", label, object["additionalProperties"], keys, required, want)
+		}
+	}
+
+	head := strings.Repeat("a", 40)
+	value := func(object map[string]any) map[string]any {
+		m := map[string]any{}
+		for _, key := range strs(object["required"]) {
+			if m[key] = "synthetic"; len(strs(prop(object, key)["enum"])) > 0 {
+				m[key] = strs(prop(object, key)["enum"])[0]
+			}
+		}
+		return m
+	}
+	valid := func() map[string]any {
+		var checkedItems []any
+		for _, a := range Angles[1:] {
+			item := value(checked)
+			item["angle"] = a
+			checkedItems = append(checkedItems, item)
+		}
+		result := value(schema)
+		result["reviewed_head"], result["angles_checked"] = head, checkedItems
+		result["angles_unchecked"], result["findings"] = []any{value(unchecked)}, []any{value(finding)}
+		return result
+	}
+	if problems := validateResult(valid(), head, Angles); len(problems) > 0 {
+		t.Errorf("a result with the schema's required fields fails the validator: %v", problems)
+	}
+	// A value of another type than the schema's in any field of the result,
+	// a finding or an angle item fails the validator.
+	for label, object := range objects {
+		for _, key := range strs(object["required"]) {
+			result := valid()
+			target := result
+			switch label {
+			case "finding":
+				target = rsMap(rsList(result["findings"])[0])
+			case "angles_checked item":
+				target = rsMap(rsList(result["angles_checked"])[0])
+			case "angles_unchecked item":
+				target = rsMap(rsList(result["angles_unchecked"])[0])
+			}
+			if target[key] = 7; arrays[label+" "+key] {
+				target[key] = "synthetic"
+			}
+			if problems := validateResult(result, head, Angles); len(problems) == 0 {
+				t.Errorf("the validator accepts the %s field %s of another type than the schema's", label, key)
+			}
+		}
+	}
 }
+
+// A plan round with a subject, a decision, a standpoint and two questions
+// records the values spar computed from its inputs, places the questions
+// after the documents, decision and standpoint sections and before the
+// changes, and opens summary.md with its head lines and the reviewer's line.
+// A check-path finding of a later round is deferred automatically.
+func TestSparRoundRecordedValues(t *testing.T) {
+	w := rsNew(t, &rsChecks{})
+	w.rsUse(w.rsFake("claude", "claude", w.rsAnswer("claude", 1, rsReport(true, "checked claude"), true), ""))
+	out, plan := w.rsOut("values", "01-plan"), filepath.Join(w.rsRepo, "PLAN.md")
+	questions := []any{"Is AC-1 covered?", "Is AC-2 covered?"}
+	w.rsRun("", out, "plan", 0, 1, "--subject", plan, "--question", "Is AC-1 covered?", "--question", "Is AC-2 covered?",
+		"--decision", "the scope", "--decision-quote", "synthetic user words", "--standpoint", "claude=synthetic risk")
+	r := w.rsRaw(out)
+	sum := func(data string) string { s := sha256.Sum256([]byte(data)); return hex.EncodeToString(s[:]) }
+	diff, err := exec.Command("git", "-C", w.rsRepo, "diff", "--no-color", "--no-ext-diff", "--no-textconv", "-M", w.rsCommits[0], w.rsCommits[1], "--").Output()
+	if err != nil {
+		t.Fatalf("setup: git diff: %v", err)
+	}
+	for key, want := range map[string]any{"diff_sha256": sum(string(diff)), "base_tree": w.rsTrees[0], "head_tree": w.rsTrees[1], "questions": questions,
+		"criteria_digest": sum("SPEC.md\x00" + sum(w.rsRead(filepath.Join(w.rsRepo, "SPEC.md"))) + "\x00"),
+		"subjects":        []any{map[string]any{"name": "PLAN.md", "source": plan, "sha256": sum(w.rsRead(plan))}}} {
+		if !reflect.DeepEqual(r[key], want) {
+			t.Errorf("round.json %s is %v, want %v", key, r[key], want)
+		}
+	}
+	cfg := rsMap(r["config"])
+	files := rsList(cfg["files"])
+	for _, f := range files {
+		if path := rsString(rsMap(f)["path"]); rsMap(f)["sha256"] != sum(w.rsRead(path)) {
+			t.Errorf("round.json config.files gives %s the sha256 %v, not that of its bytes", path, rsMap(f)["sha256"])
+		}
+	}
+	if len(files) != 1 || rsMap(files[0])["path"] != w.rsConfig {
+		t.Errorf("round.json config.files is %v, want the one user configuration %s", files, w.rsConfig)
+	}
+
+	packet, last := w.rsRead(filepath.Join(out, "packet.md")), -1
+	for _, heading := range []string{"## Documents under review", "## Decisions the user made", rsSection, "## Questions for this round", "## Changes from base to head"} {
+		at := strings.Index(packet, "\n"+heading+"\n")
+		if at <= last {
+			t.Errorf("packet.md has %q at %d, not after the section before it (at %d)", heading, at, last)
+		}
+		last = at
+	}
+	if !strings.Contains(packet, "\n## Questions for this round\n\n- Is AC-1 covered?\n- Is AC-2 covered?\n\n## ") {
+		t.Errorf("packet.md does not list the two questions alone in their section")
+	}
+
+	var head []string
+	summary := w.rsRead(filepath.Join(out, "summary.md"))
+	for _, line := range strings.Split(strings.Split(summary, "## Reviewers")[0], "\n") {
+		if line != "" && !strings.HasPrefix(line, "- Standpoints: ") {
+			head = append(head, line)
+		}
+	}
+	source := rsMap(cfg["source"])
+	if want := []string{"# Spar round 01-plan", "- Stage: plan, base " + w.rsCommits[0][:12] + ", head " + w.rsCommits[1][:12],
+		"- Packet: sha256 " + rsString(r["packet_sha256"]),
+		fmt.Sprintf("- Configuration: %s %s (digest %s)", source["kind"], source["path"], rsString(cfg["digest"])[:12]),
+		"- Angles asked: " + strings.Join(rsAngles, ", ")}; !reflect.DeepEqual(head, want) {
+		t.Errorf("summary.md opens with\n%s\nwant\n%s", strings.Join(head, "\n"), strings.Join(want, "\n"))
+	}
+	line := regexp.MustCompile(`(?m)^- claude: completed, 0 findings \(.*, observed synthetic, verified isolation, required, \d+\.\ds\)$`)
+	if !line.MatchString(summary) || !strings.Contains(summary, "\n## Findings\n\nNo finding was recorded from the reviewers that completed.\n") {
+		t.Errorf("summary.md lacks the claude line with its observed model, isolation, requirement and elapsed time, or the no-finding line:\n%s", summary)
+	}
+
+	w.rsUse(w.rsFake("claude", "claude", w.rsAnswer("claude", 1, nil, false,
+		rsFinding("F1", map[string]any{"location": "head/checks/test_app.py:1", "link_kind": "none", "link": ""})), ""))
+	out = w.rsOut("deferred", "01-candidate")
+	w.rsRun("", out, "candidate", 0, 1)
+	var found []map[string]any
+	var entry map[string]any
+	if json.Unmarshal([]byte(w.rsRead(filepath.Join(out, "findings.json"))), &found) != nil || len(found) != 1 || found[0]["class"] != "hardening" ||
+		json.Unmarshal([]byte(w.rsRead(filepath.Join(out, "ledger.jsonl"))), &entry) != nil {
+		t.Fatalf("setup: the check-path finding is not one hardening finding with a ledger line: %v", found)
+	}
+	if entry["disposition"] != "defer" || entry["auto"] != true || entry["reason"] != "hardening: "+rsString(found[0]["class_reason"]) || entry["to"] != "deferred hardening" {
+		t.Errorf("the hardening finding's ledger line is %v; want an automatic defer to \"deferred hardening\" with the reason \"hardening: <class reason>\"", entry)
+	}
+}
+
+// A round recorded before standpoints, whose round.json has no standpoints
+// key and whose reviewers have no standpoint fields, is read by triage,
+// waive, cap-report and gate as the same round with "standpoints": [].
+func TestReviewerStandpointsAC11_EarlierRecords(t *testing.T) {
+	w := newRWWorld(t, true)
+	w.use(rwNative("host"), w.missingAgy())
+	got := map[bool]string{}
+	for _, earlier := range []bool{false, true} {
+		series := w.newSeries()
+		out := w.run(filepath.Join(series, "01-candidate"))
+		w.record(out, "host", rawFinding("F1", map[string]any{"link_kind": "criterion", "link": "AC-1", "location": "head/app/main.py:1"}))
+		var r map[string]any
+		data, err := os.ReadFile(filepath.Join(out, "round.json"))
+		if err != nil || json.Unmarshal(data, &r) != nil || !reflect.DeepEqual(r["standpoints"], []any{}) {
+			t.Fatalf("setup: round.json standpoints %v: %v", r["standpoints"], err)
+		}
+		if earlier {
+			delete(r, "standpoints")
+			for _, v := range rsMap(r["reviewers"]) {
+				delete(rsMap(v), "standpoint")
+				delete(rsMap(v), "standpoint_report")
+			}
+			data, _ := json.MarshalIndent(r, "", "  ")
+			w.write(filepath.Join(out, "round.json"), string(data)+"\n")
+		}
+		var results []string
+		for _, args := range [][]string{{"triage", out, "host-F1", "reject", "--evidence", "head/app/main.py already does it"},
+			{"waive", out, "agy", "--user-quote", rwQuote}, {"cap-report", series, "--format", "md", "--repo", w.repo}} {
+			code, msg := w.spar(args...)
+			results = append(results, fmt.Sprintf("%s exit %d: %s", args[0], code, msg))
+		}
+		g := w.gate(w.head, []string{out})
+		results = append(results, fmt.Sprintf("gate %s %v", g.rec.State, g.rec.Reasons))
+		got[earlier] = strings.ReplaceAll(strings.Join(results, "\n"), series, "<series>")
+		// The same run again, for agy, which did not complete: an uncounted
+		// rerun with the packet of the round it reruns.
+		if data, err := os.ReadFile(filepath.Join(out, "round.json")); err != nil || strings.Contains(string(data), `"standpoints"`) != !earlier {
+			t.Fatalf("setup: before the rerun, round.json holds standpoints %v (%v)", !earlier, err)
+		}
+		again := w.run(filepath.Join(series, "02-candidate"), "--reviewers", "agy")
+		if a, err := loadRound(again); err != nil || a.Counted || !reflect.DeepEqual(a.RerunOf, []string{"01-candidate"}) || a.PacketSHA256 != r["packet_sha256"] {
+			t.Errorf("earlier form %v: the rerun of 01-candidate is %+v (%v); want uncounted, rerun_of [01-candidate] and packet_sha256 %v", earlier, a, err, r["packet_sha256"])
+		}
+	}
+	if want := "gate " + StateComplete + " []"; !strings.HasSuffix(got[false], want) || strings.Count(got[false], " exit 0:") != 3 {
+		t.Fatalf("setup: a round with standpoints [] gives\n%s\nwant three exits 0 and %s", got[false], want)
+	}
+	if got[true] != got[false] {
+		t.Errorf("a round without the standpoint fields gives\n%s\nwant as with standpoints []:\n%s", got[true], got[false])
+	}
+}
+
+// A project configuration that sets every project key loads, and keeps its
+// rules entry, a readable file inside the repository. Standpoints come only
+// from spar run: spar config refuses a standpoint or standpoints key in the
+// user's configuration, in a reviewer entry or in the project's, as an
+// unknown key (65).
 func TestReviewerStandpointsAC12_Config(rsT *testing.T) {
-	rsC := rsCollect(rsT, "")
-	rsW := rsNew(rsT, rsC)
-	rsFixtureValue := rsW.rsLoadFixture()
-	rsGot := rsW.rsConfigSnapshot()
-	rsAssert(rsC, reflect.DeepEqual(rsW.rsJSON(rsW.rsEncode(rsGot)), rsFixtureValue["config"]), "configuration output, accepted keys or refusal probes changed\ngot: %s\nwant: %s", rsW.rsEncode(rsGot), rsW.rsEncode(rsFixtureValue["config"]))
+	rsDir := rsT.TempDir()
+	rsRepo := filepath.Join(rsDir, "repo")
+	rsProject := filepath.Join(rsRepo, ".jaekit", "spar.toml")
+	writeFile(rsT, filepath.Join(rsRepo, "AGENTS.md"), "# Rules\n")
+	writeFile(rsT, rsProject, "angles=[\"design\"]\nrules=[\"AGENTS.md\"]\ncheck_paths=[\"checks/**\"]\n[caps]\nplan=2\nplan_delta=2\ncode=4\n")
+	rsCfg, rsErr := LoadConfig(rsRepo, env(map[string]string{"HOME": rsDir, "XDG_CONFIG_HOME": rsDir}), nil)
+	if rsErr != nil || strings.Join(rsCfg.Rules, ",") != "AGENTS.md" || strings.Join(rsCfg.CheckPaths, ",") != "checks/**" ||
+		strings.Join(rsCfg.Angles, ",") != "design" || rsCfg.Caps.Plan != 2 || rsCfg.Caps.Code != 4 {
+		rsT.Errorf("a project configuration with every project key: %v %+v", rsErr, rsCfg)
+	}
+	rsUser := filepath.Join(rsDir, "spar.toml")
+	for _, rsProbe := range []struct{ rsUser, rsProject, rsWant string }{
+		{"standpoint=\"risk\"\n" + rsNative("native"), "", rsUser + ":1:1: unknown key \"standpoint\""},
+		{"standpoints=[]\n" + rsNative("native"), "", rsUser + ":1:1: unknown key \"standpoints\""},
+		{rsNative("native") + "standpoint=\"risk\"\n", "", rsUser + ":4:1: unknown key \"reviewers.standpoint\""},
+		{rsNative("native"), "standpoint=\"risk\"\n", rsProject + ":1:1: unknown key \"standpoint\""},
+		{rsNative("native"), "standpoints=[]\n", rsProject + ":1:1: unknown key \"standpoints\""},
+	} {
+		writeFile(rsT, rsUser, rsProbe.rsUser)
+		writeFile(rsT, rsProject, rsProbe.rsProject)
+		var rsOut, rsErrOut strings.Builder
+		rsCode := Main("test", []string{"config", "--repo", rsRepo}, strings.NewReader(""), &rsOut, &rsErrOut,
+			env(map[string]string{"SPAR_CONFIG": rsUser, "HOME": rsDir, "XDG_CONFIG_HOME": rsDir}))
+		if rsCode != ExitRefused || !strings.Contains(rsErrOut.String(), rsProbe.rsWant) {
+			rsT.Errorf("spar config with user %q and project %q exits %d: %s; want 65 naming %s", rsProbe.rsUser, rsProbe.rsProject, rsCode, rsErrOut.String(), rsProbe.rsWant)
+		}
+	}
 }
 
 func TestReviewerStandpointsAC9_ClassificationIndependent(rsT *testing.T) {

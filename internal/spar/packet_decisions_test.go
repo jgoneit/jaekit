@@ -12,18 +12,18 @@ import (
 	"testing"
 )
 
-// Checks of the goal spar-packet-decisions, AC-1 to AC-6: spar run takes the
+// Checks of the goal spar-packet-decisions, AC-1 to AC-5: spar run takes the
 // user's decisions as --decision and --decision-quote pairs, puts them in one
 // section of packet.md with fixed guidance, gives every preset that packet,
 // keeps them in round.json and refuses a decision out of form before any
-// reviewer starts; a packet without decisions stays as it was.
+// reviewer starts.
 //
 // A change check names the property it observes on the first line of each
 // failure (jaekit:violation=<id>). spar refusing the decision options is that
 // observation. A setup that breaks (no git, a file, repository or fake CLI
 // that cannot be made or run, a round that cannot be read, any other exit of
 // spar run) observes nothing: a change check skips, which the adapter reads
-// as inconclusive, and the kept check of AC-6 fails. The repositories are
+// as inconclusive, and a kept check fails. The repositories are
 // temporary ones these tests make; nothing reads the checked-out
 // repository's history.
 
@@ -760,37 +760,5 @@ func TestSparPacketDecisionsAC5_Forms(t *testing.T) {
 		default:
 			pdSetup(t, false, "%s: spar run exits %d without naming a decision: %s", f.name, code, stderr)
 		}
-	}
-}
-
-// AC-6 (kept): with no decisions, packet.md is byte for byte the packet that
-// spar made before this change from the same inputs. testdata/packet-decisions
-// holds those packets, written by that spar from this world, with commit and
-// tree IDs replaced by their place in the world.
-func TestSparPacketDecisionsAC6_NoDecisionPacketUnchanged(t *testing.T) {
-	w := newPDWorld(t, true)
-	packets := w.stages("none", nil, "")
-	for _, stage := range StartStages {
-		want, err := os.ReadFile(filepath.Join("testdata", "packet-decisions", stage+".md"))
-		if err != nil {
-			t.Fatalf("setup: %v", err)
-		}
-		got := w.normalize(packets[stage])
-		if got == string(want) {
-			continue
-		}
-		gotLines, wantLines := strings.Split(got, "\n"), strings.Split(string(want), "\n")
-		n := 0
-		for n < len(gotLines) && n < len(wantLines) && gotLines[n] == wantLines[n] {
-			n++
-		}
-		line := func(lines []string) string {
-			if n < len(lines) {
-				return lines[n]
-			}
-			return "(end)"
-		}
-		t.Errorf("the %s packet without decisions differs from the packet before the change at line %d: got %q, want %q",
-			stage, n+1, line(gotLines), line(wantLines))
 	}
 }

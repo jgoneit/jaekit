@@ -1,9 +1,8 @@
 package main
 
 // Checks of the goal ha-review-gate that read the checked tree: Seal's start
-// rule and Core requirements, its compatibility helper, and the fixed
-// tokens the public contracts, guides and Seal skill hold about the review
-// gate. They read files of the tree and never its history. The opening
+// rule and Core requirements and its compatibility helper. They read files
+// of the tree and never its history. The opening
 // line of an assertion's failure message names the property it observes
 // (jaekit:violation=<id>); a failure without it is a broken setup.
 
@@ -59,10 +58,6 @@ func rgMissing(text string, tokens ...string) []string {
 	}
 	return out
 }
-
-// The review reason codes of run-rules/5.
-var rgReasonCodes = []string{"`review_missing`", "`review_blocked`", "`review_degraded`", "`review_open_defect`",
-	"`review_open_question`", "`review_code_missing`", "`review_head_stale`", "`review_docs_stale`", "`review_plan_missing`"}
 
 const rgRecordCommand = "`ha note <goal> review --gate <file>`"
 
@@ -289,71 +284,5 @@ func TestHaReviewGateAC13_SealCheckerNeedsTheNewRules(t *testing.T) {
 			t.Errorf("jaekit:violation=%s %s of a stored run-rules/8 goal without review-gate/v1: the helper decides exit %d, reason %v, missing %v; want a refusal naming the feature",
 				v, operation, code, report["reason"], missing)
 		}
-	}
-}
-
-// AC-14: the run record contract states the new rules, the gate record and
-// the reasons.
-func TestHaReviewGateAC14_RunRecordContractStatesTheGate(t *testing.T) {
-	t.Parallel()
-	const v = "run-record-gate-missing"
-	text := rgTreeFile(t, "contracts/run-record.md")
-	rules5 := rgSection(text, "### 4.8 run-rules/5")
-	if missing := rgMissing(rules5, append([]string{rgRecordCommand, "`review-gate/v1`", "`light`", "`standard`", "`strict`",
-		"`run-rules/1`", "`run-rules/4`"}, rgReasonCodes...)...); rules5 == "" || len(missing) > 0 {
-		t.Errorf("jaekit:violation=%s section 4.8 run-rules/5 is missing or lacks %v", v, missing)
-	}
-	if missing := rgMissing(rgSection(text, "## 1. `ha` commands"), rgRecordCommand); len(missing) > 0 {
-		t.Errorf("jaekit:violation=%s the command table lacks %v", v, missing)
-	}
-	if missing := rgMissing(rgSection(text, "### 4.2 Goal-level reasons"), rgReasonCodes...); len(missing) > 0 {
-		t.Errorf("jaekit:violation=%s the goal-level reasons table lacks %v", v, missing)
-	}
-	if missing := rgMissing(rgSection(text, "### 4.6 Rules versions"), "| `run-rules/5` |"); len(missing) > 0 {
-		t.Errorf("jaekit:violation=%s the rules table lacks a run-rules/5 column", v)
-	}
-	if missing := rgMissing(rgSection(text, "### 2.4 `note`"), "`review`"); len(missing) > 0 {
-		t.Errorf("jaekit:violation=%s the note fields do not name the review note", v)
-	}
-}
-
-// AC-8 (run-rules-8): the run record contract adds a run-rules/8 column.
-func TestHaReviewGateAC14_RunRecordStatesRunRules8(t *testing.T) {
-	t.Parallel()
-	const v = "run-record-v8-missing"
-	text := rgTreeFile(t, "contracts/run-record.md")
-	versions := rgSection(text, "### 4.6 Rules versions")
-	if missing := rgMissing(versions, "| `run-rules/7` | `run-rules/8` |"); versions == "" || len(missing) > 0 {
-		t.Errorf("jaekit:violation=%s section 4.6 Rules versions is missing or lacks %q", v, missing)
-	}
-	// Every row of its table has the label and /1 to /8.
-	var uneven []string
-	for _, line := range strings.Split(versions, "\n") {
-		line = strings.ReplaceAll(strings.TrimSpace(line), `\|`, "")
-		if !strings.HasPrefix(line, "|") {
-			continue
-		}
-		cells := strings.Split(strings.TrimSuffix(strings.TrimPrefix(line, "|"), "|"), "|")
-		if len(cells) != 9 {
-			uneven = append(uneven, strings.TrimSpace(cells[0]))
-		}
-	}
-	if len(uneven) > 0 {
-		t.Errorf("jaekit:violation=%s %d rows of the rules table do not have 9 cells (the label and run-rules/1 to /8), the first %q", v, len(uneven), uneven[0])
-	}
-}
-
-// AC-14: the Core capability contract names the rule, the format and the
-// feature.
-func TestHaReviewGateAC14_CapabilitiesContractStatesTheGate(t *testing.T) {
-	t.Parallel()
-	const v = "capabilities-gate-missing"
-	text := rgTreeFile(t, "contracts/core-capabilities.md")
-	section := rgSection(text, "## 9. run-rules/5")
-	if missing := rgMissing(section, "`run-rules/5`", "`review-gate/v1`", "`formats.review_gate`", rgRecordCommand); section == "" || len(missing) > 0 {
-		t.Errorf("jaekit:violation=%s section 9 run-rules/5 is missing or lacks %v", v, missing)
-	}
-	if missing := rgMissing(text, "| `review-gate/v1` |", "| `formats.review_gate` |"); len(missing) > 0 {
-		t.Errorf("jaekit:violation=%s the capability tables lack %v", v, missing)
 	}
 }

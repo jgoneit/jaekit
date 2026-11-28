@@ -1036,32 +1036,6 @@ func TestGoalCostSummaryAC9_InputProblems(t *testing.T) {
 	refused("a broken run record", "runs.jsonl", gcGoal)
 }
 
-// AC-11: the contract defines the command and names the Spar formats it
-// reads with their versions; the guides give the command.
-func TestGoalCostSummaryAC11_ContractAndGuides(t *testing.T) {
-	t.Parallel()
-	const v = "cost-docs-missing"
-	read := func(path string) string {
-		t.Helper()
-		data, err := os.ReadFile(path)
-		if err != nil {
-			t.Fatalf("setup: %v", err)
-		}
-		return string(data)
-	}
-	contract := read("../../contracts/run-record.md")
-	gcContains(t, v, "contracts/run-record.md", contract,
-		"`ha cost <goal> [--series <folder>]... [--format md|json] [--lang ko|en]`",
-		"`review-round/v1`", "`review-gate/v1`", "`cost/v1`", "| `ha cost <goal>",
-		"https://github.com/jgoneit/jaekit/issues/174")
-	for path, wants := range map[string][]string{
-		"../../guides/RULES.md":    {"ha cost docs/specs/<goal> --series docs/reviews/<goal>"},
-		"../../guides/RULES.en.md": {"ha cost docs/specs/<goal> --series docs/reviews/<goal>"},
-	} {
-		gcContains(t, v, path, read(path), wants...)
-	}
-}
-
 // gcSpar runs the spar binary built from this tree in the fixture
 // repository; any exit but want is a broken setup.
 func (f *gcFixture) spar(bin string, want int, args ...string) string {

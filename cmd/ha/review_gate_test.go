@@ -528,6 +528,14 @@ func TestHaReviewGateAC2_StandardGoalCompletesWithACoveringGate(t *testing.T) {
 		f.expectComplete(v, form.label)
 	}
 	f.expectDone(v, "the last recorded gate")
+	// The check freeze is a run-rules/7 display: a gated run-rules/5 goal
+	// shows it neither in the status JSON nor in the Markdown status.
+	if fz, ok := f.status().value["check_freeze"]; ok {
+		t.Errorf("a gated run-rules/5 status has check_freeze %v; want none", fz)
+	}
+	if _, out := f.ha("status", rgGoal); strings.Contains(out, "- check freeze:") {
+		t.Errorf("a gated run-rules/5 Markdown status shows a check freeze line: %s", out)
+	}
 
 	// A linked goal document that is a symbolic link to a file elsewhere in
 	// the repository, named by the path it resolves to, as Spar names it.

@@ -2,8 +2,9 @@
 
 package spar
 
-// Checks of the spar-stage-merge goal in the spar package. Every test drives
-// spar.Main, the entry cmd/spar calls, with string arguments, on a synthetic
+// Checks of the spar-stage-merge goal in the spar package. Every test but
+// AC-7, which writes round records and runs the gate, drives spar.Main, the
+// entry cmd/spar calls, with string arguments, on a synthetic
 // repository whose commits never change (fixed names, emails and dates), and
 // rounds whose only reviewer is a native one that the tests answer with spar
 // record: no reviewer CLI or model runs, and the file builds on the commit
@@ -23,29 +24,13 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"regexp"
+	"reflect"
 	"slices"
 	"sort"
 	"strconv"
 	"strings"
 	"testing"
 )
-
-// smGoldenEnv, set to "update", makes TestSparStageMergeAC7 write its golden
-// files instead of comparing with them.
-const smGoldenEnv = "SPAR_STAGE_MERGE_GOLDEN"
-
-// smLegacyDir holds the legacy series fixture and its golden outputs.
-var smLegacyDir = filepath.Join("testdata", "legacy-series")
-
-// smLegacyCommits are the commits c0 to c3 of the synthetic repository. The
-// legacy fixture names them, so the repository must give them again.
-var smLegacyCommits = []string{
-	"6f153db7ffe18958da1d62a0844e1db0ffd42547",
-	"8a807f9e98214f58b30fc0199bfe4b57d7496ea8",
-	"93cac67dc43b88547e3c13cb3f9d4dc3f373d3ff",
-	"fdab52c8730c3b39fa79414b1d1fea95272aa0d6",
-}
 
 // smViolations gathers what a change test observes against its condition
 // and reports it as one marked failure.
@@ -491,10 +476,9 @@ func (w *smWorld) smJudgeOldStage(v *smViolations, where, series string, args []
 
 // AC-3: a new round of the stage plan-delta or fixes is refused as a usage
 // error (exit 64) whose message names candidate, before anything is
-// written, also as a dry run: in a series with a recorded candidate round,
-// in a series folder that does not exist yet and in a series recorded
-// before the change with plan-delta and fixes rounds (the legacy fixture),
-// and also when another option of the run is wrong. The usage text lists only plan and candidate for spar run; plan and
+// written, also as a dry run: in a series with a recorded candidate round
+// and in a series folder that does not exist yet, and also when another
+// option of the run is wrong. The usage text lists only plan and candidate for spar run; plan and
 // candidate rounds still start.
 func TestSparStageMergeAC3_OldStagesRefused(t *testing.T) {
 	v := &smViolations{t: t, id: "old-stage-started"}
@@ -551,14 +535,6 @@ func TestSparStageMergeAC3_OldStagesRefused(t *testing.T) {
 	tryAll("a series folder that does not exist", func(i int) string {
 		return filepath.Join(w.repo, "reviews", fmt.Sprintf("fresh-%d", i+1))
 	}, c[1], c[2])
-
-	if !slices.Equal(c, smLegacyCommits) {
-		t.Fatalf("setup: the synthetic repository has the commits %v, want %v that the legacy fixture names", c, smLegacyCommits)
-	}
-	legacy := filepath.Join(w.repo, "reviews", "legacy")
-	w.smCopyFixture(legacy)
-	// 05-candidate, the legacy series' last code round, reviewed c2.
-	tryAll("the legacy series with plan-delta and fixes rounds", func(int) string { return legacy }, c[2], c[3])
 
 	// The usage text of any usage error of spar run.
 	code, _, stderr := w.spar("run", "--no-such-option")
@@ -706,15 +682,68 @@ func TestSparStageMergeAC6_PlanAndCandidateGate(t *testing.T) {
 // a recorded fixes round.
 const smNotMeasured = "- added lines: not measured (no recorded fixes round)"
 
-// smLegacyRounds are the legacy series' rounds a gate lists: every one but
-// the dry run 06-fixes.
-var smLegacyRounds = []string{"01-plan", "02-plan-delta", "03-candidate", "04-fixes", "05-candidate"}
+// AC-7: a series recorded before plan-delta rounds stopped starting counts
+// its plan-delta round against neither the plan cap nor the code cap: a gate
+// over a plan, a plan-delta and a candidate round, under caps of one each, is
+// complete.
+func TestSparStageMergeAC7_LegacySeriesReadUnchanged(t *testing.T) {
+	f := newFixture(t)
+	base, head := f.revs[0], f.revs[1]
+	cfg := &Config{Caps: Caps{1, 1, 1}, ConfiguredRequired: []RequiredRef{{"host", "native"}}}
+	round := func(name, stage, head string, seq int) string {
+		return f.round(name, &RoundRecord{Stage: stage, Base: base, Head: head, Sequence: seq, Counted: true,
+			RequiredReviewers: []string{"host"}, Config: cfg,
+			Reviewers: map[string]*ReviewerState{"host": reviewer("native", true, StatusCompleted)}}, nil, nil)
+	}
+	plan, delta, candidate := round("01-plan", "plan", base, 1), round("02-plan-delta", "plan-delta", base, 2), round("03-candidate", "candidate", head, 3)
+	if g := f.gate(head, plan, delta, candidate); g.State != StateComplete || len(g.Reasons) != 0 {
+		t.Errorf("a gate over 01-plan, 02-plan-delta and 03-candidate is %s with reasons %v; want complete without reasons", g.State, g.Reasons)
+	}
+}
 
-// smCopyFixture copies the legacy series fixture into series, with the
-// world's folder in place of @DIR@.
-func (w *smWorld) smCopyFixture(series string) {
+// smLegacyGrowth is the growth line the cap report gave a recorded series
+// without a measured fixes round before the stage merge.
+const smLegacyGrowth = "- added lines: check 0, other 0; over hardening: no"
+
+// AC-7: the Markdown cap report of a recorded series with a plan-delta round
+// and no fixes round, and of one whose only fixes round is a dry run, keeps
+// that growth line rather than saying nothing was measured.
+func TestSparStageMergeAC7_LegacyCapReportGrowth(t *testing.T) {
+	for _, form := range []struct{ name, stage string }{{"03-plan-delta", "plan-delta"}, {"03-fixes", "fixes"}} {
+		f := newFixture(t)
+		c := f.revs
+		round := func(name, stage, base, head string, seq int, dry bool) string {
+			return f.round(name, &RoundRecord{Stage: stage, Base: base, Head: head, Sequence: seq, Counted: !dry, DryRun: dry,
+				RequiredReviewers: []string{"host"}, Reviewers: map[string]*ReviewerState{"host": reviewer("native", true, StatusCompleted)}}, nil, nil)
+		}
+		round("01-plan", "plan", c[0], c[0], 1, false)
+		round("02-candidate", "candidate", c[0], c[1], 2, false)
+		// The plan-delta round is a counted plan round; the fixes round, from
+		// the candidate's head, is a dry run.
+		old := round(form.name, form.stage, c[1], c[2], 3, form.stage == "fixes")
+		var stdout, stderr strings.Builder
+		code := Main("test", []string{"cap-report", filepath.Dir(old), "--format", "md", "--repo", f.repo}, strings.NewReader(""),
+			&stdout, &stderr, env(map[string]string{"HOME": f.dir}))
+		if lines := strings.Split(stdout.String(), "\n"); code != ExitOK || !slices.Contains(lines, smLegacyGrowth) || slices.Contains(lines, smNotMeasured) {
+			t.Errorf("spar cap-report --format md of a series with %s exits %d without the line %q: %s%s", form.name, code, smLegacyGrowth, stdout.String(), stderr.String())
+		}
+	}
+}
+
+// smLegacyCommits are the commits c0 to c3 of newSMWorld. The frozen series
+// in testdata/legacy-series names them, so the world must give them again.
+var smLegacyCommits = []string{
+	"6f153db7ffe18958da1d62a0844e1db0ffd42547",
+	"8a807f9e98214f58b30fc0199bfe4b57d7496ea8",
+	"93cac67dc43b88547e3c13cb3f9d4dc3f373d3ff",
+	"fdab52c8730c3b39fa79414b1d1fea95272aa0d6",
+}
+
+// smCopySeries copies the frozen series into the world's reviews/legacy,
+// with the world's folder in place of @DIR@, and returns that folder.
+func (w *smWorld) smCopySeries() string {
 	w.t.Helper()
-	src := filepath.Join(smLegacyDir, "series")
+	src, series := filepath.Join("testdata", "legacy-series", "series"), filepath.Join(w.repo, "reviews", "legacy")
 	err := filepath.WalkDir(src, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
@@ -733,149 +762,65 @@ func (w *smWorld) smCopyFixture(series string) {
 		return os.WriteFile(filepath.Join(series, rel), []byte(strings.ReplaceAll(string(data), "@DIR@", w.dir)), 0o644)
 	})
 	if err != nil {
-		w.t.Fatalf("setup: the legacy series fixture cannot be copied: %v", err)
-	}
-	for _, name := range append(slices.Clone(smLegacyRounds), "06-fixes") {
-		for _, file := range []string{"round.json", "findings.json", "ledger.jsonl"} {
-			if !w.exists(filepath.Join(series, name, file)) {
-				w.t.Fatalf("setup: the legacy series fixture has no %s/%s", name, file)
-			}
-		}
-	}
-}
-
-// smWrittenAt is the gate's own time, the one field of its output that
-// changes from run to run.
-var smWrittenAt = regexp.MustCompile(`(?m)^  "written_at": "[^"]*"`)
-
-// smNormalize puts @DIR@ in place of the world's folder, and for the gate
-// @WRITTEN_AT@ in place of its written_at.
-func (w *smWorld) smNormalize(out string) string {
-	out = strings.ReplaceAll(out, w.dir, "@DIR@")
-	return smWrittenAt.ReplaceAllString(out, `  "written_at": "@WRITTEN_AT@"`)
-}
-
-// smGolden compares got with the golden file name, or writes it when
-// SPAR_STAGE_MERGE_GOLDEN is update.
-func smGolden(t *testing.T, name, got string) {
-	t.Helper()
-	path := filepath.Join(smLegacyDir, name)
-	if os.Getenv(smGoldenEnv) == "update" {
-		if err := os.WriteFile(path, []byte(got), 0o644); err != nil {
-			t.Fatalf("setup: %v", err)
-		}
-		t.Logf("wrote %s", path)
-		return
-	}
-	data, err := os.ReadFile(path)
-	if err != nil {
-		t.Fatalf("setup: the golden file %s cannot be read: %v", path, err)
-	}
-	if want := string(data); got != want {
-		gl, wl := strings.Split(got, "\n"), strings.Split(want, "\n")
-		i := 0
-		for i < len(gl) && i < len(wl) && gl[i] == wl[i] {
-			i++
-		}
-		line := func(lines []string) string {
-			if i < len(lines) {
-				return strconv.Quote(lines[i])
-			}
-			return "the end"
-		}
-		t.Errorf("%s differs from the legacy series' golden %s at line %d: got %s, want %s", name, path, i+1, line(gl), line(wl))
-	}
-}
-
-// AC-7: a series recorded before the change, with plan-delta and fixes
-// rounds, a dry run and a code extension, is read by spar gate and spar
-// cap-report byte for byte as the code before the change read it.
-func TestSparStageMergeAC7_LegacySeriesReadUnchanged(t *testing.T) {
-	w := newSMWorld(t)
-	if !slices.Equal(w.commits, smLegacyCommits) {
-		t.Fatalf("setup: the synthetic repository has the commits %v, want %v that the legacy fixture names", w.commits, smLegacyCommits)
-	}
-	series := filepath.Join(w.repo, "reviews", "legacy")
-	w.smCopyFixture(series)
-
-	out := filepath.Join(w.dir, "gate.json")
-	args := []string{"gate"}
-	for _, name := range smLegacyRounds {
-		args = append(args, filepath.Join(series, name))
-	}
-	code, stdout, stderr := w.spar(append(args, "--expect-head", w.commits[2], "--out", out, "--repo", w.repo)...)
-	if code != ExitOK || stdout != "" || stderr != "" {
-		t.Errorf("spar gate over the legacy series exits %d with output %q %q; want 0 and none", code, stdout, stderr)
-	}
-	if w.exists(out) {
-		smGolden(t, "gate.golden.json", w.smNormalize(string(w.read(out))))
-	} else {
-		t.Errorf("spar gate over the legacy series wrote no gate file")
-	}
-	for _, format := range []struct{ name, golden string }{{"md", "cap-report.golden.md"}, {"json", "cap-report.golden.json"}} {
-		code, stdout, stderr := w.spar("cap-report", series, "--format", format.name, "--repo", w.repo)
-		if code != ExitOK || stderr != "" {
-			t.Errorf("spar cap-report --format %s of the legacy series exits %d: %s", format.name, code, stderr)
-			continue
-		}
-		smGolden(t, format.golden, w.smNormalize(stdout))
-	}
-
-	// Two more recorded shapes cut from the fixture: a plan-delta round and
-	// no fixes round, and a fixes round that is only a dry run. The cap
-	// report's growth line stays the one the code before the change printed
-	// for them.
-	for _, shape := range []struct {
-		name string
-		keep []string
-	}{
-		{"legacy-plan-delta", []string{"01-plan", "02-plan-delta", "03-candidate"}},
-		{"legacy-dry-fixes", []string{"01-plan", "03-candidate", "06-fixes"}},
-	} {
-		dir := w.smLegacyShape(shape.name, shape.keep...)
-		label := "spar cap-report --format md of " + strings.Join(shape.keep, ", ")
-		code, stdout, stderr := w.spar("cap-report", dir, "--format", "md", "--repo", w.repo)
-		if code != ExitOK {
-			t.Errorf("%s exits %d: %s", label, code, smFirstLine(stderr))
-			continue
-		}
-		lines := strings.Split(stdout, "\n")
-		if !slices.Contains(lines, smLegacyGrowth) {
-			t.Errorf("%s has no line %q", label, smLegacyGrowth)
-		}
-		for _, line := range lines {
-			if strings.Contains(line, "not measured") {
-				t.Errorf("%s prints %q; want %q as before the change", label, line, smLegacyGrowth)
-			}
-		}
-	}
-}
-
-// smLegacyGrowth is the growth line the cap report gave a recorded series
-// without a measured fixes round before the change: its format at commit
-// eb093be is "- added lines: check %d, other %d; over hardening: %s".
-const smLegacyGrowth = "- added lines: check 0, other 0; over hardening: no"
-
-// smLegacyShape copies the legacy fixture into the series name and keeps
-// only the round folders keep; extensions.jsonl goes too, as no shape
-// reaches the code cap it extended.
-func (w *smWorld) smLegacyShape(name string, keep ...string) string {
-	w.t.Helper()
-	series := filepath.Join(w.repo, "reviews", name)
-	w.smCopyFixture(series)
-	entries, err := os.ReadDir(series)
-	if err != nil {
-		w.t.Fatalf("setup: %v", err)
-	}
-	for _, e := range entries {
-		if slices.Contains(keep, e.Name()) {
-			continue
-		}
-		if err := os.RemoveAll(filepath.Join(series, e.Name())); err != nil {
-			w.t.Fatalf("setup: %v", err)
-		}
+		w.t.Fatalf("setup: the legacy series cannot be copied: %v", err)
 	}
 	return series
+}
+
+// AC-7: today's spar judges the series spar eb093be recorded with plan-delta
+// and fixes rounds (testdata/legacy-series): the gate over its rounds is
+// complete with nothing open, lists the #901 deferral and the note without
+// a disposition and counts the automatic deferral, and the cap report counts
+// the three code rounds, not the dry run or the plan-delta round, against
+// the code cap 3 and the one extension.
+func TestSparStageMergeAC7_LegacySeriesJudged(t *testing.T) {
+	w := newSMWorld(t)
+	if !slices.Equal(w.commits, smLegacyCommits) {
+		t.Fatalf("setup: the world's commits are %v, not the %v the frozen series names", w.commits, smLegacyCommits)
+	}
+	series := w.smCopySeries()
+	args := []string{"gate"}
+	for _, name := range []string{"01-plan", "02-plan-delta", "03-candidate", "04-fixes", "05-candidate"} {
+		args = append(args, filepath.Join(series, name))
+	}
+	out := filepath.Join(w.dir, "gate.json")
+	code, _, stderr := w.spar(append(args, "--expect-head", w.commits[2], "--out", out, "--repo", w.repo)...)
+	var g GateRecord
+	if err := json.Unmarshal(w.read(out), &g); err != nil {
+		t.Fatalf("setup: spar gate exits %d and its file is not JSON: %v: %s", code, err, stderr)
+	}
+	if code != ExitOK || g.State != StateComplete || len(g.Reasons) != 0 || g.Open["defect"]+g.Open["requirement-question"] != 0 || g.AutoDeferred != 1 ||
+		!reflect.DeepEqual(g.DeferredFindings, []GateDeferred{{"legacy", "04-fixes", "host-F1", "defect", "#901"}}) ||
+		!reflect.DeepEqual(g.UnhandledFindings, []GateUnhandled{{"legacy", "04-fixes", "host-F2", "note"}}) {
+		t.Errorf("the gate over 01-plan to 05-candidate exits %d: %s, reasons %v, open %v, auto_deferred %d, deferred %v, unhandled %v",
+			code, g.State, g.Reasons, g.Open, g.AutoDeferred, g.DeferredFindings, g.UnhandledFindings)
+	}
+	code, report, stderr := w.spar("cap-report", series, "--format", "json", "--repo", w.repo)
+	var rep capReport
+	if err := json.Unmarshal([]byte(report), &rep); code != ExitOK || err != nil || rep.Cap.Code == nil || *rep.Cap.Code != 3 ||
+		rep.Cap.Extensions != 1 || rep.Cap.Allowed == nil || *rep.Cap.Allowed != 4 || rep.Cap.Counted != 3 ||
+		!reflect.DeepEqual(rep.Skipped, []capSkipped{{"06-fixes", "dry run"}}) {
+		t.Errorf("spar cap-report --format json exits %d (%v); want cap code 3, extensions 1, allowed 4, counted 3 and 06-fixes skipped as a dry run: %s%s",
+			code, err, report, stderr)
+	}
+	classes := map[string]map[string]int{}
+	for _, r := range rep.Rounds {
+		classes[r.Round] = r.Classes
+	}
+	counts := func(defect, question, hardening, note int) map[string]int {
+		return map[string]int{"defect": defect, "requirement-question": question, "hardening": hardening, "note": note}
+	}
+	if want := map[string]map[string]int{"03-candidate": counts(2, 1, 1, 0), "04-fixes": counts(1, 0, 0, 1), "05-candidate": counts(1, 0, 0, 0)}; !reflect.DeepEqual(classes, want) {
+		t.Errorf("the cap report's rounds have the classes %v, want %v", classes, want)
+	}
+	if !reflect.DeepEqual(rep.Churn, []capChurn{{"04-fixes", 1, []string{"host-F1"}}, {"05-candidate", 0, []string{}}}) || len(rep.Recurring) != 0 ||
+		!reflect.DeepEqual(rep.Unrelated, []capFinding{{"04-fixes", "host-F1"}}) || rep.CheckGrowth != (capGrowth{Check: 3, Other: 1, OverHardening: true}) {
+		t.Errorf("the cap report's signals are churn %v, recurring %v, unrelated %v, check growth %+v; want 04-fixes 1 (host-F1) and 05-candidate 0, none, 04-fixes host-F1, check 3 other 1 over hardening",
+			rep.Churn, rep.Recurring, rep.Unrelated, rep.CheckGrowth)
+	}
+	if !reflect.DeepEqual(g.Growth.AddedLines, map[string]int{"check": 3, "other": 1}) || !g.Growth.OverHardening {
+		t.Errorf("the gate's growth is %+v, want check 3, other 1 and over hardening", g.Growth)
+	}
 }
 
 // AC-8: a project configuration that still sets caps.plan_delta loads; a

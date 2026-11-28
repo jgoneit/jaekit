@@ -30,6 +30,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 	"testing"
@@ -470,6 +471,32 @@ func ccCriterion(s rgState, id string) map[string]any {
 	return nil
 }
 
+// ccWaitBasis is the status budget's wait_basis, which run-rules/4 and later
+// give as executor_reported (contracts/run-record.md), and whether it is there.
+func ccWaitBasis(s rgState) (any, bool) {
+	budget, _ := s.value["budget"].(map[string]any)
+	basis, ok := budget["wait_basis"]
+	return basis, ok
+}
+
+// ccMarkFields lists the fields only a run-rules/7 status shows that s has:
+// check_freeze, and baseline_required on each criterion.
+func ccMarkFields(s rgState) []string {
+	var out []string
+	if _, ok := s.value["check_freeze"]; ok {
+		out = append(out, "check_freeze")
+	}
+	list, _ := s.value["criteria"].([]any)
+	for _, item := range list {
+		if c, _ := item.(map[string]any); c != nil {
+			if _, ok := c["baseline_required"]; ok {
+				out = append(out, fmt.Sprintf("%v baseline_required", c["id"]))
+			}
+		}
+	}
+	return out
+}
+
 // ccHasReason reports whether the status names the reason code for the
 // criterion (id "" for a goal-level reason).
 func ccHasReason(s rgState, id, code string) bool {
@@ -592,6 +619,13 @@ func TestCheckCostAC1_StartAndCapabilities(t *testing.T) {
 		}
 		if r := ciLines(f.rgFixture)[0].m["rules"]; r != "run-rules/3" {
 			t.Errorf("jaekit:violation=%s a start without --rules records rules %v; want run-rules/3", v, r)
+		}
+		s := f.state(v, "the run-rules/3 goal")
+		if got := ccMarkFields(s); len(got) > 0 {
+			t.Errorf("jaekit:violation=%s the run-rules/3 status shows the run-rules/7 fields %v", v, got)
+		}
+		if basis, ok := ccWaitBasis(s); ok {
+			t.Errorf("jaekit:violation=%s the run-rules/3 status budget has wait_basis %v; want none before run-rules/4", v, basis)
 		}
 	}()
 
@@ -928,4 +962,239 @@ func TestCheckCostAC4_MinimumFollowsMark(t *testing.T) {
 				v, minimum-1, minimum, code, len(data), strings.TrimSpace(out))
 		}
 	}()
+}
+
+// Under run-rules/6 the baseline column narrows nothing: a baseline run
+// without targets records every change condition, marked or not. Records
+// count by input: a restored command's baseline counts again and another
+// command's does not, a time limit needs a new check, and a producer put
+// back to its recorded content leaves its baseline fresh. A file
+// outside the scope gives out_of_scope until a later commit removes it. A
+// change condition's baseline input reaches its error limit at the second
+// error; a recovery is refused before that limit and clears it after, the
+// status counts recoveries against the baseline input's two, a third is
+// refused, and the user's allowance of one more gives 3 of 3.
+func TestCheckCostRules6KeepsEarlierJudgments(t *testing.T) {
+	t.Parallel()
+	const v = "rules-v6-judgment-changed"
+	// AC-1's 검사 경로 holds checks/pass.sh, its producer inverted: a command
+	// that passes at the base, with the same check files.
+	pass := ccCond{id: "AC-1", kind: "change", mark: ccMark, paths: []string{ccScript("AC-1"), ccDecl("AC-1"), "checks/pass.sh"}}
+	f := ccRepo(t, ccGoal{conds: []ccCond{pass, ccChange("AC-2", "—"), ccMaintain("AC-3")}, column: true})
+	if code, out := f.ha("start", rgGoal, "--request", ccRequest, "--rules", "run-rules/6"); code != exitOK {
+		t.Fatalf("setup: ha start --rules run-rules/6 exit %d: %s", code, out)
+	}
+	f.base = f.git("rev-parse", "HEAD")
+	f.put("checks/pass.sh", strings.Replace(ccProducer(*f.cond("AC-1")), "= ok ]", "= old ]", 1))
+	f.implement()
+	before := len(ciLines(f.rgFixture))
+	f.must(v, "the default baseline run", exitOK, "check", rgGoal, "--baseline")
+	added := ccRuns(ciLines(f.rgFixture)[before:], "baseline")
+	if got := ccTargets(added); !rgSame(got, []string{"AC-1", "AC-2"}) || added[0].m["result"] != "fail_as_expected" || added[1].m["result"] != "fail_as_expected" {
+		t.Errorf("jaekit:violation=%s under run-rules/6 ha check --baseline without targets recorded baselines of %v; want fail_as_expected baselines of AC-1 and AC-2", v, got)
+	}
+	s6 := f.state(v, "the run-rules/6 goal")
+	if got := ccMarkFields(s6); len(got) > 0 {
+		t.Errorf("jaekit:violation=%s the run-rules/6 status shows the run-rules/7 fields %v", v, got)
+	}
+	if basis, _ := ccWaitBasis(s6); basis != "executor_reported" {
+		t.Errorf("jaekit:violation=%s the run-rules/6 status budget has wait_basis %v; want executor_reported", v, basis)
+	}
+
+	// Records count by input: a command changed and restored, a time limit
+	// added, a producer changed and restored to the recorded content.
+	conds := func(label string) []string {
+		out := []string{}
+		for _, r := range f.state(v, label).reasons {
+			if strings.HasPrefix(r, "AC-") {
+				out = append(out, r)
+			}
+		}
+		return out
+	}
+	f.must(v, "every condition checked", exitOK, "check", rgGoal)
+	plan := ccPlan(f.g)
+	f.put(rgGoal+"/PLAN.md", strings.Replace(plan, "`sh "+ccScript("AC-1")+"`", "`sh checks/pass.sh`", 1))
+	f.must(v, "AC-1's baseline under a command that passes at the base", exitProblems, "check", rgGoal, "--baseline", "AC-1")
+	if l := ciLines(f.rgFixture); l[len(l)-1].m["result"] != "unexpected_pass" {
+		t.Fatalf("setup: AC-1's baseline under the other command is %v, want unexpected_pass", l[len(l)-1].m["result"])
+	}
+	f.put(rgGoal+"/PLAN.md", plan)
+	if got := conds("AC-1's command restored"); len(got) > 0 {
+		t.Errorf("jaekit:violation=%s with AC-1's command restored the reasons are %v; want none: the other command's unexpected_pass must not count", v, got)
+	}
+	f.put(rgGoal+"/PLAN.md", plan+"\n## 시간 제한\n- AC-3: 5분\n")
+	if got := conds("a time limit for AC-3"); !rgSame(got, []string{"AC-3:criterion_missing"}) {
+		t.Errorf("jaekit:violation=%s a time limit added for the checked AC-3 gives the reasons %v; want AC-3:criterion_missing until it is checked again", v, got)
+	}
+	f.must(v, "AC-3 checked under its time limit", exitOK, "check", rgGoal, "AC-3")
+	if got := conds("AC-3 checked under its time limit"); len(got) > 0 {
+		t.Errorf("jaekit:violation=%s AC-3 checked under its time limit keeps the reasons %v", v, got)
+	}
+	producer := string(f.read(ccScript("AC-1")))
+	f.revise(ccScript("AC-1"), "the producer reads one file")
+	f.head = f.commit("the producer changed")
+	f.put(ccScript("AC-1"), producer)
+	f.head = f.commit("the producer restored")
+	f.must(v, "every condition checked after the producer was restored", exitOK, "check", rgGoal)
+	if got := conds("the producer restored"); len(got) > 0 {
+		t.Errorf("jaekit:violation=%s after AC-1's producer is restored to its recorded content and checked, the reasons are %v; want none", v, got)
+	}
+
+	judged := f.state(v, "before a file outside the scope").reasons
+	f.put("notes/outside.txt", "outside\n")
+	f.head = f.commit("a file outside the scope")
+	if s := f.state(v, "a file outside the scope"); !ccHasReason(s, "", "out_of_scope") {
+		t.Errorf("jaekit:violation=%s a committed file outside the scope gives reasons %v; want out_of_scope", v, s.reasons)
+	}
+	f.git("rm", "-q", "notes/outside.txt")
+	f.head = f.commit("the file outside the scope removed")
+	if s := f.state(v, "the file outside the scope removed"); !rgSame(s.reasons, judged) {
+		t.Errorf("jaekit:violation=%s after the file outside the scope is removed the reasons are %v; want %v as before it", v, s.reasons, judged)
+	}
+
+	f.put(rgGoal+"/PLAN.md", strings.Replace(ccPlan(f.g), "`sh "+ccScript("AC-2")+"`", "`cc-no-such-program`", 1))
+	recoverArgs := []string{"note", rgGoal, "recover", "AC-2", "--input", "baseline", "--change", "the command names a program that exists"}
+	f.must(v, "the first AC-2 baseline that cannot start", exitProblems, "check", rgGoal, "--baseline", "AC-2")
+	if s := f.state(v, "after one error"); ccHasReason(s, "AC-2", "error_limit") {
+		t.Errorf("jaekit:violation=%s one baseline error already gives AC-2:error_limit", v)
+	}
+	records := f.records()
+	if code, out := f.ha(recoverArgs...); code != exitRefused || !bytes.Equal(records, f.records()) {
+		t.Errorf("jaekit:violation=%s a recovery before the error limit exits %d and changed the record %v: %s", v, code, !bytes.Equal(records, f.records()), out)
+	}
+	f.must(v, "the second AC-2 baseline that cannot start", exitProblems, "check", rgGoal, "--baseline", "AC-2")
+	if s := f.state(v, "after two errors"); !ccHasReason(s, "AC-2", "error_limit") {
+		t.Errorf("jaekit:violation=%s two baseline errors give reasons %v; want AC-2:error_limit", v, s.reasons)
+	}
+	recovered := func(label string, used, allowed int) {
+		t.Helper()
+		f.must(v, label, exitOK, recoverArgs...)
+		s := f.state(v, label)
+		recoveries, _ := s.value["recoveries"].([]any)
+		r, _ := append(recoveries, nil)[0].(map[string]any)
+		if ccHasReason(s, "AC-2", "error_limit") || len(recoveries) != 1 ||
+			r["criterion"] != "AC-2" || r["input"] != "baseline" || r["used"] != float64(used) || r["allowed"] != float64(allowed) {
+			t.Errorf("jaekit:violation=%s after %s the reasons are %v and recoveries %v; want no AC-2:error_limit and AC-2 baseline %d of %d", v, label, s.reasons, recoveries, used, allowed)
+		}
+	}
+	errorLimit := func() {
+		for i := 0; i < 2; i++ {
+			f.must(v, "an AC-2 baseline that cannot start", exitProblems, "check", rgGoal, "--baseline", "AC-2")
+		}
+	}
+	recovered("the first recovery", 1, 2)
+	errorLimit()
+	recovered("the second recovery", 2, 2)
+	errorLimit()
+	f.must(v, "a third recovery without the user's allowance", exitRefused, recoverArgs...)
+	f.must(v, "the user's allowance", exitOK, "note", rgGoal, "allow-recovery", "AC-2", "--input", "baseline", "--count", "1", "--quote", "synthetic user words")
+	recovered("the allowed recovery", 3, 3)
+}
+
+// Earlier rules keep what a goal's views show: after a start without
+// --skill, ha lint, ha estimate, checks, AC-1's baseline and an incomplete
+// ha done; hashes, times and measured seconds are matched by shape.
+func TestCheckCostEarlierRulesViews(t *testing.T) {
+	t.Parallel()
+	const v = "earlier-rules-view-changed"
+	hash, at, secs := regexp.MustCompile(`[0-9a-f]{12,64}`), regexp.MustCompile(`\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ`), regexp.MustCompile(`\d+(/14400 seconds| seconds\))`)
+	norm := func(s string) string {
+		return "\n" + secs.ReplaceAllString(at.ReplaceAllString(hash.ReplaceAllString(s, "<hash>"), "<time>"), "<s>$1") + "\n"
+	}
+	asJSON := func(x any) string { b, _ := json.Marshal(x); return string(b) }
+	obj := func(x any) map[string]any { m, _ := x.(map[string]any); return m }
+	for _, rules := range []string{"run-rules/3", "run-rules/5", "run-rules/6"} {
+		f := ccRepo(t, ccGoal{conds: []ccCond{ccChange("AC-1", ""), ccChange("AC-2", ""), ccMaintain("AC-3")}})
+		views, raw := map[string]string{}, map[string]map[string]any{}
+		run := func(name string, want int, args ...string) {
+			code, out, errb := haIn(f.dir, envIn(f.dir, f.env), args...)
+			if code != want {
+				t.Errorf("jaekit:violation=%s %s: ha %v exits %d, want %d: %s", v, rules, args, code, want, errb)
+			}
+			m := map[string]any{}
+			_ = json.Unmarshal([]byte(out), &m)
+			views[name], raw[name] = norm(out), m
+		}
+		run("start", exitOK, "start", rgGoal, "--request", ccRequest, "--rules", rules)
+		records := f.records()
+		run("lint", exitOK, "lint", rgGoal)
+		if !bytes.Equal(records, f.records()) {
+			t.Errorf("jaekit:violation=%s %s: ha lint changed the record", v, rules)
+		}
+		for name, args := range map[string][]string{"estimate json": {"--format", "json"}, "estimate baseline json": {"--baseline", "--format", "json"}, "estimate": nil, "estimate baseline": {"--baseline"}} {
+			run(name, exitOK, append([]string{"estimate", rgGoal}, args...)...)
+		}
+		f.implement()
+		f.must(v, "every condition checked", exitOK, "check", rgGoal)
+		f.must(v, "AC-1's baseline", exitOK, "check", rgGoal, "--baseline", "AC-1")
+		run("done", exitProblems, "done", rgGoal)
+		if l := ciLines(f.rgFixture); len(l) != 6 || l[5].kind() != "done" || l[5].m["status"] != "incomplete" {
+			t.Errorf("jaekit:violation=%s %s: an incomplete ha done leaves %d lines, the last %v; want 6, the last a done line with status incomplete", v, rules, len(l), l[len(l)-1].m)
+		}
+		run("status json", exitProblems, "status", rgGoal, "--format", "json")
+		run("status", exitProblems, "status", rgGoal)
+		run("report", exitOK, "report", rgGoal, "--lang", "en")
+		run("report ko", exitOK, "report", rgGoal, "--lang", "ko")
+
+		s, est, base := raw["status json"], raw["estimate json"], raw["estimate baseline json"]
+		criteria := append(s["criteria"].([]any), nil, nil)
+		_, auto := est["auto"]
+		attempts := `"baseline_errors":0,"baseline_fails":0,"baseline_unknowns":0,"baselines":%d,"checks":1,"errors":0,"fail_commits":[],"fails":0,"stale":0,"unexpected_passes":0,"unknowns":0`
+		for _, c := range []struct{ field, got, want string }{
+			{"schema, check_author, goal", asJSON([]any{s["schema"], s["check_author"], s["goal"]}), `["status/v1","executor","docs/specs/demo"]`},
+			{"ha_version, commit, tree_clean", asJSON([]any{s["ha_version"], s["commit"], s["tree_clean"]}), fmt.Sprintf("[%q,%q,true]", version, f.head)},
+			{"complete_without_record, lint, logs, budget.history", asJSON([]any{s["complete_without_record"], s["lint"], s["logs"], obj(s["budget"])["history"]}), `[false,null,[],[]]`},
+			{"changes", asJSON(s["changes"]), `{"command_changed":[],"ha_version_changed":[],"invalid_confirmations":[],"kind_changed":[],"optional":[]}`},
+			{"reasons", asJSON(s["reasons"]), `[{"class":"executor","code":"baseline_missing","criterion":"AC-2"}]`},
+			{"criteria[0].attempts", asJSON(obj(criteria[0])["attempts"]), "{" + fmt.Sprintf(attempts, 1) + "}"},
+			{"criteria[1]", asJSON(criteria[1]), `{"attempts":{` + fmt.Sprintf(attempts, 0) + `},"id":"AC-2","kind":"change","reason":"baseline_missing","records":[],"required":true,"satisfied":false}`},
+			{"usage", asJSON(s["usage"]), `{"baselines":1,"checks":3,"current_inputs":4,"environment_errors":0,"stale_inputs":0,"total":4,"unknowns":0,"valid_evidence":4}`},
+			{"findings", asJSON(s["findings"]), `{"candidate":0,"confirmed":0,"confirmed_existing":0,"findings":[],"goal":"docs/specs/demo","record_head":` + asJSON(s["record_head"]) + `,"schema":"findings/v1","unresolved":0}`},
+			{"estimate schema, goal, auto", asJSON([]any{est["schema"], est["goal"], auto}), `["estimate/v1","docs/specs/demo",false]`},
+			{"estimate selected", asJSON([]any{obj(est["selected"])["mode"], obj(est["selected"])["targets"], obj(base["selected"])["mode"], obj(base["selected"])["targets"]}), `["check",["AC-1","AC-2","AC-3"],"baseline",["AC-1","AC-2"]]`},
+		} {
+			if c.got != c.want {
+				t.Errorf("jaekit:violation=%s %s: JSON %s is %s, want %s", v, rules, c.field, c.got, c.want)
+			}
+		}
+
+		estimate := "## ha estimate: docs/specs/demo\n\n- required minimum: 5 runs (2 change × 2 + 1 maintain; manual: 0)\n" +
+			"- PLAN run limit: 50; shortfall: 0; headroom above minimum: 45\n- default commands: check 3 + baseline 2 runs; additional to minimum: 0\n- selected "
+		limitation := fmt.Sprintf("\n\n%v", est["limitation"])
+		row := " | checks 1 (fail 0, error 0), baselines %d (unexpected pass 0, error 0), stale 0 |"
+		for name, lines := range map[string][]string{
+			"lint":              {"ok: no lint problems"},
+			"estimate":          {estimate + "check: 3 runs; additional: 0 (optional 0, task 0, repeated required 0)\n  - AC-1\n  - AC-2\n  - AC-3" + limitation},
+			"estimate baseline": {estimate + "baseline: 2 runs; additional: 0 (optional 0, task 0, repeated required 0)\n  - AC-1\n  - AC-2" + limitation},
+			"status": {"## ha status: docs/specs/demo\n\n- status: **incomplete** (exit 1)", "- assurance: local (an agent with the same user permissions can change checks and records)\n- check author: executor\n- record head: seq 6 (<hash>)",
+				"- rules: " + rules + "; skill: not recorded; ha: " + version + "\n- code: <hash>, tree clean: yes; goal digest: <hash>",
+				"- attempts: 4 total; types: 3 check, 1 baseline; outcomes: 0 environment errors, 0 unknown; inputs: 4 current, 0 stale; valid positive evidence: 4 (overlapping axes)",
+				"### Unmet\n\n- AC-2 `baseline_missing` (executor): no fresh record", "| ID | kind | required | satisfied | reason | records | attempts |",
+				"| AC-1 | change | yes | yes | — | 2, 5" + fmt.Sprintf(row, 1), "| AC-2 | change | yes | no | baseline_missing | —" + fmt.Sprintf(row, 0),
+				"| AC-3 | maintain | yes | yes | — | 4" + fmt.Sprintf(row, 0), "### Reasons\n\n- `baseline_missing` (executor) AC-2", "### Budget\n\n- window from seq 1: 4/50 runs, <s>/14400 seconds\n- budget revision: 1; remaining: 46 runs; excess: 0 runs; run cap reached: no"},
+			"report": {"| AC-2 | change | yes | no | — |", "### Completion coverage\n\n- completion record: none"},
+			"report ko": {"남은 한계: 보증 수준 local; 검사 작성자: 실행자; 지금 HEAD를 덮는 완료 기록이 없음\n다음 행동: AC-2 `baseline_missing` 해결 (executor)", "- 기록 head: seq 6 (<hash>), 기록 시각 <time>; 상태: incomplete", "근거 출처: 지금 상태", "| AC-2 | change | 예 | 아니오 | — |",
+				"### 완료 범위\n\n- 완료 기록: none", "- AC-2 `baseline_missing` (executor): 신선한 기록 없음"},
+		} {
+			for _, line := range lines {
+				if !strings.Contains(views[name], "\n"+line+"\n") {
+					t.Errorf("jaekit:violation=%s %s: the %s view has no line\n%s\nin\n%s", v, rules, name, line, views[name])
+				}
+			}
+		}
+		wait := strings.Contains(views["status"], "\n- elapsed leaves out 0 seconds of waits the executor reported (window span <s> seconds)\n")
+		after := strings.Contains(views["status"], "\n- elapsed also leaves out 0 seconds after completion, excluding reported waits and runs\n")
+		if wait != (rules != "run-rules/3") || after != (rules == "run-rules/6") {
+			t.Errorf("jaekit:violation=%s %s: the status Budget's wait line is there %v and its after-completion line %v", v, rules, wait, after)
+		}
+
+		f.must(v, "AC-2's baseline", exitOK, "check", rgGoal, "--baseline", "AC-2")
+		f.must(v, "ha done of the complete goal", exitOK, "done", rgGoal)
+		run("status json", exitOK, "status", rgGoal, "--format", "json")
+		run("status", exitOK, "status", rgGoal)
+		if got := asJSON(raw["status json"]["reasons"]); got != "[]" || !strings.Contains(views["status"], "\n### Reasons\n\nNone.\n") {
+			t.Errorf("jaekit:violation=%s %s: a complete goal's status gives reasons %s and no \"None.\" under ### Reasons", v, rules, got)
+		}
+	}
 }
