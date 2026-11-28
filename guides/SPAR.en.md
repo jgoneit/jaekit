@@ -39,22 +39,15 @@ Each reviewer receives its own instruction along with the packet. For a round wi
 
 ## Configure reviewers
 
-Reviewers come only from your user configuration. Spar reads the first file it finds among `$SPAR_CONFIG`, `$XDG_CONFIG_HOME/jaekit/spar.toml` and `~/.config/jaekit/spar.toml`. Without one, it reads the `reviewers` list of an existing clean-review `config.json`. Without that, it uses `claude`, `codex` and `agy`. An empty list (`reviewers = []`) means the `native` reviewer only.
+Reviewers come only from your user configuration. Spar reads the first file it finds among `$SPAR_CONFIG`, `$XDG_CONFIG_HOME/jaekit/spar.toml` and `~/.config/jaekit/spar.toml`. Without one, it reads the `reviewers` list of an existing clean-review `config.json`. Without that, it uses `claude` alone. An empty list (`reviewers = []`) means the `native` reviewer only.
 
-Without any of these user configurations, `claude`, `codex` and `agy` are all required reviewers. When a required reviewer's CLI is missing or the reviewer does not finish a round, the gate is `degraded`. The exception is when you waived that reviewer for that round (`spar waive`). With a `degraded` gate, a `standard` or `strict` goal does not complete. Before the first round, write a user configuration in `~/.config/jaekit/spar.toml` that lists only the CLIs you have. For example, with only the claude CLI, list that one reviewer:
-
-```toml
-[[reviewers]]
-preset = "claude"
-```
-
-With one reviewer listed, it is the only required reviewer. A round it finishes can be `complete`. With no reviewer CLI at all, use the empty list for the `native` reviewer only. A clean-context subagent of the agent you are using then reviews.
+When a required reviewer's CLI is missing or the reviewer does not finish a round, the gate is `degraded`. The exception is when you waived that reviewer for that round (`spar waive`). With a `degraded` gate, a `standard` or `strict` goal does not complete. Without any user configuration, `claude` is the only required reviewer, and a round it finishes can be `complete`. With no reviewer CLI at all, write the empty list in `~/.config/jaekit/spar.toml` before the first round, for the `native` reviewer only. A clean-context subagent of the agent you are using then reviews.
 
 ```toml
 reviewers = []
 ```
 
-With all three CLIs, you can list them like this:
+`codex` and `agy` run only when your user configuration lists them. To use all three CLIs, list them like this:
 
 ```toml
 timeout_seconds = 1800

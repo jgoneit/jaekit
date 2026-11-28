@@ -66,7 +66,7 @@ func TestCleanReviewFallbackDefaultsAndOverride(t *testing.T) {
 	os.MkdirAll(repo, 0o755)
 	vars := map[string]string{"HOME": filepath.Join(dir, "home"), "XDG_CONFIG_HOME": filepath.Join(dir, "xdg")}
 	c, err := LoadConfig(repo, env(vars), nil)
-	if err != nil || names(c) != "claude,codex,agy" || c.Source.Kind != "default" {
+	if err != nil || names(c) != "claude" || c.Source.Kind != "default" {
 		t.Fatalf("default: %v %s %s", err, names(c), c.Source.Kind)
 	}
 	writeFile(t, filepath.Join(dir, "xdg", "clean-review", "config.json"), `{"reviewers": ["codex", "agy"]}`)

@@ -162,7 +162,7 @@ var presets = map[string]Reviewer{
 }
 
 // DefaultReviewers is the list without any configuration.
-var DefaultReviewers = []string{"claude", "codex", "agy"}
+var DefaultReviewers = []string{"claude"}
 
 // Keys a project file may never set: they choose what runs on the user's
 // computer and what it costs.

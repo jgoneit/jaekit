@@ -203,7 +203,7 @@ docs/reviews/
 
 다른 폴더나 `.git/info/exclude`를 쓰려면 Spar 안내의 [프로젝트 준비](guides/SPAR.md#프로젝트-준비)를 봅니다.
 
-**2. 가진 리뷰어 CLI만 적습니다.** 사용자 설정이 없으면 Spar는 `claude`·`codex`·`agy` CLI를 모두 필수 리뷰어로 쓰고, 필수 리뷰어가 돌지 못한 목표는 완료되지 않습니다. 가진 CLI만 적은 `~/.config/jaekit/spar.toml`을 씁니다. [리뷰어 설정](guides/SPAR.md#리뷰어-설정)을 봅니다.
+**2. 리뷰어 CLI를 정합니다.** 사용자 설정이 없으면 Spar는 `claude` CLI를 필수 리뷰어로 쓰고, 필수 리뷰어가 돌지 못한 목표는 완료되지 않습니다. `codex`·`agy`를 더하거나 claude CLI 없이 검토하려면 `~/.config/jaekit/spar.toml`을 씁니다. [리뷰어 설정](guides/SPAR.md#리뷰어-설정)을 봅니다.
 
 ### 첫 작업 맡기기
 

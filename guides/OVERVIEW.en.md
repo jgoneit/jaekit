@@ -54,7 +54,7 @@ Your agent is the only one doing the work. Spec and Seal are instructions the ag
 | Spec | Instructions for turning a request into a goal document. It writes the goal, scope, completion conditions and a review tier, then stops |
 | Seal | Instructions that carry the confirmed goal to the end. The agent keeps planning, implementing, checking and fixing; it only reads the goal document |
 | `ha` | A terminal program that records every check the agent runs and computes completion from those records, the documents and Git. It never calls an AI model |
-| Spar | Sends the same material to reviewers outside the working conversation (by default the claude, codex and agy CLIs) for an independent review, and records their findings and how each was handled |
+| Spar | Sends the same material to reviewers outside the working conversation (by default the claude CLI; codex and agy when you configure them) for an independent review, and records their findings and how each was handled |
 
 Spec, Seal and Spar are plugins you install in Claude Code or Codex; `ha` and `spar` are terminal programs.
 
@@ -140,7 +140,7 @@ Your whole existing test suite can serve as the check that existing behavior kee
 No. The default result is local changes and commits. Push and pull requests are yours to do, or a separate request to an ordinary agent.
 
 **Does my code leave my machine?**
-`ha` never calls an AI model. Spar reviewers send the criteria, the rules and the change (the diff) to their own providers, and project files a reviewer reads can go too. With the default reviewers, claude goes to Anthropic, codex to OpenAI and agy to Google. If code must not leave your machine, don't run Spar. Details are in the [Spar guide](SPAR.en.md#what-leaves-your-computer).
+`ha` never calls an AI model. Spar reviewers send the criteria, the rules and the change (the diff) to their own providers, and project files a reviewer reads can go too. The claude reviewer goes to Anthropic, codex to OpenAI and agy to Google. If code must not leave your machine, don't run Spar. Details are in the [Spar guide](SPAR.en.md#what-leaves-your-computer).
 
 ## What to read next
 
