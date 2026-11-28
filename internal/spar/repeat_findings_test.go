@@ -877,7 +877,7 @@ func TestRepeatFindingsAC6_PresetDefaults(t *testing.T) {
 		}
 	}
 	if want := map[string]any{"claude": "verified", "codex": "verified", "agy": "verified", "native": "host", "cmd": "unverified"}; !reflect.DeepEqual(isolation, want) {
-		t.Errorf("preset isolation without a setting is %v, want %v", isolation, want)
+		t.Errorf("jaekit:violation=%s preset isolation without a setting is %v, want %v", id, isolation, want)
 	}
 	for _, name := range []string{"native", "cmd"} {
 		if limits[name] != 0 {
