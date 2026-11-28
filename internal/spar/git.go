@@ -134,12 +134,6 @@ func numstatWith(repo string, env []string, base, head string) (map[string]int, 
 	return added, nil
 }
 
-// fileAt reports whether a commit holds a file at a repository path.
-func fileAt(repo, commit, path string) ([]byte, bool) {
-	out, err := git(repo, "cat-file", "blob", commit+":"+path)
-	return out, err == nil
-}
-
 type treeEntry struct {
 	mode, kind, object, path string
 }

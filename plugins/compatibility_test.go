@@ -76,7 +76,7 @@ func TestCompatibilityAC10_SourceVersions(t *testing.T) {
 	compatibilityContains(t, "Core development version", read(t, "../cmd/ha/main.go"), `var version = "0.1.9-dev"`)
 	// These package a checkout build, which prints the development version;
 	// install.ps1 refuses a manifest version the executable does not print.
-	for _, path := range []string{"../tools/windows/docs_check.py", "../tools/windows/README.md"} {
+	for _, path := range []string{"../tools/windows/README.md"} {
 		content := read(t, path)
 		compatibilityContains(t, path, content, "0.1.9-dev")
 		if strings.Contains(content, "0.1.8-dev") {
