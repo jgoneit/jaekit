@@ -46,8 +46,10 @@ func TestCompatibilityAC10_SourceVersions(t *testing.T) {
 	// candidate: one candidate round from the base commit after review fixes.
 	// Seal 0.1.34 drops its guidance for the removed `ha history` command.
 	// Seal 0.1.35 reduces the review summary to four headings. Release v0.1.9
-	// ships Spec 0.1.16 and Seal 0.1.36.
-	for name, want := range map[string]string{"spec": "0.1.16", "seal": "0.1.36"} {
+	// ships Spec 0.1.16 and Seal 0.1.36. Seal 0.1.37 names unmet required
+	// conditions as a reason an earlier completion no longer holds under every
+	// structured rule, not only run-rules/3.
+	for name, want := range map[string]string{"spec": "0.1.16", "seal": "0.1.37"} {
 		t.Run(name, func(t *testing.T) {
 			_, version := frontMatter(t, filepath.Join(name, "skills", name, "SKILL.md"))
 			if version != want {
