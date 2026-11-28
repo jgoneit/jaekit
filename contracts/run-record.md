@@ -571,7 +571,7 @@ When there is no valid completion record, the completion record line shows the f
   5. goal document changes
   6. required command changes (condition ID)
   7. a following `reopen` (seq)
-  8. under `/3`, not all required conditions are satisfied
+  8. under `/3` and later, not all required conditions are satisfied
 - If there is no `done` line at all, it is `none` as before. A goal that has only satisfied the completion conditions gets the `ha done` hint, as before.
 
 Synthetic example (a goal whose code changed after completion, and where running `ha done` again recorded an incomplete result):
@@ -875,6 +875,7 @@ A completion record d is **valid** while all of the following hold.
 - The working tree is clean now.
 - There is no difference outside the bundle documents between d.commit and HEAD. The bundle documents follow the rules version (§4.6).
 - The SPEC digest and the command digests of the required conditions are the same as in d. For a `/3` change, the structured declarations and producer inputs must also have the same meaning.
+- Under `/3` and later, every required condition is satisfied now; under `run-rules/8`, a `review` condition that d stored as met counts as met while d holds (§4.11).
 - There is no `reopen` note after d. Under `/5`, there is no `review` note either, and d's `record_head` is the line just before d (§4.8).
 - Under `run-rules/6`, d must be a judged line (its `record_head` is the hash of an earlier line and every line strictly between that line and d is a finding line (`run-finding/v1`), including when there are no intervening lines; the named line may itself be a finding line), and later `review` notes void d only for the current `standard` or `strict` tier. Every `done` line is judged on the full record first; unjudged complete and non-complete lines are then absent from status computation, including the completion record and its explanation, the latest done line, the budget window, elapsed time, post-completion intervals and budget-change refusal. A judged line invalid for another reason stops the search (§4.9).
 - The `prev` links of d and the lines before it are intact. If they are broken, the completion record is not evidence either (`record_integrity`).

@@ -1198,3 +1198,37 @@ func TestCheckCostEarlierRulesViews(t *testing.T) {
 		}
 	}
 }
+
+// A completion that a required condition voids, with the commit, the goal
+// digest and the commands unchanged, names that reason under every rule
+// that voids it (run-record.md §4.4 item 8): here a 요구 baseline mark added
+// to PLAN.md after ha done, under run-rules/7 and run-rules/8.
+func TestStaleCompletionNamesUnmetConditions(t *testing.T) {
+	t.Parallel()
+	const v = "stale-unmet-reason-missing"
+	const reason = "required conditions are not all satisfied"
+	for _, rules := range []string{"run-rules/7", "run-rules/8"} {
+		f := ccRepo(t, ccGoal{tier: "light", column: true, conds: []ccCond{ccChange("AC-1", "—"), ccMaintain("AC-2")}})
+		f.must(v, rules+" start", exitOK, "start", rgGoal, "--request", ccRequest, "--rules", rules)
+		f.base = f.git("rev-parse", "HEAD")
+		f.implement()
+		f.must(v, rules+" checks", exitOK, "check", rgGoal)
+		f.must(v, rules+" done", exitOK, "done", rgGoal)
+		f.mark("AC-1", ccMark)
+		if s := f.state(v, rules+" after the mark"); s.completion != nil {
+			t.Fatalf("setup: %s: a baseline mark added after ha done leaves completion record %v", rules, s.completion)
+		}
+		for _, view := range []struct {
+			args []string
+			want string
+		}{
+			{[]string{"status", rgGoal}, "is no longer valid: " + reason},
+			{[]string{"report", rgGoal, "--lang", "en"}, reason},
+			{[]string{"report", rgGoal, "--lang", "ko"}, "필수 조건이 모두 충족되지는 않음"},
+		} {
+			if _, out := f.ha(view.args...); !strings.Contains(out, view.want) {
+				t.Errorf("jaekit:violation=%s %s: ha %s does not give the voided completion's reason %q: %s", v, rules, strings.Join(view.args, " "), view.want, out)
+			}
+		}
+	}
+}

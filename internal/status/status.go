@@ -1229,13 +1229,8 @@ func (e *evaluator) completionRecord(rep *Report) (*int, error) {
 		if d.Kind != "done" || d.Status != Complete {
 			continue
 		}
-		for _, c := range rep.Criteria {
-			// A review condition d stored as met waits on review reasons,
-			// which a valid completion record keeps out (run-record.md §4.11).
-			_, met := storedReview(&d, c.ID)
-			if Structured(e.rules) && c.Required && !c.Satisfied && !(c.Kind == bundle.KindReview && e.in.Bundle.ReviewKind && met) {
-				return nil, nil
-			}
+		if e.unmetVoids(rep, &d) {
+			return nil, nil
 		}
 		for _, l := range lines[i+1:] {
 			if l.Kind == "note" && (l.Note == "reopen" || (l.Note == "review" && reviewInvalidates)) {
@@ -1261,6 +1256,23 @@ func (e *evaluator) completionRecord(rep *Report) (*int, error) {
 		return &seq, nil
 	}
 	return nil, nil
+}
+
+// unmetVoids reports whether a required condition that is not satisfied
+// voids completion record d (run-record.md §5.1): under run-rules/3 and later
+// any such condition does, except a review condition d stored as met, which
+// waits on review reasons a valid completion record keeps out (§4.11).
+func (e *evaluator) unmetVoids(rep *Report, d *record.Line) bool {
+	if !Structured(e.rules) {
+		return false
+	}
+	for _, c := range rep.Criteria {
+		_, met := storedReview(d, c.ID)
+		if c.Required && !c.Satisfied && !(c.Kind == bundle.KindReview && e.in.Bundle.ReviewKind && met) {
+			return true
+		}
+	}
+	return false
 }
 
 // storedReview returns the records done line d stored for id as a met review
@@ -1399,13 +1411,8 @@ func (e *evaluator) stale(rep *Report) *StaleCompletion {
 		if Reviewed(e.rules) && !CompletionIntegrity(e.rules) && !judgedLast(lines, i) {
 			s.Reasons = append(s.Reasons, "a record was appended while ha done computed it")
 		}
-		if e.rules == RulesV3 {
-			for _, c := range rep.Criteria {
-				if c.Required && !c.Satisfied {
-					s.Reasons = append(s.Reasons, "required conditions are not all satisfied")
-					break
-				}
-			}
+		if e.unmetVoids(rep, &d) {
+			s.Reasons = append(s.Reasons, "required conditions are not all satisfied")
 		}
 		return s
 	}
